@@ -1,0 +1,24 @@
+# Flavor staging/production (pola jnn_mobile - docs/mobile/mobile-base-stack.md Section 8)
+# staging : com.iamutaki.sambasku.staging  - "SambasKu Staging"
+# produksi: com.iamutaki.sambasku         - "SambasKu"
+# Tanpa Firebase (kamus belum butuh FCM - lihat base-stack Section 1).
+flavors:
+  staging:
+    app:
+      name: "SambasKu Staging"
+
+    android:
+      applicationId: "com.iamutaki.sambasku.staging"
+
+    ios:
+      bundleId: "com.iamutaki.sambasku.staging"
+
+  production:
+    app:
+      name: "SambasKu"
+
+    android:
+      applicationId: "com.iamutaki.sambasku"
+
+    ios:
+      bundleId: "com.iamutaki.sambasku"

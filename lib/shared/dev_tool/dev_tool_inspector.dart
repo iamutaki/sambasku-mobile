@@ -1,0 +1,46 @@
+import 'package:flutter/material.dart';
+
+/// Base class untuk semua DevTool inspector.
+///
+/// Setiap inspector baru cukup meng-extend class ini dan mengimplementasi
+/// semua getter serta [buildPage]. Inspector akan otomatis muncul di
+/// DevTool dashboard grid.
+///
+/// Contoh:
+/// ```dart
+/// class NetworkInspector extends DevToolInspector {
+///   @override
+///   String get name => 'Network';
+///
+///   @override
+///   String get description => 'Monitor API calls';
+///
+///   @override
+///   IconData get icon => FLucideIcons.wifi;
+///
+///   @override
+///   Color get color => const Color(0xFF1A73E8);
+///
+///   @override
+///   Widget buildPage(BuildContext context) => const NetworkPage();
+/// }
+/// ```
+abstract class DevToolInspector {
+  /// Nama tampilan inspector.
+  String get name;
+
+  /// Deskripsi singkat yang ditampilkan di bawah nama.
+  String get description;
+
+  /// Icon yang ditampilkan di grid card.
+  IconData get icon;
+
+  /// Warna tema untuk icon background.
+  Color get color;
+
+  /// Halaman inspector yang ditampilkan saat card di-tap.
+  Widget buildPage(BuildContext context);
+
+  /// Aksi tambahan di pojok kanan AppBar saat inspector aktif.
+  List<Widget>? get appBarActions => null;
+}

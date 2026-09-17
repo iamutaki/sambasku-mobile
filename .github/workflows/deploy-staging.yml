@@ -1,0 +1,131 @@
+name: Deploy (Staging)
+
+# Build flavor `staging` → GitHub Release (bukan "latest").
+# Pola jnn_mobile. Trigger: push branch `staging` (atau workflow_dispatch).
+#
+# Secrets GitHub yang DIBUTUHKAN (Settings → Secrets → Actions):
+#   KEYSTORE_BASE64     — isi upload-keystore.jks di-encode base64
+#   KEYSTORE_PASSWORD   — store password
+#   KEY_ALIAS           — key alias
+#   KEY_PASSWORD        — key password
+#
+# One-time keystore (lokal, jangan commit):
+#   keytool -genkey -v -keystore upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#   base64 -i upload-keystore.jks | pbcopy
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLAVOR: staging
+  FLUTTER_VERSION: "3.44.1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+  build-and-release:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history: commit-count build number akurat.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Decode keystore & write key.properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
+
+      - name: Resolve staging version (auto-increment)
+        id: version
+        # patch + buildNumber = commit count → +1 tiap push, tanpa commit balik.
+        # major.minor dari pubspec.yaml.
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
+          MAJOR_MINOR=$(printf '%s' "$BASE" | awk -F. '{print $1"."$2}')
+          N=$(git rev-list --count HEAD)
+          echo "name=${MAJOR_MINOR}.${N}" >> "$GITHUB_OUTPUT"
+          echo "code=${N}"              >> "$GITHUB_OUTPUT"
+          echo "Staging version: ${MAJOR_MINOR}.${N}+${N}"
+
+      - name: Write resolved version into pubspec.yaml
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          sed -i "s|^version:.*|version: ${VERSION_NAME}+${VERSION_CODE}|" pubspec.yaml
+          grep '^version:' pubspec.yaml
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Build release APKs (staging, split per ABI)
+        run: >
+          flutter build apk --release --obfuscate
+          --split-per-abi --split-debug-info=./debug-info
+          --flavor "$FLAVOR" -t lib/main.dart
+
+      - name: Upload APKs as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-apks
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: staging-v${{ steps.version.outputs.name }}
+          name: SambasKu (Staging) v${{ steps.version.outputs.name }}
+          generate_release_notes: true
+          files: build/app/outputs/flutter-apk/*.apk
+          make_latest: "false"

@@ -1,0 +1,42 @@
+import 'dart:async';
+
+import '../../domain/repositories/network_monitor_repository.dart';
+import '../models/network_request_record.dart';
+
+class InMemoryNetworkMonitorRepository implements NetworkMonitorRepository {
+  final List<NetworkRequestRecord> _records = <NetworkRequestRecord>[];
+  final StreamController<List<NetworkRequestRecord>> _controller =
+      StreamController<List<NetworkRequestRecord>>.broadcast();
+
+  @override
+  void clear() {
+    _records.clear();
+    _emit();
+  }
+
+  @override
+  List<NetworkRequestRecord> getRecords() => List.unmodifiable(_records);
+
+  @override
+  void upsertRecord(NetworkRequestRecord record) {
+    final index = _records.indexWhere((item) => item.id == record.id);
+
+    if (index == -1) {
+      _records.insert(0, record);
+    } else {
+      _records[index] = record;
+    }
+
+    _emit();
+  }
+
+  @override
+  Stream<List<NetworkRequestRecord>> watchRecords() async* {
+    yield getRecords();
+    yield* _controller.stream;
+  }
+
+  void _emit() {
+    _controller.add(getRecords());
+  }
+}

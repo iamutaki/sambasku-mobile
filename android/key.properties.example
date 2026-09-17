@@ -1,0 +1,8 @@
+# Copy ke android/key.properties (gitignored) untuk build release lokal.
+# Di CI, file ini digenerate dari GitHub Secrets (lihat deploy-staging.yml).
+#
+# storeFile relatif ke android/app/ (tempat build.gradle.kts).
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=upload-keystore.jks
