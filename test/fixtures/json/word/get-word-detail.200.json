@@ -1,0 +1,91 @@
+{
+  "success": true,
+  "data": {
+    "id": "01JDWORDMAKATN000000000000",
+    "lemma": "makatn",
+    "language_id": "01JDSBSLANG000000000000000",
+    "notes": null,
+    "word_type": "word",
+    "status": "published",
+    "meanings": [
+      {
+        "id": "01JDMEANING00000000000000",
+        "word_class_id": "01JDWCADV00000000000000000",
+        "definition": "Aktivitas memasukkan makanan ke mulut",
+        "order_index": 1,
+        "translations": [
+          {
+            "language_id": "01JDIDNLANG000000000000000",
+            "translation_text": "makan",
+            "translation_type": "direct"
+          },
+          {
+            "language_id": "01JDIDNLANG000000000000000",
+            "translation_text": "sudah makan",
+            "translation_type": "descriptive"
+          }
+        ],
+        "examples": [
+          {
+            "id": "01JDEXAMPLE0000000000000",
+            "source_language_id": "01JDSBSLANG000000000000000",
+            "source_sentence": "Kami udah makatn tadi.",
+            "target_language_id": "01JDIDNLANG000000000000000",
+            "target_sentence": "Kami sudah makan tadi.",
+            "source_type": "native_speaker"
+          }
+        ],
+        "word_class": {
+          "id": "01JDWCADV00000000000000000A",
+          "code": "adv",
+          "name": "Adverbia",
+          "parent_id": null
+        }
+      }
+    ],
+    "categories": [
+      {
+        "id": "01JDCATMAKANAN000000000000",
+        "name": "Makanan"
+      }
+    ],
+    "pronunciations": [
+      {
+        "id": "01JDPRON100000000000000000",
+        "notation": "ipa",
+        "value": "/makatn/",
+        "dialect_id": null
+      }
+    ],
+    "images": [
+      {
+        "id": "01JDIMAGE0000000000000000",
+        "url": "https://ik.imagekit.io/sambasku/words/makatn.jpg",
+        "alt_text": "Ilustrasi makatn",
+        "is_primary": true
+      }
+    ],
+    "related_words": [
+      {
+        "word_id": "01JDWORDMAKAN0000000000000",
+        "lemma": "makan",
+        "relation_type": "synonym"
+      }
+    ],
+    "appears_in": [],
+    "variants": [
+      {
+        "id": "01JDVARIANT100000000000000",
+        "form": "memakan",
+        "variant_type": "derivation",
+        "affix_type": "prefix",
+        "affix_value": "me-",
+        "dialect_id": null,
+        "notes": "awalan me-, /m/ menyesuaikan awal kata"
+      }
+    ],
+    "is_verified": true,
+    "is_corrected": false,
+    "verified_at": "2026-09-12T03:00:00.000Z"
+  }
+}

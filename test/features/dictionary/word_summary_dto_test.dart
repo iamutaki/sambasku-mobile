@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sambasku_mobile/features/dictionary/data/models/word_summary_dto.dart';
 
+/// Snapshot dari docs/json/word (repo mandiri, tanpa monorepo docs/).
 void main() {
   Map<String, dynamic> loadFixture(String name) {
-    final file = File('../docs/json/word/$name');
+    final file = File('test/fixtures/json/word/$name');
     return jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
   }
 

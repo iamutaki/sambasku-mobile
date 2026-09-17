@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sambasku_mobile/features/dictionary/data/models/word_detail_dto.dart';
 
+/// Snapshot dari docs/json/word (repo mandiri, tanpa monorepo docs/).
 void main() {
   test('get-word-detail.200.json → WordDetailDto + relasi', () {
-    final file = File('../docs/json/word/get-word-detail.200.json');
+    final file = File('test/fixtures/json/word/get-word-detail.200.json');
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     final dto = WordDetailDto.fromJson(json['data'] as Map<String, dynamic>);
 

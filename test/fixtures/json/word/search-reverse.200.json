@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "01JDWORDMAKATN000000000000",
+      "lemma": "makatn",
+      "language_id": "01JDSBSLANG000000000000000",
+      "language_code": "SBS",
+      "word_type": "word",
+      "status": "published",
+      "matched_translation": "makan",
+      "is_verified": true
+    }
+  ],
+  "meta": {
+    "limit": 20,
+    "next_cursor": null,
+    "has_more": false
+  }
+}
