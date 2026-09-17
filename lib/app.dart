@@ -4,11 +4,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/theme_mode_controller.dart';
+import 'core/widgets/version_banner.dart';
 import 'flavors.dart';
 import 'shared/dev_tool/dev_tool.dart';
 import 'shared/dev_tool/storage_inspector/secure_storage_inspector.dart';
 import 'shared/dev_tool/storage_inspector/shared_pref_inspector.dart';
-import 'shared/widgets/staging_flavor_banner.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -38,7 +38,7 @@ class App extends ConsumerWidget {
         return FTheme(
           data: fTheme,
           child: FToaster(
-            child: StagingFlavorBanner(
+            child: VersionBanner(
               child: DevToolOverlay(
                 inspectors: [
                   NetworkMonitorInspector(),
