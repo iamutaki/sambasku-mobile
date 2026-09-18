@@ -35,6 +35,7 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
   /// Trigger kirim usulan kata (anonim).
   ///
   /// Semua parameter WAJIB dari form UI. Minimal 1 translation_text.
+  /// `translationLanguageId` = bahasa target terjemahan (Indonesia/IDN).
   Future<void> submit({
     required String lemma,
     required String languageId,
@@ -44,6 +45,7 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    required String translationLanguageId,
   }) async {
     if (state.isSubmitting) return;
 
@@ -64,6 +66,7 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
       translationTexts: translationTexts,
       categoryIds: categoryIds,
       notes: notes,
+      translationLanguageId: translationLanguageId,
     ));
 
     result.match(

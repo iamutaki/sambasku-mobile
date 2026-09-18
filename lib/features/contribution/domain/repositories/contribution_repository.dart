@@ -18,5 +18,7 @@ abstract interface class ContributionRepository {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    // Bahasa target terjemahan = Indonesia (IDN), di-resolve dari page.
+    required String translationLanguageId,
   });
 }

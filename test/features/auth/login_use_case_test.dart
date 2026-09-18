@@ -21,6 +21,11 @@ class _FakeRepo implements AuthRepository {
     receivedEmail = email;
     return result;
   }
+
+  @override
+  Future<Either<AuthFailure, void>> logout() async {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

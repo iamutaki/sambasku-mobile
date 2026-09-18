@@ -4,6 +4,7 @@ import 'package:retrofit/retrofit.dart';
 import '../../../../core/models/api_response.dart';
 import '../models/login_request_dto.dart';
 import '../models/login_response_dto.dart';
+import '../models/logout_request_dto.dart';
 
 part 'auth_remote_datasource.g.dart';
 
@@ -17,4 +18,7 @@ abstract interface class AuthRemoteDatasource {
 
   @POST('/api/v1/auth/login')
   Future<ApiResponse<LoginResponseDto>> login(@Body() LoginRequestDto body);
+
+  @POST('/api/v1/auth/logout')
+  Future<void> logout(@Body() LogoutRequestDto body);
 }

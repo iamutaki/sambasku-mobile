@@ -6,7 +6,9 @@ import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
+import '../models/create_word_meaning_dto.dart';
 import '../models/create_word_request_dto.dart';
+import '../models/create_word_translation_dto.dart';
 
 class ContributionRepositoryImpl implements ContributionRepository {
   ContributionRepositoryImpl(this._remoteDatasource);
@@ -23,15 +25,30 @@ class ContributionRepositoryImpl implements ContributionRepository {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    required String translationLanguageId,
   }) async {
     try {
       final body = CreateWordRequestDto(
         lemma: lemma,
         languageId: languageId,
-        wordClassId: wordClassId,
-        definition: definition,
         dialectId: dialectId,
-        translationTexts: translationTexts,
+        // Form datar (word_class_id/definition/translation_texts) di-transform
+        // ke bentuk meanings[] kontrak backend.
+        meanings: [
+          CreateWordMeaningDto(
+            wordClassId: wordClassId,
+            definition: definition,
+            orderIndex: 1,
+            translations: translationTexts
+                .map(
+                  (text) => CreateWordTranslationDto(
+                    languageId: translationLanguageId,
+                    translationText: text,
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ],
         categoryIds: categoryIds,
         notes: notes,
       );

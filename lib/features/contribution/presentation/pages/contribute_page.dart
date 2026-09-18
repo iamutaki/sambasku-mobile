@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../domain/failures/contribution_failure.dart';
 import '../models/submit_word_state.dart';
 import '../providers/submit_word_providers.dart';
 
@@ -25,16 +26,23 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _tr1Ctrl;
   late final TextEditingController _notesCtrl;
 
-  String? _languageId;
   String? _wordClassId;
   String? _dialectId;
 
   @override
   void initState() {
     super.initState();
-    _lemmaCtrl = TextEditingController(text: widget.initialLemma ?? '');
+    // Arah usulan default Sambas → Indonesia. Bila user datang dari CTA
+    // banner search-miss arah terjemahan (kata Indonesia tidak ketemu),
+    // istilah yang dicari dianggap TERJEMAHAN, bukan lemma.
+    final isTranslationMiss = widget.initialSearchIn == 'translation';
+    _lemmaCtrl = TextEditingController(
+      text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
+    );
     _defCtrl = TextEditingController();
-    _tr1Ctrl = TextEditingController();
+    _tr1Ctrl = TextEditingController(
+      text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
+    );
     _notesCtrl = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,9 +75,15 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   Widget build(BuildContext context) {
     final languagesAsync = ref.watch(_referenceLanguagesProvider);
     final wordClassesAsync = ref.watch(_referenceWordClassesProvider);
-    final dialectsAsync = _languageId == null
+    // Bahasa default: Sambas (code SBS). Tidak ada dropdown - cukup label.
+    // ID di-resolve dari endpoint /languages; dipakai untuk dialek + submit.
+    final sambasLanguageId = languagesAsync.value
+        ?.where((e) => e.code.toUpperCase() == 'SBS')
+        .firstOrNull
+        ?.id;
+    final dialectsAsync = sambasLanguageId == null
         ? const AsyncValue<List<_OptionItem>>.data([])
-        : ref.watch(_referenceDialectsProvider(_languageId!));
+        : ref.watch(_referenceDialectsProvider(sambasLanguageId));
 
     final state = ref.watch(submitWordProvider);
     final notifier = ref.read(submitWordProvider.notifier);
@@ -80,6 +94,24 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       if (success != null) {
         final wid = success.wordId?.toString() ?? '';
         _showSuccessDialog(context, wid);
+        return;
+      }
+
+      // Global error (4xx/5xx/network) selalu muncul sebagai toast agar
+      // kelihatan walau kolom error di atas form sedang keluar dari layar.
+      // VALIDATION_ERROR cukup toast panduan - detail per field tetap inline.
+      final failure = next.failure;
+      if (failure is ContributionFailure && prev?.failure != failure) {
+        final message = failure.isValidationError
+            ? 'Periksa kembali isian yang ditandai merah'
+            : (failure.message.isNotEmpty ? failure.message : null);
+        if (message != null) {
+          showFToast(
+            context: context,
+            title: Text(message),
+            variant: FToastVariant.destructive,
+          );
+        }
       }
     });
 
@@ -119,32 +151,50 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           _buildInlineError(notifier.errorFor('lemma')),
 
           const Gap(12),
-          // --- Language Dropdown ---
+          // --- Bahasa: default Sambas → Indonesia, tanpa dropdown ---
           _buildLabel('Bahasa', required: true),
           languagesAsync.when(
             loading: () => const SizedBox(
-              height: 44,
+              height: 24,
               child: Center(child: FCircularProgress()),
             ),
             error: (e, _) => _BuildReferenceError(
               message: 'Gagal muat bahasa: $e',
               onRetry: () => ref.invalidate(_referenceLanguagesProvider),
             ),
-            data: (items) => _BuildOptionsDropdown<_OptionItem>(
-              items: items,
-              selected: _languageId == null
-                  ? null
-                  : items.where((e) => e.id == _languageId).firstOrNull,
-              hint: '-- Pilih Bahasa --',
-              labelFor: (e) => '${e.name} (${e.code.toUpperCase()})',
-              onChanged: (val) {
-                _onFieldEdited();
-                setState(() {
-                  _languageId = val?.id;
-                  _dialectId = null;
-                });
-              },
-            ),
+            data: (items) {
+              final sambas = items
+                  .where((e) => e.code.toUpperCase() == 'SBS')
+                  .firstOrNull;
+              return Row(
+                children: [
+                  Icon(
+                    FLucideIcons.languages,
+                    size: 16,
+                    color: theme.colors.primary,
+                  ),
+                  const Gap(8),
+                  Text(
+                    sambas != null
+                        ? '${sambas.name} (${sambas.code.toUpperCase()})'
+                        : 'Bahasa Sambas (SBS)',
+                    style: theme.typography.sm.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Gap(8),
+                  Expanded(
+                    child: Text(
+                      '- arah: Sambas → Indonesia',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           _buildInlineError(notifier.errorFor('language_id')),
 
@@ -176,11 +226,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           _buildInlineError(notifier.errorFor('word_class_id')),
 
           const Gap(12),
-          // --- Dialect (optional, only after language selected) ---
+          // --- Dialect (optional, aktif setelah bahasa Sambas ter-resolve) ---
           _buildLabel('Dialek'),
-          if (_languageId == null)
+          if (sambasLanguageId == null)
             Text(
-              'Pilih bahasa terlebih dahulu',
+              'Bahasa Sambas belum dimuat, dialek menunggu.',
               style: theme.typography.sm.copyWith(
                 color: theme.colors.mutedForeground,
               ),
@@ -193,8 +243,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
               ),
               error: (e, _) => _BuildReferenceError(
                 message: 'Gagal muat dialek: $e',
-                onRetry: () =>
-                    ref.invalidate(_referenceDialectsProvider(_languageId!)),
+                onRetry: () => ref.invalidate(
+                  _referenceDialectsProvider(sambasLanguageId),
+                ),
               ),
               data: (items) => _BuildOptionsDropdown<_OptionItem>(
                 items: items,
@@ -280,15 +331,29 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   Future<void> _submitForm() async {
     final notifier = ref.read(submitWordProvider.notifier);
+    final languages =
+        ref.read(_referenceLanguagesProvider).value ?? const <_OptionItem>[];
+    final languageId =
+        languages.where((e) => e.code.toUpperCase() == 'SBS').firstOrNull?.id ??
+            '';
+    // Arah usulan selalu Sambas → Indonesia; bahasa target terjemahan
+    // di-resolve dari endpoint /languages (code IDN), wajib dikirim di
+    // bagian meanings.translations[].language_id.
+    final translationLanguageId = languages
+            .where((e) => e.code.toUpperCase() == 'IDN')
+            .firstOrNull
+            ?.id ??
+        '';
     await notifier.submit(
       lemma: _lemmaCtrl.text,
-      languageId: _languageId ?? '',
+      languageId: languageId,
       wordClassId: _wordClassId ?? '',
       definition: _defCtrl.text,
       dialectId: _dialectId,
       translationTexts: [_tr1Ctrl.text],
       categoryIds: [],
       notes: _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
+      translationLanguageId: translationLanguageId,
     );
   }
 
@@ -458,7 +523,7 @@ final _referenceDialectsProvider =
 
 /// Fallback ExpansionTile-based dropdown (pasti compile, tidak bergantung
 /// widget Forui select yang API-nya berbeda-beda antar versi).
-class _BuildOptionsDropdown<T> extends StatelessWidget {
+class _BuildOptionsDropdown<T> extends StatefulWidget {
   const _BuildOptionsDropdown({
     required this.items,
     required this.selected,
@@ -474,11 +539,20 @@ class _BuildOptionsDropdown<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
 
   @override
+  State<_BuildOptionsDropdown<T>> createState() =>
+      _BuildOptionsDropdownState<T>();
+}
+
+class _BuildOptionsDropdownState<T> extends State<_BuildOptionsDropdown<T>> {
+  final _controller = ExpansibleController();
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        controller: _controller,
         tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         shape: RoundedRectangleBorder(
           side: BorderSide(color: theme.colors.border, width: 1),
@@ -490,32 +564,37 @@ class _BuildOptionsDropdown<T> extends StatelessWidget {
         ),
         childrenPadding: const EdgeInsets.symmetric(vertical: 4),
         title: Text(
-          selected != null ? labelFor(selected as T) : hint,
+          widget.selected != null
+              ? widget.labelFor(widget.selected as T)
+              : widget.hint,
           style: theme.typography.sm.copyWith(
-            color: selected != null
+            color: widget.selected != null
                 ? theme.colors.foreground
                 : theme.colors.mutedForeground,
           ),
         ),
-        children: items.isEmpty
+        children: widget.items.isEmpty
             ? [
                 Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text(
-                    hint,
+                    widget.hint,
                     style: theme.typography.sm.copyWith(
                       color: theme.colors.mutedForeground,
                     ),
                   ),
                 ),
               ]
-            : items
+            : widget.items
                   .map(
                     (item) => ListTile(
                       minTileHeight: 36,
                       dense: true,
-                      title: Text(labelFor(item), style: theme.typography.sm),
-                      trailing: selected == item
+                      title: Text(
+                        widget.labelFor(item),
+                        style: theme.typography.sm,
+                      ),
+                      trailing: widget.selected == item
                           ? Icon(
                               FLucideIcons.check,
                               size: 16,
@@ -523,8 +602,8 @@ class _BuildOptionsDropdown<T> extends StatelessWidget {
                             )
                           : null,
                       onTap: () {
-                        onChanged(item);
-                        if (context.mounted) Navigator.of(context).maybePop();
+                        widget.onChanged(item);
+                        _controller.collapse();
                       },
                     ),
                   )

@@ -21,6 +21,8 @@ class AuthTokenStorage {
   static const _accessTokenKey = 'accessToken';
   static const _refreshTokenKey = 'refreshToken';
   static const _isAuthKey = 'isAuth';
+  static const _usernameKey = 'sessionUsername';
+  static const _roleKey = 'sessionRole';
 
   Future<SharedPreferences> get _sharedPrefs async =>
       _resolvedPrefs ??= await SharedPreferences.getInstance();
@@ -57,7 +59,33 @@ class AuthTokenStorage {
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _refreshTokenKey),
     ]);
+    final prefs = await _sharedPrefs;
+    await Future.wait([
+      prefs.remove(_usernameKey),
+      prefs.remove(_roleKey),
+    ]);
     await setIsAuth(false);
+  }
+
+  /// Simpan info user dari response login (backend tak punya endpoint
+  /// "profile/me", jadi username + role dipakai untuk info user di Profil).
+  Future<void> saveSessionUser({
+    required String username,
+    required String? role,
+  }) async {
+    final prefs = await _sharedPrefs;
+    await Future.wait([
+      prefs.setString(_usernameKey, username),
+      if (role != null && role.isNotEmpty) prefs.setString(_roleKey, role),
+    ]);
+  }
+
+  Future<({String? username, String? role})> getSessionUser() async {
+    final prefs = await _sharedPrefs;
+    return (
+      username: prefs.getString(_usernameKey),
+      role: prefs.getString(_roleKey),
+    );
   }
 
   Future<bool> getIsAuth() async => (await _sharedPrefs).getBool(_isAuthKey) ?? false;

@@ -21,11 +21,35 @@ class ContributionFailure {
 
   /// Cari error inline untuk field tertentu. Kosong = tidak ada error.
   /// Dipakai UI: `Text(failure.errorFor('lemma') ?? '')` di bawah input.
+  ///
+  /// Field backend bertingkat di-normal-kan ke padanan field form:
+  /// - `meanings.0.word_class_id` → `word_class_id`
+  /// - `meanings.0.definition` → `definition`
+  /// - `meanings.0.translations.0.language_id` → `translation_texts`
   String? errorFor(String field) {
     for (final d in details) {
-      if (d.field == field) return d.message;
+      if (_displayField(d.field) == field) return d.message;
     }
     return null;
+  }
+
+  /// Normalisasi jalur field dari VALIDATION_ERROR backend (`meanings.N.*`)
+  /// ke nama field UI; buang index array supaya `meanings.0.definition`
+  /// dan `meanings.1.definition` sama-sama tampil di kolom definisi.
+  String _displayField(String path) {
+    final parts = path
+        .split('.')
+        .where((p) => int.tryParse(p) == null)
+        .toList(growable: false);
+    final flat = parts.join('.');
+    if (flat.startsWith('meanings.')) {
+      final inner = flat.substring('meanings.'.length);
+      if (inner == 'translations' || inner.startsWith('translations.')) {
+        return 'translation_texts';
+      }
+      return inner;
+    }
+    return flat;
   }
 
   bool get isRateLimited => errorCode == 'RATE_LIMITED';

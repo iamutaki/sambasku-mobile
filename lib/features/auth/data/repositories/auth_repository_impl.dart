@@ -7,6 +7,7 @@ import '../../domain/failures/auth_failure.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/login_request_dto.dart';
+import '../models/logout_request_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remoteDatasource, this._tokenStorage);
@@ -45,6 +46,10 @@ class AuthRepositoryImpl implements AuthRepository {
         accessToken: payload.accessToken,
         refreshToken: refreshToken,
       );
+      await _tokenStorage.saveSessionUser(
+        username: payload.user.username,
+        role: payload.user.role,
+      );
       await _tokenStorage.setIsAuth(true);
 
       return Either.right(AuthSession(
@@ -57,6 +62,24 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (error) {
       return Either.left(AuthFailure(error.toString()));
     }
+  }
+
+  @override
+  Future<Either<AuthFailure, void>> logout() async {
+    try {
+      final refreshToken = await _tokenStorage.getRefreshToken();
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _remoteDatasource.logout(
+          LogoutRequestDto(refreshToken: refreshToken),
+        );
+      }
+    } on DioException catch (_) {
+      // revoke refresh bersifat best-effort (00-api-auth.md): offline/gagal
+      // tetap lanjut clear sesi lokal - refresh token tak lagi dimiliki client
+    } finally {
+      await _tokenStorage.clearTokens();
+    }
+    return Either.right(null);
   }
 
   /// Baca envelope error dari body 4xx (error_code + message sudah

@@ -8,4 +8,8 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+
+  /// Revoke refresh token di backend (POST /api/v1/auth/logout),
+  /// lalu clear sesi lokal. Best-effort: gagal jaringan tetap clear.
+  Future<Either<AuthFailure, void>> logout();
 }

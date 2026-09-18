@@ -38,6 +38,7 @@ class SubmitAnonWordUseCase {
       translationTexts: translations,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
+      translationLanguageId: params.translationLanguageId.trim(),
     );
   }
 }
@@ -47,12 +48,15 @@ class SubmitAnonWordUseCase {
 /// - `translationTexts`: daftar terjemahan (min 1 sesuai spec 01-api-tambah-kata).
 /// - `categoryIds`: list ULID kategori (opsional, default kosong).
 /// - `dialectId` & `notes` opsional (bisa null / string kosong).
+/// - `translationLanguageId`: bahasa target terjemahan (Indonesia), diresolusi
+///   dari endpoint /languages di halaman kontribusi.
 class SubmitAnonWordParams {
   const SubmitAnonWordParams({
     required this.lemma,
     required this.languageId,
     required this.wordClassId,
     required this.definition,
+    required this.translationLanguageId,
     this.dialectId,
     this.translationTexts = const [],
     this.categoryIds = const [],
@@ -63,6 +67,7 @@ class SubmitAnonWordParams {
   final String languageId;
   final String wordClassId;
   final String definition;
+  final String translationLanguageId;
   final String? dialectId;
   final List<String> translationTexts;
   final List<String> categoryIds;

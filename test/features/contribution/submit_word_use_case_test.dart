@@ -20,6 +20,7 @@ class _FakeRepo implements ContributionRepository {
   List<String>? translationTexts;
   List<String>? categoryIds;
   String? notes;
+  String? translationLanguageId;
 
   @override
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
@@ -31,6 +32,7 @@ class _FakeRepo implements ContributionRepository {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    required String translationLanguageId,
   }) async {
     this.lemma = lemma;
     this.languageId = languageId;
@@ -40,6 +42,7 @@ class _FakeRepo implements ContributionRepository {
     this.translationTexts = translationTexts;
     this.categoryIds = categoryIds;
     this.notes = notes;
+    this.translationLanguageId = translationLanguageId;
     return result;
   }
 }
@@ -64,6 +67,7 @@ void main() {
         translationTexts: ['  ', '  make  ', '  '],
         categoryIds: ['  ', 'kat-01'],
         notes: 'halo',
+        translationLanguageId: 'lan-idn',
       ),
     );
 
@@ -74,6 +78,7 @@ void main() {
     // dialectId kosong → di-null-kan (kontrak repository optional)
     expect(repo.dialectId, isNull);
     expect(repo.notes, 'halo');
+    expect(repo.translationLanguageId, 'lan-idn');
     expect(r.getRight().toNullable()?.status, 'pending_review');
   });
 
@@ -95,6 +100,7 @@ void main() {
         wordClassId: 'wc-01',
         definition: 'memakai',
         translationTexts: ['make'],
+        translationLanguageId: 'lan-idn',
       ),
     );
 
@@ -115,6 +121,7 @@ void main() {
         wordClassId: 'wc-01',
         definition: 'y',
         translationTexts: ['   '],
+        translationLanguageId: 'lan-idn',
       ),
     );
 
