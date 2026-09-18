@@ -42,7 +42,7 @@ final class DictionarySearchNotifierProvider
 }
 
 String _$dictionarySearchNotifierHash() =>
-    r'3d0369612eaef082f315c413217e723419cb1da6';
+    r'4829145a811104e458bc0f38390d1f8d9b677b96';
 
 abstract class _$DictionarySearchNotifier
     extends $Notifier<DictionarySearchState> {

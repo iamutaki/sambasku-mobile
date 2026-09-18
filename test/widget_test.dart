@@ -1,9 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sambasku_mobile/app.dart';
+import 'package:sambasku_mobile/features/search_miss/domain/entities/search_miss.dart';
+import 'package:sambasku_mobile/features/search_miss/domain/failures/search_miss_failure.dart';
+import 'package:sambasku_mobile/features/search_miss/domain/providers/search_miss_domain_providers.dart';
+import 'package:sambasku_mobile/features/search_miss/domain/usecases/list_search_misses_use_case.dart';
 import 'package:sambasku_mobile/flavors.dart';
+
+class _FakeListSearchMissesUseCase implements ListSearchMissesUseCase {
+  const _FakeListSearchMissesUseCase();
+
+  @override
+  Future<Either<SearchMissFailure, List<SearchMiss>>> call(
+    ListSearchMissesParams params,
+  ) async =>
+      Either.right(<SearchMiss>[]);
+}
 
 void main() {
   // test tidak melewati main() - flavor wajib di-init manual
@@ -14,7 +29,17 @@ void main() {
   ) async {
     // plugin SharedPreferences tidak tersedia di test env - mock values
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const ProviderScope(child: App()));
+    // banner search-miss memakai jaringan; override usecase supaya test
+    // deterministik tanpa pending Timer (dio timeout) di fake-async zone.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          listSearchMissesUseCaseProvider
+              .overrideWithValue(const _FakeListSearchMissesUseCase()),
+        ],
+        child: const App(),
+      ),
+    );
     await tester.pump();
 
     // cold start langsung HOME (FScaffold shell + header Kamus Sambas)
