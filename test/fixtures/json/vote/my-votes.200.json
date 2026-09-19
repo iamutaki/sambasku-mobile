@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": [
+    {
+      "target_type": "word",
+      "target_id": "01JDWORDMAKATN0000000000A",
+      "value": 1
+    },
+    {
+      "target_type": "pronunciation",
+      "target_id": "01JDPRONMEDIA0000000000001",
+      "value": -1
+    }
+  ]
+}

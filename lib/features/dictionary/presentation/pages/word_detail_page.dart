@@ -5,6 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../comment/presentation/widgets/word_comments_section.dart';
+import '../../../vote/domain/entities/vote_target.dart';
+import '../../../vote/domain/failures/vote_failure.dart';
+import '../../../vote/presentation/providers/vote_providers.dart';
+import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_detail.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../providers/word_detail_providers.dart';
@@ -24,9 +30,7 @@ class WordDetailPage extends ConsumerWidget {
       childPad: true,
       header: FHeader.nested(
         title: const Text('Detail kata'),
-        prefixes: [
-          FHeaderAction.back(onPress: () => context.pop()),
-        ],
+        prefixes: [FHeaderAction.back(onPress: () => context.pop())],
       ),
       child: async.when(
         loading: () => const _DetailSkeleton(),
@@ -42,7 +46,9 @@ class WordDetailPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    isNotFound ? FLucideIcons.searchX : FLucideIcons.circleAlert,
+                    isNotFound
+                        ? FLucideIcons.searchX
+                        : FLucideIcons.circleAlert,
                     size: 56,
                     color: theme.colors.mutedForeground,
                   ),
@@ -73,21 +79,23 @@ class WordDetailPage extends ConsumerWidget {
             ),
           );
         },
-        data: (detail) => _DetailBody(detail: detail),
+        data: (detail) => _DetailBody(detail: detail, wordId: wordId),
       ),
     );
   }
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.detail});
+  const _DetailBody({required this.detail, required this.wordId});
 
   final WordDetail detail;
+  final String wordId;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final primaryImage = detail.images.where((i) => i.isPrimary).firstOrNull ??
+    final primaryImage =
+        detail.images.where((i) => i.isPrimary).firstOrNull ??
         detail.images.firstOrNull;
 
     return ListView(
@@ -147,11 +155,7 @@ class _DetailBody extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: detail.pronunciations
-                .map(
-                  (p) => FBadge(
-                    child: Text('${p.notation}: ${p.value}'),
-                  ),
-                )
+                .map((p) => FBadge(child: Text('${p.notation}: ${p.value}')))
                 .toList(),
           ),
         ],
@@ -165,6 +169,8 @@ class _DetailBody extends StatelessWidget {
                 .toList(),
           ),
         ],
+        const Gap(16),
+        _WordVoteBar(wordId: wordId),
         if (detail.meanings.isNotEmpty) ...[
           const Gap(24),
           _SectionTitle('Makna'),
@@ -175,17 +181,13 @@ class _DetailBody extends StatelessWidget {
           const Gap(24),
           _SectionTitle('Relasi'),
           const Gap(8),
-          ...detail.relatedWords.map(
-            (r) => _RelatedTile(related: r),
-          ),
+          ...detail.relatedWords.map((r) => _RelatedTile(related: r)),
         ],
         if (detail.appearsIn.isNotEmpty) ...[
           const Gap(24),
           _SectionTitle('Muncul dalam'),
           const Gap(8),
-          ...detail.appearsIn.map(
-            (r) => _RelatedTile(related: r),
-          ),
+          ...detail.appearsIn.map((r) => _RelatedTile(related: r)),
         ],
         if (detail.variants.isNotEmpty) ...[
           const Gap(24),
@@ -207,8 +209,121 @@ class _DetailBody extends StatelessWidget {
             );
           }),
         ],
+        const Gap(24),
+        WordCommentsSection(wordId: wordId),
       ],
     );
+  }
+}
+
+/// Vote bar kata (auth: toggle via VoteController; anonim: prompt login).
+class _WordVoteBar extends ConsumerWidget {
+  const _WordVoteBar({required this.wordId});
+
+  final String wordId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.theme;
+    final target = VoteTarget(type: 'word', id: wordId);
+    final async = ref.watch(voteControllerProvider(target));
+
+    // Vote = bagian opsional detail: gagal load cukup shrink + toast,
+    // jangan ganggu sisa halaman.
+    ref.listen(voteControllerProvider(target), (prev, next) {
+      if (next.hasError && !(prev?.hasError ?? false)) {
+        final err = next.error;
+        showFToast(
+          context: context,
+          title: Text(err is VoteFailure ? err.message : 'Gagal memuat vote'),
+          variant: FToastVariant.destructive,
+        );
+      }
+    });
+
+    // Constraint degeneratif (lebar < 50, mis. frame awal rute di device
+    // Oppo yang mengirim width 0/negatif) langsung shrink - layout anak
+    // tidak boleh melihat constraint gila. Guard di luar async.when agar
+    // ketiga cabang (loading/error/data) terlindungi.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 50) return const SizedBox.shrink();
+
+        return async.when(
+          loading: () => Skeletonizer(
+            enabled: true,
+            child: Row(
+              children: const [
+                Flexible(
+                  child: Text(
+                    'Apakah kata ini membantu?',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Gap(12),
+                Text('Upvote 0'),
+                Gap(6),
+                Text('Downvote 0'),
+              ],
+            ),
+          ),
+          error: (_, _) => const SizedBox.shrink(),
+          data: (view) => Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  'Apakah kata ini membantu?',
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.mutedForeground,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Gap(12),
+              Flexible(
+                child: VoteButtons(
+                  upvotes: view.upvotes,
+                  downvotes: view.downvotes,
+                  myVote: view.myVote,
+                  onVote: (value) => _vote(context, ref, target, value),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _vote(
+    BuildContext context,
+    WidgetRef ref,
+    VoteTarget target,
+    int value,
+  ) async {
+    final auth = ref.read(authStatusProvider).value;
+    if (!(auth?.isAuth ?? false)) {
+      showFToast(
+        context: context,
+        title: const Text('Masuk dulu untuk memberi vote'),
+        variant: FToastVariant.primary,
+      );
+      context.push('/login');
+      return;
+    }
+    final failure = await ref
+        .read(voteControllerProvider(target).notifier)
+        .toggle(value);
+    if (failure != null && context.mounted) {
+      showFToast(
+        context: context,
+        title: Text(failure.message),
+        variant: FToastVariant.destructive,
+      );
+    }
   }
 }
 

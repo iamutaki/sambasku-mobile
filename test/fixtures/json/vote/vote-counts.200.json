@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "data": [
+    {
+      "target_type": "word",
+      "target_id": "01JDWORDMAKATN0000000000A",
+      "upvotes": 4,
+      "downvotes": 1
+    },
+    {
+      "target_type": "meaning",
+      "target_id": "01JDMEANINGMAKATN00000000A",
+      "upvotes": 0,
+      "downvotes": 0
+    },
+    {
+      "target_type": "pronunciation",
+      "target_id": "01JDPRONMEDIA0000000000001",
+      "upvotes": 2,
+      "downvotes": 0
+    }
+  ]
+}

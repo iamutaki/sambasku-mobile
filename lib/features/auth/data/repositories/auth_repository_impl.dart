@@ -49,6 +49,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _tokenStorage.saveSessionUser(
         username: payload.user.username,
         role: payload.user.role,
+        userId: payload.user.id,
       );
       await _tokenStorage.setIsAuth(true);
 

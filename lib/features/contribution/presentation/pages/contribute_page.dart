@@ -335,14 +335,12 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         ref.read(_referenceLanguagesProvider).value ?? const <_OptionItem>[];
     final languageId =
         languages.where((e) => e.code.toUpperCase() == 'SBS').firstOrNull?.id ??
-            '';
+        '';
     // Arah usulan selalu Sambas → Indonesia; bahasa target terjemahan
     // di-resolve dari endpoint /languages (code IDN), wajib dikirim di
     // bagian meanings.translations[].language_id.
-    final translationLanguageId = languages
-            .where((e) => e.code.toUpperCase() == 'IDN')
-            .firstOrNull
-            ?.id ??
+    final translationLanguageId =
+        languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
     await notifier.submit(
       lemma: _lemmaCtrl.text,
@@ -549,65 +547,70 @@ class _BuildOptionsDropdownState<T> extends State<_BuildOptionsDropdown<T>> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        controller: _controller,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: theme.colors.border, width: 1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        collapsedShape: RoundedRectangleBorder(
-          side: BorderSide(color: theme.colors.border, width: 1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        childrenPadding: const EdgeInsets.symmetric(vertical: 4),
-        title: Text(
-          widget.selected != null
-              ? widget.labelFor(widget.selected as T)
-              : widget.hint,
-          style: theme.typography.sm.copyWith(
-            color: widget.selected != null
-                ? theme.colors.foreground
-                : theme.colors.mutedForeground,
+    // FScaffold forui tanpa ancestor Material - ExpansionTile/ListTile di
+    // dalamnya membutuhkannya, bungkus sendiri.
+    return Material(
+      color: Colors.transparent,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          controller: _controller,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: theme.colors.border, width: 1),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        children: widget.items.isEmpty
-            ? [
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    widget.hint,
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
+          collapsedShape: RoundedRectangleBorder(
+            side: BorderSide(color: theme.colors.border, width: 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          childrenPadding: const EdgeInsets.symmetric(vertical: 4),
+          title: Text(
+            widget.selected != null
+                ? widget.labelFor(widget.selected as T)
+                : widget.hint,
+            style: theme.typography.sm.copyWith(
+              color: widget.selected != null
+                  ? theme.colors.foreground
+                  : theme.colors.mutedForeground,
+            ),
+          ),
+          children: widget.items.isEmpty
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      widget.hint,
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
                     ),
                   ),
-                ),
-              ]
-            : widget.items
-                  .map(
-                    (item) => ListTile(
-                      minTileHeight: 36,
-                      dense: true,
-                      title: Text(
-                        widget.labelFor(item),
-                        style: theme.typography.sm,
+                ]
+              : widget.items
+                    .map(
+                      (item) => ListTile(
+                        minTileHeight: 36,
+                        dense: true,
+                        title: Text(
+                          widget.labelFor(item),
+                          style: theme.typography.sm,
+                        ),
+                        trailing: widget.selected == item
+                            ? Icon(
+                                FLucideIcons.check,
+                                size: 16,
+                                color: theme.colors.primary,
+                              )
+                            : null,
+                        onTap: () {
+                          widget.onChanged(item);
+                          _controller.collapse();
+                        },
                       ),
-                      trailing: widget.selected == item
-                          ? Icon(
-                              FLucideIcons.check,
-                              size: 16,
-                              color: theme.colors.primary,
-                            )
-                          : null,
-                      onTap: () {
-                        widget.onChanged(item);
-                        _controller.collapse();
-                      },
-                    ),
-                  )
-                  .toList(growable: false),
+                    )
+                    .toList(growable: false),
+        ),
       ),
     );
   }

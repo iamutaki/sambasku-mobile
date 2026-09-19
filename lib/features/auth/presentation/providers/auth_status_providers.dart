@@ -19,6 +19,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
       isAuth: isAuth,
       username: user.username,
       role: user.role,
+      userId: user.userId,
     );
   }
 

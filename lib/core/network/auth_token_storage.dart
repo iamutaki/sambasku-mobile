@@ -8,7 +8,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// shared_preferences untuk redirect router yang cepat.
 class AuthTokenStorage {
   AuthTokenStorage({FlutterSecureStorage? storage, SharedPreferences? prefs})
-    : _storage = storage ?? const FlutterSecureStorage(),
+    // resetOnError: wipe store terenkripsi yang tak terbaca lagi (mis.
+    // signing key berganti) daripada gagal decrypt di tiap launch.
+    : _storage =
+          storage
+              ?? const FlutterSecureStorage(
+                aOptions: AndroidOptions(resetOnError: true),
+              ),
       _resolvedPrefs = prefs;
 
   static AuthTokenStorage? _instance;
@@ -23,6 +29,7 @@ class AuthTokenStorage {
   static const _isAuthKey = 'isAuth';
   static const _usernameKey = 'sessionUsername';
   static const _roleKey = 'sessionRole';
+  static const _userIdKey = 'sessionUserId';
 
   Future<SharedPreferences> get _sharedPrefs async =>
       _resolvedPrefs ??= await SharedPreferences.getInstance();
@@ -63,32 +70,42 @@ class AuthTokenStorage {
     await Future.wait([
       prefs.remove(_usernameKey),
       prefs.remove(_roleKey),
+      prefs.remove(_userIdKey),
     ]);
     await setIsAuth(false);
   }
 
   /// Simpan info user dari response login (backend tak punya endpoint
-  /// "profile/me", jadi username + role dipakai untuk info user di Profil).
+  /// "profile/me", jadi username + role + userId dipakai untuk info user
+  /// di Profil dan otorisasi aksi milik sendiri di UI, mis. hapus komentar).
   Future<void> saveSessionUser({
     required String username,
     required String? role,
+    String? userId,
   }) async {
     final prefs = await _sharedPrefs;
     await Future.wait([
       prefs.setString(_usernameKey, username),
       if (role != null && role.isNotEmpty) prefs.setString(_roleKey, role),
+      if (userId != null && userId.isNotEmpty) prefs.setString(_userIdKey, userId),
     ]);
   }
 
-  Future<({String? username, String? role})> getSessionUser() async {
+  Future<({String? username, String? role, String? userId})> getSessionUser() async {
     final prefs = await _sharedPrefs;
     return (
       username: prefs.getString(_usernameKey),
       role: prefs.getString(_roleKey),
+      userId: prefs.getString(_userIdKey),
     );
   }
 
-  Future<bool> getIsAuth() async => (await _sharedPrefs).getBool(_isAuthKey) ?? false;
+  /// Flag prefs bisa stale-true saat secure store ter-wipe (reinstall,
+  /// signing key berganti) - keberadaan token adalah kebenaran akhir.
+  Future<bool> getIsAuth() async {
+    if (!((await _sharedPrefs).getBool(_isAuthKey) ?? false)) return false;
+    return await getAccessToken() != null;
+  }
 
   Future<void> setIsAuth(bool value) async =>
       (await _sharedPrefs).setBool(_isAuthKey, value);
