@@ -130,7 +130,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           FAlert(
             title: const Text('Kirim usul sebagai tamu'),
             subtitle: const Text(
-              'Kata Anda akan masuk antrean verifikasi tim. Limit 5 usul per jam per perangkat.',
+              'Kata Anda akan masuk antrean verifikasi tim.',
             ),
           ),
           const Gap(12),

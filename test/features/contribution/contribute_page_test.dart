@@ -95,7 +95,7 @@ void main() {
     await pumpContribute(
       tester,
       failure: const ContributionFailure(
-        'Kirim terlalu sering. Coba lagi 1 jam lagi (limit 5 per jam).',
+        'Terlalu banyak usulan dikirim. Coba lagi nanti.',
         errorCode: 'RATE_LIMITED',
       ),
     );
@@ -106,7 +106,7 @@ void main() {
       find.descendant(
         of: find.byType(FToast),
         matching: find.text(
-          'Kirim terlalu sering. Coba lagi 1 jam lagi (limit 5 per jam).',
+          'Terlalu banyak usulan dikirim. Coba lagi nanti.',
         ),
       ),
       findsOneWidget,

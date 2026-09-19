@@ -9,7 +9,6 @@ part 'contribution_remote_datasource.g.dart';
 
 /// Endpoint submit kata (publik, anonim).
 ///
-/// Rate limit dari middleware: **5 submit / jam / IP**.
 /// Body valid = 201 Created { data: { word_id, status: 'pending_review' } }.
 /// Body invalid / referensi tidak ada = 400 VALIDATION_ERROR details[].
 @RestApi()

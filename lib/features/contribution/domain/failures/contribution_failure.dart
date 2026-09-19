@@ -6,8 +6,8 @@ import '../../../../core/models/api_response.dart';
 /// - 400 VALIDATION_ERROR: `details[]` berisi error inline per field
 ///   → di UI tampilkan di bawah FTextField yang sesuai (mobile-base-stack
 ///   Section 11 mapping VALIDATION_ERROR).
-/// - 429 RATE_LIMITED: IP user anonim sudah > 5 submit/jam → toast
-///   "Kirim terlalu sering, coba lagi 1 jam".
+/// - 429 RATE_LIMITED: usulan dikirim terlalu sering → toast
+///   "Terlalu banyak usulan dikirim. Coba lagi nanti".
 class ContributionFailure {
   const ContributionFailure(
     this.message, {

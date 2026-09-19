@@ -80,7 +80,7 @@ class ActivityPage extends StatelessWidget {
                     const Gap(10),
                     Expanded(
                       child: Text(
-                        'Limit 5 usul per jam per perangkat. Kata Anda masuk antrean verifikasi sebelum tayang.',
+                        'Kata Anda masuk antrean verifikasi sebelum tayang.',
                         style: theme.typography.sm.copyWith(
                           color: theme.colors.mutedForeground,
                         ),

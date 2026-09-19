@@ -143,7 +143,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
 
   String _fallbackForStatus(int? statusCode, String? errorCode) {
     if (statusCode == 429 || errorCode == 'RATE_LIMITED') {
-      return 'Kirim terlalu sering. Coba lagi 1 jam lagi (limit 5 per jam).';
+      return 'Terlalu banyak usulan dikirim. Coba lagi nanti.';
     }
     if (statusCode == 400) {
       return 'Periksa kembali input Anda (beberapa kolom invalid).';
