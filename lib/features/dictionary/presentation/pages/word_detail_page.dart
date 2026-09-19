@@ -6,7 +6,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../bookmark/presentation/providers/bookmark_providers.dart';
+import '../../../bookmark/presentation/widgets/bookmark_button.dart';
 import '../../../comment/presentation/widgets/word_comments_section.dart';
+import '../../../../core/widgets/image_preview.dart';
 import '../../../vote/domain/entities/vote_target.dart';
 import '../../../vote/domain/failures/vote_failure.dart';
 import '../../../vote/presentation/providers/vote_providers.dart';
@@ -35,6 +38,7 @@ class WordDetailPage extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
+        suffixes: [_WordBookmarkHeaderAction(wordId: wordId)],
       ),
       child: async.when(
         loading: () => const _DetailSkeleton(),
@@ -110,14 +114,25 @@ class _DetailBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (primaryImage != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  primaryImage.url,
-                  width: 72,
-                  height: 72,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              Semantics(
+                button: true,
+                label: 'Pratinjau gambar',
+                child: GestureDetector(
+                  onTap: () => showImagePreview(
+                    context,
+                    urls: detail.images.map((i) => i.url).toList(growable: false),
+                    initialIndex: detail.images.indexOf(primaryImage),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      primaryImage.url,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
                 ),
               ),
               const Gap(12),
@@ -198,6 +213,9 @@ class _DetailBody extends StatelessWidget {
 
         const Gap(10),
         _WordVoteBar(wordId: wordId),
+
+        const Gap(10),
+        const _SuggestEditCta(),
 
         if (detail.meanings.isNotEmpty) ...[
           const Gap(16),
@@ -362,6 +380,87 @@ class _WordVoteBar extends ConsumerWidget {
         variant: FToastVariant.destructive,
       );
     }
+  }
+}
+
+/// Tombol bookmark di header detail kata (16-api-bookmark.md). Widget
+/// tombolnya murni tampilan - guard login + toast failure ada di sini
+/// (pola _vote pada _WordVoteBar).
+class _WordBookmarkHeaderAction extends ConsumerWidget {
+  const _WordBookmarkHeaderAction({required this.wordId});
+
+  final String wordId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(bookmarkToggleControllerProvider(wordId));
+
+    // Error seed → tetap tampilkan tombol (unbookmarked) supaya user bisa
+    // coba toggle; jangan SizedBox.shrink (hilang tanpa pesan).
+    return async.when(
+      loading: () => const BookmarkButton(
+        isBookmarked: false,
+        busy: true,
+        onPress: _noop,
+      ),
+      error: (_, _) => BookmarkButton(
+        isBookmarked: false,
+        onPress: () => _toggle(context, ref),
+      ),
+      data: (status) => BookmarkButton(
+        isBookmarked: status.isBookmarked,
+        onPress: () => _toggle(context, ref),
+      ),
+    );
+  }
+
+  static Future<void> _noop() async {}
+
+  Future<void> _toggle(BuildContext context, WidgetRef ref) async {
+    final auth = ref.read(authStatusProvider).value;
+    if (!(auth?.isAuth ?? false)) {
+      showFToast(
+        context: context,
+        title: const Text('Masuk dulu untuk menyimpan kata'),
+        variant: FToastVariant.primary,
+      );
+      context.push('/login');
+      return;
+    }
+    final failure = await ref
+        .read(bookmarkToggleControllerProvider(wordId).notifier)
+        .toggle();
+    if (failure != null && context.mounted) {
+      showFToast(
+        context: context,
+        title: Text(failure.message),
+        variant: FToastVariant.destructive,
+      );
+    }
+  }
+}
+
+/// CTA placeholder: usul edit entri (sinonim, varian, pengucapan, …).
+/// Action sementara toast - form/alur submit belum ada.
+class _SuggestEditCta extends StatelessWidget {
+  const _SuggestEditCta();
+
+  @override
+  Widget build(BuildContext context) {
+    return FTile(
+      prefix: const Icon(FLucideIcons.penLine),
+      title: const Text('Usulkan perubahan'),
+      subtitle: const Text('Sinonim, varian, pengucapan, dan sejenisnya'),
+      suffix: Icon(
+        FLucideIcons.chevronRight,
+        size: 16,
+        color: context.theme.colors.mutedForeground,
+      ),
+      onPress: () => showFToast(
+        context: context,
+        title: const Text('Usulkan perubahan segera hadir'),
+      ),
+    );
   }
 }
 

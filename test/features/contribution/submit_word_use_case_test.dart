@@ -23,6 +23,7 @@ class _FakeRepo implements ContributionRepository {
   List<String>? spellingVariants;
   String? translationLanguageId;
   List<SubmitWordImage>? images;
+  String? searchMissId;
 
   @override
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
@@ -37,6 +38,7 @@ class _FakeRepo implements ContributionRepository {
     List<String> spellingVariants = const [],
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],
+    String? searchMissId,
   }) async {
     this.lemma = lemma;
     this.languageId = languageId;
@@ -49,6 +51,7 @@ class _FakeRepo implements ContributionRepository {
     this.spellingVariants = spellingVariants;
     this.translationLanguageId = translationLanguageId;
     this.images = images;
+    this.searchMissId = searchMissId;
     return result;
   }
 }

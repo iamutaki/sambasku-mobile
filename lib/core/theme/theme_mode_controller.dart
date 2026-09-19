@@ -4,34 +4,46 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'theme_mode_controller.g.dart';
 
-/// Preferensi tema: default system, toggle menyimpan light/dark ke SharedPreferences.
+/// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
+///
+/// [preload] wajib dipanggil di main sebelum runApp supaya frame pertama
+/// tidak flash ke ThemeMode.system (ikut device) lalu jump ke nilai prefs.
 @Riverpod(keepAlive: true)
 class ThemeModeController extends _$ThemeModeController {
   static const prefKey = 'themeMode';
 
-  @override
-  ThemeMode build() {
-    Future.microtask(_hydrate);
-    return ThemeMode.system;
+  /// Seed dari [preload] — default system hanya jika preload belum jalan.
+  static ThemeMode initial = ThemeMode.system;
+
+  static Future<void> preload([SharedPreferences? prefs]) async {
+    final p = prefs ?? await SharedPreferences.getInstance();
+    initial = _parse(p.getString(prefKey));
   }
 
-  Future<void> _hydrate() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(prefKey);
-    if (raw == null || !ref.mounted) return;
-    state = switch (raw) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
-  }
+  static ThemeMode _parse(String? raw) => switch (raw) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
+
+  @override
+  ThemeMode build() => initial;
 
   /// Toggle berdasar brightness efektif saat ini → lawannya, lalu persist.
   Future<void> toggle(Brightness currentEffective) async {
     final next =
         currentEffective == Brightness.dark ? ThemeMode.light : ThemeMode.dark;
     state = next;
+    initial = next;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefKey, next.name);
+  }
+
+  /// Set mode eksplisit (system/light/dark) dari menu Tampilan, lalu persist.
+  Future<void> set(ThemeMode mode) async {
+    state = mode;
+    initial = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(prefKey, mode.name);
   }
 }

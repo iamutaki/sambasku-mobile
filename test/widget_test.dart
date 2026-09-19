@@ -4,6 +4,8 @@ import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sambasku_mobile/app.dart';
+import 'package:sambasku_mobile/core/theme/forui_palette_controller.dart';
+import 'package:sambasku_mobile/core/theme/theme_mode_controller.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/entities/search_miss.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/failures/search_miss_failure.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/providers/search_miss_domain_providers.dart';
@@ -29,6 +31,8 @@ void main() {
   ) async {
     // plugin SharedPreferences tidak tersedia di test env - mock values
     SharedPreferences.setMockInitialValues({});
+    await ThemeModeController.preload();
+    await ForuiPaletteController.preload();
     // banner search-miss memakai jaringan; override usecase supaya test
     // deterministik tanpa pending Timer (dio timeout) di fake-async zone.
     await tester.pumpWidget(

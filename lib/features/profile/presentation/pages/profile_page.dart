@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../auth/presentation/models/auth_status_state.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../widgets/appearance_tiles.dart';
 
 /// Tab PROFILE - identity + menu via FTileGroup.
 class ProfilePage extends ConsumerWidget {
@@ -61,10 +62,10 @@ class ProfilePage extends ConsumerWidget {
                         title: const Text('Bookmark'),
                         subtitle: const Text('Kata tersimpan untuk dibaca lagi'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Bookmark'),
+                        onPress: () => context.push('/bookmarks'),
                       ),
                       FTile(
-                        prefix: const Icon(FLucideIcons.thumbsUp),
+                        prefix: const Icon(FLucideIcons.arrowBigUp),
                         title: const Text('Vote'),
                         subtitle: const Text('Kata yang pernah kamu vote'),
                         suffix: const Icon(FLucideIcons.chevronRight),
@@ -120,6 +121,14 @@ class ProfilePage extends ConsumerWidget {
                       ),
                     ],
                   ),
+                const Gap(14),
+                FTileGroup(
+                  label: const Text('Tampilan'),
+                  children: [
+                    themeModeTile(ref),
+                    paletteTile(ref),
+                  ],
+                ),
                 const Gap(14),
                 FTileGroup(
                   label: const Text('Tentang'),

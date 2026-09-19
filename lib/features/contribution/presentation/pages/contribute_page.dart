@@ -11,6 +11,7 @@ import '../../domain/failures/contribution_failure.dart';
 import '../models/submit_word_state.dart';
 import '../providers/submit_word_providers.dart';
 import '../widgets/contribute_images_field.dart';
+import '../widgets/dialect_picker_sheet.dart';
 import '../widgets/kbbi_definition_sheet.dart';
 import '../widgets/word_class_picker_sheet.dart';
 
@@ -39,6 +40,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   String? _wordClassId;
   String? _dialectId;
+  bool _dialectSeeded = false;
   List<ContributeImageSlot> _images = const [];
 
   @override
@@ -121,6 +123,27 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final dialectsAsync = sambasLanguageId == null
         ? const AsyncValue<List<_OptionItem>>.data([])
         : ref.watch(_referenceDialectsProvider(sambasLanguageId));
+
+    // Auto-select dialek is_default (umum) sekali; user tetap bisa ganti.
+    final dialectItems = dialectsAsync.value;
+    if (!_dialectSeeded &&
+        _dialectId == null &&
+        dialectItems != null &&
+        dialectItems.isNotEmpty) {
+      final def = dialectItems.where((e) => e.isDefault).firstOrNull ??
+          dialectItems.where((e) => e.code.toLowerCase() == 'umum').firstOrNull;
+      if (def != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _dialectSeeded || _dialectId != null) return;
+          setState(() {
+            _dialectId = def.id;
+            _dialectSeeded = true;
+          });
+        });
+      } else {
+        _dialectSeeded = true;
+      }
+    }
 
     final state = ref.watch(submitWordProvider);
     final notifier = ref.read(submitWordProvider.notifier);
@@ -224,18 +247,18 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                   _referenceDialectsProvider(sambasLanguageId),
                 ),
               ),
-              data: (items) => _BuildOptionsDropdown<_OptionItem>(
-                items: items,
-                selected: _dialectId == null
+              data: (items) {
+                final selected = _dialectId == null
                     ? null
-                    : items.where((e) => e.id == _dialectId).firstOrNull,
-                hint: items.isEmpty ? '-' : 'Opsional',
-                labelFor: (e) => e.name,
-                onChanged: (val) {
-                  _onFieldEdited();
-                  setState(() => _dialectId = val?.id);
-                },
-              ),
+                    : items.where((e) => e.id == _dialectId).firstOrNull;
+                return _SelectField(
+                  selectedLabel: selected?.name,
+                  hint: items.isEmpty ? '-' : 'Pilih dialek…',
+                  onTap: items.isEmpty
+                      ? null
+                      : () => _openDialectSheet(items),
+                );
+              },
             ),
           _inlineError(notifier.errorFor('dialect_id')),
           _inlineError(notifier.errorFor('language_id')),
@@ -308,8 +331,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const _FieldCaption('Kelas kata *'),
-                  _WordClassField(
+                  _SelectField(
                     selectedLabel: selected?.displayLabel,
+                    hint: 'Pilih kelas kata…',
                     onTap: () => _openWordClassSheet(items),
                   ),
                 ],
@@ -367,6 +391,23 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openDialectSheet(List<_OptionItem> items) async {
+    final picked = await showDialectPickerSheet(
+      context,
+      items: [
+        for (final e in items)
+          DialectPickItem(id: e.id, name: e.name, isDefault: e.isDefault),
+      ],
+      selectedId: _dialectId,
+    );
+    if (!mounted || picked == null) return;
+    _onFieldEdited();
+    setState(() {
+      _dialectId = picked.id;
+      _dialectSeeded = true;
+    });
   }
 
   Future<void> _openWordClassSheet(List<_OptionItem> items) async {
@@ -525,11 +566,16 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 }
 
-class _WordClassField extends StatelessWidget {
-  const _WordClassField({required this.selectedLabel, required this.onTap});
+class _SelectField extends StatelessWidget {
+  const _SelectField({
+    required this.selectedLabel,
+    required this.hint,
+    required this.onTap,
+  });
 
   final String? selectedLabel;
-  final VoidCallback onTap;
+  final String hint;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -550,7 +596,7 @@ class _WordClassField extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  hasValue ? selectedLabel! : 'Pilih kelas kata…',
+                  hasValue ? selectedLabel! : hint,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.sm.copyWith(
@@ -612,11 +658,13 @@ class _OptionItem {
     required this.name,
     this.code = '',
     this.alias,
+    this.isDefault = false,
   });
   final String id;
   final String name;
   final String code;
   final String? alias;
+  final bool isDefault;
 
   String get displayLabel =>
       (alias == null || alias!.isEmpty) ? name : '$name ($alias)';
@@ -712,111 +760,13 @@ final _referenceDialectsProvider =
             (e) => _OptionItem(
               id: e['id']?.toString() ?? '',
               name: e['name']?.toString() ?? '(?)',
+              code: e['code']?.toString() ?? '',
+              isDefault: e['is_default'] == true,
             ),
           )
           .where((e) => e.id.isNotEmpty)
           .toList(growable: false);
     });
-
-class _BuildOptionsDropdown<T> extends StatefulWidget {
-  const _BuildOptionsDropdown({
-    required this.items,
-    required this.selected,
-    required this.hint,
-    required this.labelFor,
-    required this.onChanged,
-  });
-
-  final List<T> items;
-  final T? selected;
-  final String hint;
-  final String Function(T item) labelFor;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  State<_BuildOptionsDropdown<T>> createState() =>
-      _BuildOptionsDropdownState<T>();
-}
-
-class _BuildOptionsDropdownState<T> extends State<_BuildOptionsDropdown<T>> {
-  final _controller = ExpansibleController();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    return Material(
-      color: Colors.transparent,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          controller: _controller,
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          childrenPadding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: theme.colors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          collapsedShape: RoundedRectangleBorder(
-            side: BorderSide(color: theme.colors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          title: Text(
-            widget.selected != null
-                ? widget.labelFor(widget.selected as T)
-                : widget.hint,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.typography.sm.copyWith(
-              color: widget.selected != null
-                  ? theme.colors.foreground
-                  : theme.colors.mutedForeground,
-            ),
-          ),
-          children: widget.items.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                    child: Text(
-                      widget.hint,
-                      style: theme.typography.sm.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ),
-                ]
-              : widget.items
-                    .map(
-                      (item) => ListTile(
-                        minTileHeight: 36,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          widget.labelFor(item),
-                          style: theme.typography.sm,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: widget.selected == item
-                            ? Icon(
-                                FLucideIcons.check,
-                                size: 14,
-                                color: theme.colors.primary,
-                              )
-                            : null,
-                        onTap: () {
-                          widget.onChanged(item);
-                          _controller.collapse();
-                        },
-                      ),
-                    )
-                    .toList(growable: false),
-        ),
-      ),
-    );
-  }
-}
 
 class _BuildReferenceError extends StatelessWidget {
   const _BuildReferenceError({required this.message, required this.onRetry});

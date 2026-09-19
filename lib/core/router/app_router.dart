@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/about/about_router.dart';
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/auth_router.dart';
+import '../../features/bookmark/bookmark_router.dart';
 import '../../features/change_password/change_password_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
@@ -36,6 +37,7 @@ class AppRouter {
       ...AboutRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
+      ...BookmarkRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             _HomeShell(navigationShell: navigationShell),

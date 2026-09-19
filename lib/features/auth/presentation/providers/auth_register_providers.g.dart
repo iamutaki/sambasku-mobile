@@ -42,7 +42,7 @@ final class AuthRegisterNotifierProvider
 }
 
 String _$authRegisterNotifierHash() =>
-    r'c21d79ba8b2dfc32807aeb6ff7f7c8a3ec62ae2f';
+    r'83eb08617316b16e455d06ac49d8e9b79e8e30ed';
 
 abstract class _$AuthRegisterNotifier extends $Notifier<AuthRegisterState> {
   AuthRegisterState build();

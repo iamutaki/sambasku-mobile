@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "error_code": "WORD_NOT_FOUND",
+  "message": "Kata tidak ditemukan atau sudah dihapus",
+  "details": null
+}
