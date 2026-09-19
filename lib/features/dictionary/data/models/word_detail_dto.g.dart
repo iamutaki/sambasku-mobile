@@ -110,6 +110,7 @@ _WordClassDto _$WordClassDtoFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       code: json['code'] as String,
       name: json['name'] as String,
+      alias: json['alias'] as String?,
       parentId: json['parent_id'] as String?,
     );
 
@@ -118,6 +119,7 @@ Map<String, dynamic> _$WordClassDtoToJson(_WordClassDto instance) =>
       'id': instance.id,
       'code': instance.code,
       'name': instance.name,
+      'alias': instance.alias,
       'parent_id': instance.parentId,
     };
 

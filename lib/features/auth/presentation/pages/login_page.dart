@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../providers/auth_login_providers.dart';
+import '../providers/auth_status_providers.dart';
 
 /// Halaman login (email + password). Google sign-in menyusul - backend
 /// Section 23 belum diimplement. Sukses login -> router redirect ke
@@ -16,15 +17,29 @@ class LoginPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(authLoginProvider);
+    final authStatus = ref.watch(authStatusProvider);
+    final alreadyAuth = authStatus.value?.isAuth ?? false;
     final email = useTextEditingController();
     final password = useTextEditingController();
     useListenable(email);
     useListenable(password);
 
+    // Sudah login → jangan tampilkan form; redirect (router juga jaga)
+    ref.listen(authStatusProvider, (_, next) {
+      if (next.value?.isAuth == true && context.mounted) context.go('/');
+    });
+
     // pindah ke HOME begitu sesi tersimpan
     ref.listen(authLoginProvider.select((s) => s.session), (_, next) {
       if (next != null) context.go('/');
     });
+
+    if (alreadyAuth) {
+      return const FScaffold(
+        childPad: true,
+        child: Center(child: FCircularProgress()),
+      );
+    }
 
     final canSubmit = email.text.contains('@') &&
         password.text.length >= 8 &&
@@ -91,6 +106,14 @@ class LoginPage extends HookConsumerWidget {
                   child: Text(state.isSubmitting ? 'Memproses...' : 'Masuk'),
                 ),
                 const Gap(8),
+                FButton(
+                  variant: .ghost,
+                  onPress: state.isSubmitting
+                      ? null
+                      : () => context.go('/register'),
+                  child: const Text('Belum punya akun? Daftar'),
+                ),
+                const Gap(4),
                 FButton(
                   variant: .ghost,
                   onPress: state.isSubmitting

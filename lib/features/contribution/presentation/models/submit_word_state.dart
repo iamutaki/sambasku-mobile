@@ -3,12 +3,13 @@
 /// Dipakai oleh `SubmitWordNotifier` (@riverpod). Error inline per field
 /// di-baca dari `failure?.errorFor('lemma')` dan teman-temannya.
 ///
-/// - `initialLemma / initialSearchIn`: di-set dari GoRouter queryParams
-///   (saat navigate via CTA banner search-miss / empty state).
+/// - `initialLemma / initialSearchIn / initialSearchMissId`: di-set dari
+///   GoRouter queryParams (CTA search-miss / empty state).
 class SubmitWordState {
   const SubmitWordState({
     this.initialLemma,
     this.initialSearchIn,
+    this.initialSearchMissId,
     this.failure,
     this.result,
     this.isSubmitting = false,
@@ -17,6 +18,7 @@ class SubmitWordState {
 
   final String? initialLemma;
   final String? initialSearchIn;
+  final String? initialSearchMissId;
 
   final bool isSubmitting;
 
@@ -49,6 +51,7 @@ class SubmitWordState {
   SubmitWordState copyWith({
     String? initialLemma,
     String? initialSearchIn,
+    String? initialSearchMissId,
     bool? isSubmitting,
     String? errorMessage,
     Object? failure,
@@ -60,6 +63,7 @@ class SubmitWordState {
     return SubmitWordState(
       initialLemma: initialLemma ?? this.initialLemma,
       initialSearchIn: initialSearchIn ?? this.initialSearchIn,
+      initialSearchMissId: initialSearchMissId ?? this.initialSearchMissId,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearErrorMessage
           ? null

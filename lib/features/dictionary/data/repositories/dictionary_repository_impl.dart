@@ -114,7 +114,12 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             .map(
               (m) => WordMeaning(
                 id: m.id,
-                wordClassName: m.wordClass?.name,
+                // ponytail: format di mapper biar UI cukup pakai wordClassName
+                wordClassName: m.wordClass == null
+                    ? null
+                    : (m.wordClass!.alias == null || m.wordClass!.alias!.isEmpty)
+                        ? m.wordClass!.name
+                        : '${m.wordClass!.name} (${m.wordClass!.alias})',
                 definition: m.definition,
                 orderIndex: m.orderIndex,
                 translations: m.translations

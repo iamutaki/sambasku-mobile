@@ -17,8 +17,6 @@ class SubmitAnonWordUseCase {
     final dialectId = params.dialectId?.trim();
     final notes = params.notes?.trim();
 
-    // Bersihkan translation teks: hapus spasi berlebih + buang yang kosong.
-    // Backend mewajibkan MINIMAL 1 translation (VALIDATION_ERROR nanti).
     final translations = params.translationTexts
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
@@ -29,6 +27,38 @@ class SubmitAnonWordUseCase {
         .where((e) => e.isNotEmpty)
         .toList(growable: false);
 
+    final seenVariants = <String>{};
+    final spellingVariants = params.spellingVariants
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && e.toLowerCase() != lemma.toLowerCase())
+        .where((e) => seenVariants.add(e.toLowerCase()))
+        .toList(growable: false);
+
+    // Pastikan maksimal satu is_primary (mirror validator API).
+    var sawPrimary = false;
+    final images = <SubmitWordImage>[];
+    for (final img in params.images) {
+      final primary = img.isPrimary && !sawPrimary;
+      if (primary) sawPrimary = true;
+      images.add(
+        SubmitWordImage(
+          url: img.url,
+          providerFileId: img.providerFileId,
+          altText: img.altText,
+          isPrimary: primary,
+        ),
+      );
+    }
+    if (images.isNotEmpty && !sawPrimary) {
+      final first = images.first;
+      images[0] = SubmitWordImage(
+        url: first.url,
+        providerFileId: first.providerFileId,
+        altText: first.altText,
+        isPrimary: true,
+      );
+    }
+
     return _repository.submitAnon(
       lemma: lemma,
       languageId: params.languageId.trim(),
@@ -38,18 +68,14 @@ class SubmitAnonWordUseCase {
       translationTexts: translations,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
+      spellingVariants: spellingVariants,
       translationLanguageId: params.translationLanguageId.trim(),
+      images: images,
+      searchMissId: params.searchMissId,
     );
   }
 }
 
-/// Parameter untuk `SubmitAnonWordUseCase.call()`.
-///
-/// - `translationTexts`: daftar terjemahan (min 1 sesuai spec 01-api-tambah-kata).
-/// - `categoryIds`: list ULID kategori (opsional, default kosong).
-/// - `dialectId` & `notes` opsional (bisa null / string kosong).
-/// - `translationLanguageId`: bahasa target terjemahan (Indonesia), diresolusi
-///   dari endpoint /languages di halaman kontribusi.
 class SubmitAnonWordParams {
   const SubmitAnonWordParams({
     required this.lemma,
@@ -61,6 +87,9 @@ class SubmitAnonWordParams {
     this.translationTexts = const [],
     this.categoryIds = const [],
     this.notes,
+    this.spellingVariants = const [],
+    this.images = const [],
+    this.searchMissId,
   });
 
   final String lemma;
@@ -72,4 +101,7 @@ class SubmitAnonWordParams {
   final List<String> translationTexts;
   final List<String> categoryIds;
   final String? notes;
+  final List<String> spellingVariants;
+  final List<SubmitWordImage> images;
+  final String? searchMissId;
 }

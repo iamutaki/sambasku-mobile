@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/providers/auth_domain_providers.dart';
 import '../../domain/usecases/login_use_case.dart';
 import '../models/auth_login_state.dart';
+import 'auth_status_providers.dart';
 
 part 'auth_login_providers.g.dart';
 
@@ -34,6 +35,9 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
         );
       },
       (session) {
+        // Token sudah di storage — set status langsung, jangan invalidate
+        // (reload async masih expose previous isAuth:false).
+        ref.read(authStatusProvider.notifier).markLoggedIn(session);
         state = state.copyWith(
           isSubmitting: false,
           session: session,

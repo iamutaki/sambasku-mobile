@@ -17,7 +17,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.iamutaki.sambasku"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android butuh compileSdk 37+
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

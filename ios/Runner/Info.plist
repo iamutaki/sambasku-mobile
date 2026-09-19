@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Akses galeri digunakan untuk memilih foto yang sudah ada di perangkat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Akses kamera digunakan untuk mengambil foto yang diperlukan di dalam aplikasi.</string>
 </dict>
 </plist>

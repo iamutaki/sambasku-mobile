@@ -9,6 +9,49 @@ part of 'auth_domain_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(authRegisterUseCase)
+final authRegisterUseCaseProvider = AuthRegisterUseCaseProvider._();
+
+final class AuthRegisterUseCaseProvider
+    extends
+        $FunctionalProvider<RegisterUseCase, RegisterUseCase, RegisterUseCase>
+    with $Provider<RegisterUseCase> {
+  AuthRegisterUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authRegisterUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authRegisterUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<RegisterUseCase> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RegisterUseCase create(Ref ref) {
+    return authRegisterUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RegisterUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RegisterUseCase>(value),
+    );
+  }
+}
+
+String _$authRegisterUseCaseHash() =>
+    r'32cfda8f243636a8989266471fbb8a893bf41f10';
+
 @ProviderFor(authLoginUseCase)
 final authLoginUseCaseProvider = AuthLoginUseCaseProvider._();
 

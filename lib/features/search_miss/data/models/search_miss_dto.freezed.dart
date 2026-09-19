@@ -15,7 +15,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SearchMissDto {
 
- String get id; String get term;@JsonKey(name: 'search_in') String get searchIn;@JsonKey(name: 'hit_count') int get hitCount;@JsonKey(name: 'last_searched_at') DateTime? get lastSearchedAt;
+ String get id; String get term;/// Wire API: `direction` (bukan `search_in`). Field Dart tetap searchIn
+/// supaya UI/router lama tidak pecah.
+@JsonKey(name: 'direction') String get searchIn;@JsonKey(name: 'hit_count') int get hitCount;@JsonKey(name: 'last_searched_at') DateTime? get lastSearchedAt;
 /// Create a copy of SearchMissDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +50,7 @@ abstract mixin class $SearchMissDtoCopyWith<$Res>  {
   factory $SearchMissDtoCopyWith(SearchMissDto value, $Res Function(SearchMissDto) _then) = _$SearchMissDtoCopyWithImpl;
 @useResult
 $Res call({
- String id, String term,@JsonKey(name: 'search_in') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
+ String id, String term,@JsonKey(name: 'direction') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
 });
 
 
@@ -157,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchMissDto() when $default != null:
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -178,7 +180,7 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)  $default,) {final _that = this;
 switch (_that) {
 case _SearchMissDto():
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -198,7 +200,7 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchMissDto() when $default != null:
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -213,12 +215,14 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 @JsonSerializable()
 
 class _SearchMissDto implements SearchMissDto {
-  const _SearchMissDto({required this.id, required this.term, @JsonKey(name: 'search_in') required this.searchIn, @JsonKey(name: 'hit_count') required this.hitCount, @JsonKey(name: 'last_searched_at') this.lastSearchedAt});
+  const _SearchMissDto({required this.id, required this.term, @JsonKey(name: 'direction') required this.searchIn, @JsonKey(name: 'hit_count') required this.hitCount, @JsonKey(name: 'last_searched_at') this.lastSearchedAt});
   factory _SearchMissDto.fromJson(Map<String, dynamic> json) => _$SearchMissDtoFromJson(json);
 
 @override final  String id;
 @override final  String term;
-@override@JsonKey(name: 'search_in') final  String searchIn;
+/// Wire API: `direction` (bukan `search_in`). Field Dart tetap searchIn
+/// supaya UI/router lama tidak pecah.
+@override@JsonKey(name: 'direction') final  String searchIn;
 @override@JsonKey(name: 'hit_count') final  int hitCount;
 @override@JsonKey(name: 'last_searched_at') final  DateTime? lastSearchedAt;
 
@@ -255,7 +259,7 @@ abstract mixin class _$SearchMissDtoCopyWith<$Res> implements $SearchMissDtoCopy
   factory _$SearchMissDtoCopyWith(_SearchMissDto value, $Res Function(_SearchMissDto) _then) = __$SearchMissDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String term,@JsonKey(name: 'search_in') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
+ String id, String term,@JsonKey(name: 'direction') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
 });
 
 

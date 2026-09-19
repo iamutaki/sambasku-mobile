@@ -21,6 +21,16 @@ class _FakeRepo implements AuthRepository {
       Either.left(const AuthFailure('tidak dipakai pada test ini'));
 
   @override
+  Future<Either<AuthFailure, void>> register({
+    required String name,
+    required String email,
+    String? phone,
+    required String password,
+    required String confirmPassword,
+  }) async =>
+      Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
   Future<Either<AuthFailure, void>> logout() async {
     calls++;
     return result;

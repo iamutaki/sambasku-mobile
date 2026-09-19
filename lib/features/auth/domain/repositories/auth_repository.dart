@@ -4,6 +4,14 @@ import '../entities/auth_session.dart';
 import '../failures/auth_failure.dart';
 
 abstract interface class AuthRepository {
+  Future<Either<AuthFailure, void>> register({
+    required String name,
+    required String email,
+    String? phone,
+    required String password,
+    required String confirmPassword,
+  });
+
   Future<Either<AuthFailure, AuthSession>> login({
     required String email,
     required String password,

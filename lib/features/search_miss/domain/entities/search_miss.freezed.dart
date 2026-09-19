@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SearchMiss {
 
- String get id; String get term;@JsonKey(name: 'search_in') String get searchIn;@JsonKey(name: 'hit_count') int get hitCount;@JsonKey(name: 'last_searched_at') DateTime? get lastSearchedAt;
+ String get id; String get term;/// Mirror wire `direction`; nama Dart searchIn untuk query UI.
+@JsonKey(name: 'direction') String get searchIn;@JsonKey(name: 'hit_count') int get hitCount;@JsonKey(name: 'last_searched_at') DateTime? get lastSearchedAt;
 /// Create a copy of SearchMiss
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +49,7 @@ abstract mixin class $SearchMissCopyWith<$Res>  {
   factory $SearchMissCopyWith(SearchMiss value, $Res Function(SearchMiss) _then) = _$SearchMissCopyWithImpl;
 @useResult
 $Res call({
- String id, String term,@JsonKey(name: 'search_in') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
+ String id, String term,@JsonKey(name: 'direction') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
 });
 
 
@@ -157,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchMiss() when $default != null:
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -178,7 +179,7 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)  $default,) {final _that = this;
 switch (_that) {
 case _SearchMiss():
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -198,7 +199,7 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String term, @JsonKey(name: 'search_in')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String term, @JsonKey(name: 'direction')  String searchIn, @JsonKey(name: 'hit_count')  int hitCount, @JsonKey(name: 'last_searched_at')  DateTime? lastSearchedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchMiss() when $default != null:
 return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSearchedAt);case _:
@@ -213,12 +214,13 @@ return $default(_that.id,_that.term,_that.searchIn,_that.hitCount,_that.lastSear
 @JsonSerializable()
 
 class _SearchMiss implements SearchMiss {
-  const _SearchMiss({required this.id, required this.term, @JsonKey(name: 'search_in') required this.searchIn, @JsonKey(name: 'hit_count') required this.hitCount, @JsonKey(name: 'last_searched_at') this.lastSearchedAt});
+  const _SearchMiss({required this.id, required this.term, @JsonKey(name: 'direction') required this.searchIn, @JsonKey(name: 'hit_count') required this.hitCount, @JsonKey(name: 'last_searched_at') this.lastSearchedAt});
   factory _SearchMiss.fromJson(Map<String, dynamic> json) => _$SearchMissFromJson(json);
 
 @override final  String id;
 @override final  String term;
-@override@JsonKey(name: 'search_in') final  String searchIn;
+/// Mirror wire `direction`; nama Dart searchIn untuk query UI.
+@override@JsonKey(name: 'direction') final  String searchIn;
 @override@JsonKey(name: 'hit_count') final  int hitCount;
 @override@JsonKey(name: 'last_searched_at') final  DateTime? lastSearchedAt;
 
@@ -255,7 +257,7 @@ abstract mixin class _$SearchMissCopyWith<$Res> implements $SearchMissCopyWith<$
   factory _$SearchMissCopyWith(_SearchMiss value, $Res Function(_SearchMiss) _then) = __$SearchMissCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String term,@JsonKey(name: 'search_in') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
+ String id, String term,@JsonKey(name: 'direction') String searchIn,@JsonKey(name: 'hit_count') int hitCount,@JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt
 });
 
 

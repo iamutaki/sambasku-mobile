@@ -153,34 +153,37 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
     final theme = context.theme;
     final auth = ref.watch(authStatusProvider).value;
     final isAuth = auth?.isAuth ?? false;
-
-    final listState = ref
-        .watch(commentListControllerProvider(widget.wordId))
-        .value;
+    final listState =
+        ref.watch(commentListControllerProvider(widget.wordId)).value;
+    final count = listState?.items.length ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              FLucideIcons.messageCircle,
-              size: 18,
-              color: theme.colors.primary,
-            ),
-            const Gap(6),
             Text(
-              'Komentar',
-              style: theme.typography.lg.copyWith(fontWeight: FontWeight.w600),
+              'KOMENTAR',
+              style: theme.typography.sm.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.06,
+                color: theme.colors.mutedForeground,
+                fontSize: 11,
+              ),
             ),
-            const Gap(8),
-            FBadge(
-              variant: FBadgeVariant.secondary,
-              child: Text('${listState?.items.length ?? 0}'),
-            ),
+            if (count > 0) ...[
+              const Gap(6),
+              Text(
+                '$count',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ],
         ),
-        const Gap(12),
+        const Gap(8),
         ref.watch(commentListControllerProvider(widget.wordId)).when(
               loading: () => const _CommentsSkeleton(),
               error: (error, _) => _CommentsError(
@@ -194,21 +197,17 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (state.items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Belum ada komentar. Jadilah yang pertama.',
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
+                    Text(
+                      'Belum ada komentar.',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
                       ),
                     )
                   else
                     ...state.items.map((c) {
-                      final canDelete =
-                          auth != null &&
+                      final canDelete = auth != null &&
                           (c.isOwner(auth.userId) || _isVerifier(auth.role));
-                      return _CommentCard(
+                      return _CommentRow(
                         comment: c,
                         dateLabel: _formatDate(c.createdAt),
                         onVote: (value) => _toggleVote(c, value),
@@ -216,10 +215,11 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                       );
                     }),
                   if (state.hasMore) ...[
-                    const Gap(8),
-                    Center(
+                    const Gap(4),
+                    Align(
+                      alignment: Alignment.centerLeft,
                       child: FButton(
-                        variant: FButtonVariant.outline,
+                        variant: FButtonVariant.ghost,
                         onPress: state.isLoadingMore
                             ? null
                             : () => ref
@@ -234,7 +234,7 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                         child: Text(
                           state.isLoadingMore
                               ? 'Memuat...'
-                              : 'Muat komentar lain',
+                              : 'Muat lainnya',
                         ),
                       ),
                     ),
@@ -242,24 +242,24 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                 ],
               ),
             ),
-        const Gap(16),
+        const Gap(10),
         if (!isAuth)
-          FCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Masuk untuk menulis komentar',
-                    style: theme.typography.sm,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Masuk untuk menulis komentar',
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.mutedForeground,
                   ),
                 ),
-                FButton(
-                  variant: FButtonVariant.primary,
-                  onPress: _promptLogin,
-                  child: const Text('Masuk'),
-                ),
-              ],
-            ),
+              ),
+              FButton(
+                variant: FButtonVariant.outline,
+                onPress: _promptLogin,
+                child: const Text('Masuk'),
+              ),
+            ],
           )
         else
           _Composer(
@@ -272,8 +272,8 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
   }
 }
 
-class _CommentCard extends StatelessWidget {
-  const _CommentCard({
+class _CommentRow extends StatelessWidget {
+  const _CommentRow({
     required this.comment,
     required this.dateLabel,
     required this.onVote,
@@ -289,88 +289,59 @@ class _CommentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final isPending = comment.status == 'pending_review';
+    final meta = [
+      comment.username ?? 'Pengguna terhapus',
+      if (dateLabel.isNotEmpty) dateLabel,
+      if (isPending) 'menunggu moderasi',
+    ].join(' · ');
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: FCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: theme.colors.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  meta,
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.mutedForeground,
+                    fontSize: 11,
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    FLucideIcons.userRound,
-                    size: 15,
-                    color: theme.colors.primary,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const Gap(8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        comment.username ?? 'Pengguna terhapus',
-                        style: theme.typography.sm.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (dateLabel.isNotEmpty)
-                        Text(
-                          dateLabel,
-                          style: theme.typography.xs.copyWith(
-                            color: theme.colors.mutedForeground,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (isPending)
-                  FBadge(
-                    variant: FBadgeVariant.secondary,
-                    child: const Text('Menunggu moderasi'),
-                  ),
-                if (onDelete != null)
-                  // FCard forui tanpa ancestor Material - bungkus sendiri
-                  // supaya InkWell (dan ripple-nya) jalan di host mana pun.
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(6),
-                      onTap: onDelete,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(
-                          FLucideIcons.trash,
-                          size: 15,
-                          color: theme.colors.mutedForeground,
-                        ),
+              ),
+              if (onDelete != null)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: onDelete,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        FLucideIcons.trash,
+                        size: 14,
+                        color: theme.colors.mutedForeground,
                       ),
                     ),
                   ),
-              ],
-            ),
-            const Gap(8),
-            Text(comment.body, style: theme.typography.sm),
-            const Gap(10),
-            VoteButtons(
-              upvotes: comment.upvotes,
-              downvotes: comment.downvotes,
-              myVote: comment.myVote,
-              onVote: onVote,
-              compact: true,
-            ),
-          ],
-        ),
+                ),
+            ],
+          ),
+          const Gap(2),
+          Text(comment.body, style: theme.typography.sm.copyWith(height: 1.35)),
+          const Gap(4),
+          VoteButtons(
+            upvotes: comment.upvotes,
+            downvotes: comment.downvotes,
+            myVote: comment.myVote,
+            onVote: onVote,
+            compact: true,
+          ),
+        ],
       ),
     );
   }
@@ -394,24 +365,20 @@ class _Composer extends StatelessWidget {
       children: [
         FTextField(
           control: FTextFieldControl.managed(controller: controller),
-          hint: 'Tulis komentar, menunggu persetujuan tim...',
+          hint: 'Tulis komentar…',
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           maxLines: 3,
           minLines: 1,
         ),
-        const Gap(8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FButton(
-              onPress: isSubmitting ? null : onSubmit,
-              prefix: isSubmitting
-                  ? const FCircularProgress()
-                  : const Icon(FLucideIcons.send),
-              child: const Text('Kirim'),
-            ),
-          ],
+        const Gap(6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FButton(
+            onPress: isSubmitting ? null : onSubmit,
+            prefix: isSubmitting ? const FCircularProgress() : null,
+            child: Text(isSubmitting ? 'Mengirim...' : 'Kirim'),
+          ),
         ),
       ],
     );
@@ -423,22 +390,26 @@ class _CommentsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
     return Skeletonizer(
       enabled: true,
       child: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: FCard(
-              child: Text('komentar skeleton baris isi komentar'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < 2; i++) ...[
+            Text(
+              'nama · 1 Jan 2026',
+              style: theme.typography.sm.copyWith(fontSize: 11),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: FCard(
-              child: Text('komentar kedua isi skeleton'),
+            const Gap(2),
+            Text(
+              'isi komentar skeleton beberapa kata',
+              style: theme.typography.sm,
             ),
-          ),
+            const Gap(4),
+            const VoteButtonsSkeleton(compact: true),
+            const Gap(10),
+          ],
         ],
       ),
     );

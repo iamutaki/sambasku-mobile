@@ -40,6 +40,7 @@ class SearchMissRepositoryImpl implements SearchMissRepository {
         );
       }
 
+      // Server sudah filter is_visible=true (14-api). Render apa adanya.
       return Either.right(data.map(_toEntity).toList());
     } on DioException catch (error) {
       return Either.left(

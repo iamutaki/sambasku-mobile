@@ -6,9 +6,11 @@ import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
+import '../models/create_word_image_dto.dart';
 import '../models/create_word_meaning_dto.dart';
 import '../models/create_word_request_dto.dart';
 import '../models/create_word_translation_dto.dart';
+import '../models/create_word_variant_dto.dart';
 
 class ContributionRepositoryImpl implements ContributionRepository {
   ContributionRepositoryImpl(this._remoteDatasource);
@@ -25,15 +27,27 @@ class ContributionRepositoryImpl implements ContributionRepository {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    List<String> spellingVariants = const [],
     required String translationLanguageId,
+    List<SubmitWordImage> images = const [],
+    String? searchMissId,
   }) async {
     try {
+      final imageDtos = images
+          .map(
+            (img) => CreateWordImageDto(
+              url: img.url,
+              providerFileId: img.providerFileId,
+              altText: img.altText,
+              isPrimary: img.isPrimary,
+            ),
+          )
+          .toList(growable: false);
+
       final body = CreateWordRequestDto(
         lemma: lemma,
         languageId: languageId,
         dialectId: dialectId,
-        // Form datar (word_class_id/definition/translation_texts) di-transform
-        // ke bentuk meanings[] kontrak backend.
         meanings: [
           CreateWordMeaningDto(
             wordClassId: wordClassId,
@@ -51,6 +65,11 @@ class ContributionRepositoryImpl implements ContributionRepository {
         ],
         categoryIds: categoryIds,
         notes: notes,
+        variants: spellingVariants
+            .map((form) => CreateWordVariantDto(form: form))
+            .toList(growable: false),
+        images: imageDtos.isEmpty ? null : imageDtos,
+        searchMissId: searchMissId,
       );
 
       final response = await _remoteDatasource.submitWord(body);

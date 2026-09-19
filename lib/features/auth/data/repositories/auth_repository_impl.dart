@@ -8,12 +8,49 @@ import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/login_request_dto.dart';
 import '../models/logout_request_dto.dart';
+import '../models/register_request_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remoteDatasource, this._tokenStorage);
 
   final AuthRemoteDatasource _remoteDatasource;
   final AuthTokenStorage _tokenStorage;
+
+  @override
+  Future<Either<AuthFailure, void>> register({
+    required String name,
+    required String email,
+    String? phone,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _remoteDatasource.register(
+        RegisterRequestDto(
+          name: name,
+          email: email,
+          phone: phone,
+          password: password,
+          confirmPassword: confirmPassword,
+        ),
+      );
+
+      if (response.success == true && response.data != null) {
+        return Either.right(null);
+      }
+      return Either.left(AuthFailure(
+        response.message ?? 'Registrasi gagal',
+        errorCode: response.errorCode,
+      ));
+    } on DioException catch (error) {
+      return Either.left(AuthFailure(
+        _mapDioError(error),
+        errorCode: _mapErrorCode(error),
+      ));
+    } catch (error) {
+      return Either.left(AuthFailure(error.toString()));
+    }
+  }
 
   @override
   Future<Either<AuthFailure, AuthSession>> login({
@@ -94,9 +131,19 @@ class AuthRepositoryImpl implements AuthRepository {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout => 'Koneksi lambat, coba lagi',
+      DioExceptionType.receiveTimeout =>
+        'Koneksi lambat, coba lagi',
       DioExceptionType.connectionError => 'Tidak ada koneksi internet',
       _ => 'Terjadi kesalahan, coba lagi',
     };
+  }
+
+  String? _mapErrorCode(DioException error) {
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final code = data['error_code'];
+      if (code is String && code.isNotEmpty) return code;
+    }
+    return null;
   }
 }

@@ -51,6 +51,7 @@ abstract class WordClassDto with _$WordClassDto {
     required String id,
     required String code,
     required String name,
+    String? alias,
     @JsonKey(name: 'parent_id') String? parentId,
   }) = _WordClassDto;
 

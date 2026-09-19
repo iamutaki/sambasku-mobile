@@ -6,16 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/widgets/theme_toggle_header_action.dart';
+import '../../../search_miss/domain/entities/search_miss.dart';
+import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
+import '../../../search_miss/presentation/widgets/search_miss_skeleton_list.dart';
+import '../../dictionary_router.dart';
 import '../../domain/entities/word_summary.dart';
 import '../models/dictionary_search_state.dart';
 import '../providers/dictionary_search_providers.dart';
-import '../../../../core/widgets/theme_toggle_header_action.dart';
-import '../../dictionary_router.dart';
-import '../../../search_miss/domain/entities/search_miss.dart';
-import '../../../search_miss/domain/usecases/list_search_misses_use_case.dart';
-import '../../../search_miss/domain/providers/search_miss_domain_providers.dart';
 
 /// Tab HOME: pencarian kosakata publik (GET /api/v1/words/search).
+/// Idle: daftar search-miss sebagai konten utama (bukan chip kecil).
 /// search_in=lemma → Sambas→Indonesia; translation → Indonesia→Sambas
 /// (matched_translation → lemma).
 class HomeSearchPage extends HookConsumerWidget {
@@ -49,15 +50,13 @@ class HomeSearchPage extends HookConsumerWidget {
           suffixes: [ThemeToggleHeaderAction()],
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
           child: FTextField(
             control: FTextFieldControl.managed(
               controller: controller,
               onChange: (value) => notifier.onQueryChanged(value.text),
             ),
-            hint: isLemma
-                ? 'Cari kata Sambas...'
-                : 'Cari kata Indonesia (terjemahan)...',
+            hint: isLemma ? 'Cari kata Sambas...' : 'Cari kata Indonesia...',
             clearable: (value) => value.text.isNotEmpty,
             prefixBuilder: (context, style, variants) =>
                 FTextField.prefixIconBuilder(
@@ -69,7 +68,7 @@ class HomeSearchPage extends HookConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
           child: Row(
             children: [
               Expanded(
@@ -77,29 +76,32 @@ class HomeSearchPage extends HookConsumerWidget {
                   variant: isLemma
                       ? FButtonVariant.primary
                       : FButtonVariant.outline,
-                  onPress: () => notifier.onSearchInChanged('lemma'),
-                  prefix: const Icon(FLucideIcons.languages),
+                  onPress: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    notifier.onSearchInChanged('lemma');
+                  },
                   child: const Text('Sambas'),
                 ),
               ),
-              const Gap(8),
+              const Gap(6),
               Expanded(
                 child: FButton(
                   variant: !isLemma
                       ? FButtonVariant.primary
                       : FButtonVariant.outline,
-                  onPress: () => notifier.onSearchInChanged('translation'),
-                  prefix: const Icon(FLucideIcons.arrowLeftRight),
+                  onPress: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    notifier.onSearchInChanged('translation');
+                  },
                   child: const Text('Indonesia'),
                 ),
               ),
             ],
           ),
         ),
-        const Gap(8),
         if (state.errorMessage != null)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             child: FAlert(
               variant: FAlertVariant.destructive,
               title: Text(state.errorMessage!),
@@ -119,42 +121,15 @@ class HomeSearchPage extends HookConsumerWidget {
   ) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final skeletonPerPage = (viewportHeight ~/ 80) + 2;
-    final missesAsync = ref.watch(_homeSearchMissesProvider);
 
     if (state.isLoading) {
       return _WordSkeletonList(itemCount: skeletonPerPage);
     }
 
+    // Idle: miss list = isi beranda (satu komposisi). Hilang saat user mencari.
     if (!state.hasSearched) {
-      return Column(
-        children: [
-          if (missesAsync is! AsyncLoading)
-            _SearchMissBanner(
-              misses: missesAsync,
-              onDismiss: () => ref.invalidate(_homeSearchMissesProvider),
-            ),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    FLucideIcons.search,
-                    size: 56,
-                    color: theme.colors.mutedForeground,
-                  ),
-                  const Gap(8),
-                  Text(
-                    'Mulai ketik untuk mencari kosakata',
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      return _HomeIdleMisses(
+        misses: ref.watch(searchMissListProvider(_HomeIdleMisses._limit)),
       );
     }
 
@@ -167,7 +142,7 @@ class HomeSearchPage extends HookConsumerWidget {
             children: [
               Icon(
                 FLucideIcons.searchX,
-                size: 56,
+                size: 40,
                 color: theme.colors.mutedForeground,
               ),
               const Gap(8),
@@ -180,7 +155,7 @@ class HomeSearchPage extends HookConsumerWidget {
               ),
               const Gap(4),
               Text(
-                'Ayo kontribusikan usul kata ini, bantu warga Sambas lain.',
+                'Usulkan kata ini untuk membantu warga lain.',
                 textAlign: TextAlign.center,
                 style: theme.typography.sm.copyWith(
                   color: theme.colors.mutedForeground,
@@ -207,39 +182,22 @@ class HomeSearchPage extends HookConsumerWidget {
       );
     }
 
-    final items = <Widget>[
-      if (missesAsync is! AsyncLoading)
-        _SearchMissBanner(
-          misses: missesAsync,
-          onDismiss: () => ref.invalidate(_homeSearchMissesProvider),
-        ),
-      Expanded(
-        child: ListView.separated(
-          controller: scroll,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-          separatorBuilder: (_, _) => const Gap(8),
-          itemBuilder: (ctx, index) {
-            if (index >= state.items.length) {
-              return const _LoadingMoreFooter();
-            }
-            return _WordResultTile(item: state.items[index]);
-          },
-        ),
-      ),
-    ];
-
-    return Column(children: items);
+    return ListView.separated(
+      controller: scroll,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+      itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
+      separatorBuilder: (_, _) => const Gap(6),
+      itemBuilder: (ctx, index) {
+        if (index >= state.items.length) {
+          return const _LoadingMoreFooter();
+        }
+        return _WordResultTile(item: state.items[index]);
+      },
+    );
   }
 }
 
-/// Skeleton list hasil pencarian. Dibungkus IgnorePointer supaya tidak
-/// bisa di-scroll / di-tap saat loading (UX professional: skeleton
-/// hanya visual, tidak interactive).
-///
-/// Setiap tile 1:1 mirror struktur [_WordResultTile]. Ini penting supaya
-/// `skeletonizer` men-generate shimmer overlay yang bentuknya PERSIS
-/// seperti hasil asli (tidak ada "keanehan bentuk").
 class _WordSkeletonList extends StatelessWidget {
   const _WordSkeletonList({required this.itemCount});
 
@@ -266,9 +224,9 @@ class _WordSkeletonList extends StatelessWidget {
         child: Skeletonizer(
           enabled: true,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
             itemCount: itemCount,
-            separatorBuilder: (_, _) => const Gap(8),
+            separatorBuilder: (_, _) => const Gap(6),
             itemBuilder: (_, _) => const _SkeletonTile(),
           ),
         ),
@@ -277,15 +235,6 @@ class _WordSkeletonList extends StatelessWidget {
   }
 }
 
-/// Satu baris skeleton, bentuk & hierarki 1:1 sama dengan [_WordResultTile]:
-/// - `title`: panjang agak acak (3 kata via `Bone.text`)
-/// - `subtitle`: 2 segmen dipisah titik tengah (wordType · languageCode)
-/// - `suffix`: placeholder badgeCheck (icon verified muncul di tile asli)
-///
-/// `Bone` disediakan oleh package skeletonizer, Text biasa di dalam
-/// Skeletonizer yang enabled=true memang akan di-paint-over, tapi
-/// memakai widget Text dengan panjang yang mirip hasil asli membuat
-/// shimmer overlay presisi.
 class _SkeletonTile extends StatelessWidget {
   const _SkeletonTile();
 
@@ -303,65 +252,33 @@ class _SkeletonTile extends StatelessWidget {
   }
 }
 
-/// Footer loadMore: skeleton tile 2 baris (kesan item sudah datang tapi
-/// belum kontennya) + spinner mini di bawah sebagai indikator loading
-/// aktif. Hanya tampil waktu `isLoadingMore=true` (saat infinite scroll
-/// request halaman berikutnya).
 class _LoadingMoreFooter extends StatelessWidget {
   const _LoadingMoreFooter();
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final materialBrightness = Theme.of(context).brightness;
-    final isDark = materialBrightness == Brightness.dark;
-    final muted = theme.colors.muted;
-    final shimmer = ShimmerEffect(
-      baseColor: isDark
-          ? muted.withValues(alpha: 0.35)
-          : const Color(0xFFE7E7EA),
-      highlightColor: isDark
-          ? muted.withValues(alpha: 0.55)
-          : const Color(0xFFF4F4F5),
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    return Column(
-      children: [
-        SkeletonizerConfig(
-          data: SkeletonizerConfigData(effect: shimmer),
-          child: IgnorePointer(
-            child: Skeletonizer(
-              enabled: true,
-              child: Column(
-                children: const [_SkeletonTile(), Gap(8), _SkeletonTile()],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12, width: 12, child: FCircularProgress()),
+            const Gap(8),
+            Text(
+              'Memuat...',
+              style: theme.typography.sm.copyWith(
+                color: theme.colors.mutedForeground,
               ),
             ),
-          ),
+          ],
         ),
-        const Gap(12),
-        Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12, width: 12, child: FCircularProgress()),
-              const Gap(8),
-              Text(
-                'Memuat lebih banyak...',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Gap(16),
-      ],
+      ),
     );
   }
 }
 
-/// Satu baris hasil: lemma + relasi terjemahan (jika ada) + tipe/bahasa.
 class _WordResultTile extends StatelessWidget {
   const _WordResultTile({required this.item});
 
@@ -371,8 +288,6 @@ class _WordResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final matched = item.matchedTranslation;
-
-    // reverse search: tampilkan relasi "makan → makatn"
     final title = matched != null ? '$matched → ${item.lemma}' : item.lemma;
 
     return FTile(
@@ -382,152 +297,173 @@ class _WordResultTile extends StatelessWidget {
           ? Icon(FLucideIcons.badgeCheck, size: 18, color: theme.colors.primary)
           : null,
       onPress: () {
+        FocusManager.instance.primaryFocus?.unfocus();
         context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));
       },
     );
   }
 }
 
-// =============================================================================
-// Banner "Sedang Dicari" = horizontal list kata yang paling banyak dicari
-// tapi tidak ketemu. Setiap kartu punya CTA "Kontribusikan" → navigate ke
-// halaman /contribute dengan prefill lemma dan search_in.
-// =============================================================================
-
-final _homeSearchMissesProvider = FutureProvider<List<SearchMiss>>((ref) async {
-  final usecase = ref.watch(listSearchMissesUseCaseProvider);
-  final result = await usecase(const ListSearchMissesParams(limit: 10));
-  return result.match((l) => <SearchMiss>[], (r) => r);
-});
-
-class _SearchMissBanner extends StatelessWidget {
-  const _SearchMissBanner({required this.misses, required this.onDismiss});
+/// Idle beranda: daftar miss sebagai konten utama (bukan chip + empty-state).
+class _HomeIdleMisses extends ConsumerWidget {
+  const _HomeIdleMisses({required this.misses});
 
   final AsyncValue<List<SearchMiss>> misses;
-  final VoidCallback onDismiss;
 
-  @override
-  Widget build(BuildContext context) {
-    return misses.maybeWhen(
-      data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
-        return _BannerList(items: items);
-      },
-      error: (_, _) => const SizedBox.shrink(),
-      orElse: () => const SizedBox(
-        height: 130,
-        child: Center(child: FCircularProgress()),
-      ),
-    );
+  static const _limit = 8;
+
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(searchMissListProvider(_limit));
+    await ref.read(searchMissListProvider(_limit).future);
   }
-}
-
-class _BannerList extends StatelessWidget {
-  const _BannerList({required this.items});
-  final List<SearchMiss> items;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+
+    return RefreshIndicator(
+      onRefresh: () => _refresh(ref),
+      child: misses.when(
+        loading: () => SearchMissSkeletonList(
+          itemCount: _limit,
+          header: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                FLucideIcons.sparkles,
-                size: 16,
-                color: theme.colors.primary,
-              ),
-              const Gap(6),
               Text(
-                'Sedang Dicari Warga Lain',
-                style: theme.typography.sm.copyWith(
+                'Sedang dicari warga',
+                style: theme.typography.lg.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colors.foreground,
                 ),
               ),
-              const Spacer(),
-              Icon(
-                FLucideIcons.info,
-                size: 16,
-                color: theme.colors.mutedForeground,
+              const Gap(2),
+              Text(
+                'Belum ada di kamus - ketuk untuk mengusulkan arti.',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
               ),
             ],
           ),
-          const Gap(8),
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.zero,
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const Gap(8),
-              itemBuilder: (ctx, i) => _BannerCard(item: items[i]),
+        ),
+        error: (_, _) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.45,
+              child: _IdleSearchHint(theme: theme),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+          ],
+        ),
+        data: (items) {
+          if (items.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.45,
+                  child: _IdleSearchHint(theme: theme),
+                ),
+              ],
+            );
+          }
 
-class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.item});
-  final SearchMiss item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final label = item.searchIn == 'translation'
-        ? '🇮🇩 → Sambas'
-        : '🇸🇧 → Indonesia';
-    final hitLabel = item.hitCount > 99
-        ? '99× dicari'
-        : '${item.hitCount}× dicari';
-    return SizedBox(
-      width: 240,
-      child: FCard(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
             children: [
-              Row(
-                children: [
-                  FBadge(child: Text(hitLabel)),
-                  const Spacer(),
-                  FBadge(variant: FBadgeVariant.secondary, child: Text(label)),
-                ],
-              ),
-              const Gap(6),
               Text(
-                item.term,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                'Sedang dicari warga',
                 style: theme.typography.lg.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: theme.colors.foreground,
                 ),
               ),
-              const Spacer(),
+              const Gap(2),
+              Text(
+                'Belum ada di kamus - ketuk untuk mengusulkan arti.',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
+              ),
+              const Gap(10),
+              FTileGroup(
+                children: [
+                  for (final item in items)
+                    FTile(
+                      title: Text(item.term),
+                      subtitle: Text(_missSubtitle(item)),
+                      suffix: Icon(
+                        FLucideIcons.chevronRight,
+                        color: theme.colors.mutedForeground,
+                      ),
+                      onPress: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        final q = Uri(
+                          queryParameters: <String, String>{
+                            'lemma': item.term,
+                            'search_in': item.searchIn,
+                            'miss_id': item.id,
+                          },
+                        ).query;
+                        context.push('/contribute?$q');
+                      },
+                    ),
+                ],
+              ),
+              const Gap(12),
               FButton(
+                variant: FButtonVariant.outline,
                 onPress: () {
-                  final q = Uri(
-                    queryParameters: <String, String>{
-                      'lemma': item.term,
-                      'search_in': item.searchIn,
-                    },
-                  ).query;
-                  context.push('/contribute?$q');
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.go('/action');
                 },
-                prefix: const Icon(FLucideIcons.plus, size: 16),
-                child: const Text('Ayo Kontribusi'),
+                child: const Text('Lihat semua di Kontribusi'),
               ),
             ],
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  static String _missSubtitle(SearchMiss item) {
+    final direction = item.searchIn == 'translation'
+        ? 'Indonesia → Sambas'
+        : 'Sambas → Indonesia';
+    final hits = item.hitCount > 99 ? '99×' : '${item.hitCount}×';
+    return '$direction · $hits dicari';
+  }
+}
+
+class _IdleSearchHint extends StatelessWidget {
+  const _IdleSearchHint({required this.theme});
+
+  final FThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              FLucideIcons.search,
+              size: 36,
+              color: theme.colors.mutedForeground,
+            ),
+            const Gap(6),
+            Text(
+              'Ketik untuk mencari',
+              textAlign: TextAlign.center,
+              style: theme.typography.sm.copyWith(
+                color: theme.colors.mutedForeground,
+              ),
+            ),
+          ],
         ),
       ),
     );

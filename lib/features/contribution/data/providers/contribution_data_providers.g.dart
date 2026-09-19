@@ -105,3 +105,99 @@ final class ContributionRepositoryProvider
 
 String _$contributionRepositoryHash() =>
     r'ef12b6ec97eb9ca82c2e2a9196cb31dcac4c37f5';
+
+@ProviderFor(imageRemoteDatasource)
+final imageRemoteDatasourceProvider = ImageRemoteDatasourceProvider._();
+
+final class ImageRemoteDatasourceProvider
+    extends
+        $FunctionalProvider<
+          ImageRemoteDatasource,
+          ImageRemoteDatasource,
+          ImageRemoteDatasource
+        >
+    with $Provider<ImageRemoteDatasource> {
+  ImageRemoteDatasourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'imageRemoteDatasourceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$imageRemoteDatasourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ImageRemoteDatasource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ImageRemoteDatasource create(Ref ref) {
+    return imageRemoteDatasource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ImageRemoteDatasource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ImageRemoteDatasource>(value),
+    );
+  }
+}
+
+String _$imageRemoteDatasourceHash() =>
+    r'd50d4441f78bbe5c5ad8ddaca25bad55d5154b19';
+
+@ProviderFor(wordImageUploadService)
+final wordImageUploadServiceProvider = WordImageUploadServiceProvider._();
+
+final class WordImageUploadServiceProvider
+    extends
+        $FunctionalProvider<
+          WordImageUploadService,
+          WordImageUploadService,
+          WordImageUploadService
+        >
+    with $Provider<WordImageUploadService> {
+  WordImageUploadServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'wordImageUploadServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$wordImageUploadServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<WordImageUploadService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WordImageUploadService create(Ref ref) {
+    return wordImageUploadService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WordImageUploadService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WordImageUploadService>(value),
+    );
+  }
+}
+
+String _$wordImageUploadServiceHash() =>
+    r'78f1b1b6e063133c1c086bd233a009a17a1720fd';

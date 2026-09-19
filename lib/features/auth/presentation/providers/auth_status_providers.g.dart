@@ -10,23 +10,32 @@ part of 'auth_status_providers.dart';
 // ignore_for_file: type=lint, type=warning
 /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
 /// supaya Profile + router otomatis tahu user sudah jadi tamu.
+///
+/// keepAlive: sesi tidak boleh autoDispose saat pindah /login → / (gap
+/// antar listener sempat cancel rebuild + sisakan cache isAuth:false).
 
 @ProviderFor(AuthStatusNotifier)
 final authStatusProvider = AuthStatusNotifierProvider._();
 
 /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
 /// supaya Profile + router otomatis tahu user sudah jadi tamu.
+///
+/// keepAlive: sesi tidak boleh autoDispose saat pindah /login → / (gap
+/// antar listener sempat cancel rebuild + sisakan cache isAuth:false).
 final class AuthStatusNotifierProvider
     extends $AsyncNotifierProvider<AuthStatusNotifier, AuthStatusState> {
   /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
   /// supaya Profile + router otomatis tahu user sudah jadi tamu.
+  ///
+  /// keepAlive: sesi tidak boleh autoDispose saat pindah /login → / (gap
+  /// antar listener sempat cancel rebuild + sisakan cache isAuth:false).
   AuthStatusNotifierProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'authStatusProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -40,10 +49,13 @@ final class AuthStatusNotifierProvider
 }
 
 String _$authStatusNotifierHash() =>
-    r'9bf198980e7083524c2f3a1ab222cdd72fe1fe1b';
+    r'ba97ac442ea8b75480818b4f2cf06ee4d9fcbe4d';
 
 /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
 /// supaya Profile + router otomatis tahu user sudah jadi tamu.
+///
+/// keepAlive: sesi tidak boleh autoDispose saat pindah /login → / (gap
+/// antar listener sempat cancel rebuild + sisakan cache isAuth:false).
 
 abstract class _$AuthStatusNotifier extends $AsyncNotifier<AuthStatusState> {
   FutureOr<AuthStatusState> build();

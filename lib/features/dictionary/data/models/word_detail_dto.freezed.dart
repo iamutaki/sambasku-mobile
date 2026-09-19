@@ -682,7 +682,7 @@ $WordClassDtoCopyWith<$Res>? get wordClass {
 /// @nodoc
 mixin _$WordClassDto {
 
- String get id; String get code; String get name;@JsonKey(name: 'parent_id') String? get parentId;
+ String get id; String get code; String get name; String? get alias;@JsonKey(name: 'parent_id') String? get parentId;
 /// Create a copy of WordClassDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -695,16 +695,16 @@ $WordClassDtoCopyWith<WordClassDto> get copyWith => _$WordClassDtoCopyWithImpl<W
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WordClassDto&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentId, parentId) || other.parentId == parentId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WordClassDto&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.name, name) || other.name == name)&&(identical(other.alias, alias) || other.alias == alias)&&(identical(other.parentId, parentId) || other.parentId == parentId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,code,name,parentId);
+int get hashCode => Object.hash(runtimeType,id,code,name,alias,parentId);
 
 @override
 String toString() {
-  return 'WordClassDto(id: $id, code: $code, name: $name, parentId: $parentId)';
+  return 'WordClassDto(id: $id, code: $code, name: $name, alias: $alias, parentId: $parentId)';
 }
 
 
@@ -715,7 +715,7 @@ abstract mixin class $WordClassDtoCopyWith<$Res>  {
   factory $WordClassDtoCopyWith(WordClassDto value, $Res Function(WordClassDto) _then) = _$WordClassDtoCopyWithImpl;
 @useResult
 $Res call({
- String id, String code, String name,@JsonKey(name: 'parent_id') String? parentId
+ String id, String code, String name, String? alias,@JsonKey(name: 'parent_id') String? parentId
 });
 
 
@@ -732,12 +732,13 @@ class _$WordClassDtoCopyWithImpl<$Res>
 
 /// Create a copy of WordClassDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? code = null,Object? name = null,Object? parentId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? code = null,Object? name = null,Object? alias = freezed,Object? parentId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,parentId: freezed == parentId ? _self.parentId : parentId // ignore: cast_nullable_to_non_nullable
+as String,alias: freezed == alias ? _self.alias : alias // ignore: cast_nullable_to_non_nullable
+as String?,parentId: freezed == parentId ? _self.parentId : parentId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -823,10 +824,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String code,  String name, @JsonKey(name: 'parent_id')  String? parentId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String code,  String name,  String? alias, @JsonKey(name: 'parent_id')  String? parentId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WordClassDto() when $default != null:
-return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
+return $default(_that.id,_that.code,_that.name,_that.alias,_that.parentId);case _:
   return orElse();
 
 }
@@ -844,10 +845,10 @@ return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String code,  String name, @JsonKey(name: 'parent_id')  String? parentId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String code,  String name,  String? alias, @JsonKey(name: 'parent_id')  String? parentId)  $default,) {final _that = this;
 switch (_that) {
 case _WordClassDto():
-return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
+return $default(_that.id,_that.code,_that.name,_that.alias,_that.parentId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -864,10 +865,10 @@ return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String code,  String name, @JsonKey(name: 'parent_id')  String? parentId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String code,  String name,  String? alias, @JsonKey(name: 'parent_id')  String? parentId)?  $default,) {final _that = this;
 switch (_that) {
 case _WordClassDto() when $default != null:
-return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
+return $default(_that.id,_that.code,_that.name,_that.alias,_that.parentId);case _:
   return null;
 
 }
@@ -879,12 +880,13 @@ return $default(_that.id,_that.code,_that.name,_that.parentId);case _:
 @JsonSerializable()
 
 class _WordClassDto implements WordClassDto {
-  const _WordClassDto({required this.id, required this.code, required this.name, @JsonKey(name: 'parent_id') this.parentId});
+  const _WordClassDto({required this.id, required this.code, required this.name, this.alias, @JsonKey(name: 'parent_id') this.parentId});
   factory _WordClassDto.fromJson(Map<String, dynamic> json) => _$WordClassDtoFromJson(json);
 
 @override final  String id;
 @override final  String code;
 @override final  String name;
+@override final  String? alias;
 @override@JsonKey(name: 'parent_id') final  String? parentId;
 
 /// Create a copy of WordClassDto
@@ -900,16 +902,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WordClassDto&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentId, parentId) || other.parentId == parentId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WordClassDto&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.name, name) || other.name == name)&&(identical(other.alias, alias) || other.alias == alias)&&(identical(other.parentId, parentId) || other.parentId == parentId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,code,name,parentId);
+int get hashCode => Object.hash(runtimeType,id,code,name,alias,parentId);
 
 @override
 String toString() {
-  return 'WordClassDto(id: $id, code: $code, name: $name, parentId: $parentId)';
+  return 'WordClassDto(id: $id, code: $code, name: $name, alias: $alias, parentId: $parentId)';
 }
 
 
@@ -920,7 +922,7 @@ abstract mixin class _$WordClassDtoCopyWith<$Res> implements $WordClassDtoCopyWi
   factory _$WordClassDtoCopyWith(_WordClassDto value, $Res Function(_WordClassDto) _then) = __$WordClassDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String code, String name,@JsonKey(name: 'parent_id') String? parentId
+ String id, String code, String name, String? alias,@JsonKey(name: 'parent_id') String? parentId
 });
 
 
@@ -937,12 +939,13 @@ class __$WordClassDtoCopyWithImpl<$Res>
 
 /// Create a copy of WordClassDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? code = null,Object? name = null,Object? parentId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? code = null,Object? name = null,Object? alias = freezed,Object? parentId = freezed,}) {
   return _then(_WordClassDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,parentId: freezed == parentId ? _self.parentId : parentId // ignore: cast_nullable_to_non_nullable
+as String,alias: freezed == alias ? _self.alias : alias // ignore: cast_nullable_to_non_nullable
+as String?,parentId: freezed == parentId ? _self.parentId : parentId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

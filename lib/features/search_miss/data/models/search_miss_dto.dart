@@ -7,12 +7,17 @@ part 'search_miss_dto.g.dart';
 /// `GET /api/v1/search-misses`. Field 1:1 sama dengan entity SearchMiss
 /// tapi tanpa mapping custom business logic (repository yang akan
 /// konversi ke entity).
+///
+/// Gate tayang ada di server (14-api): response publik hanya berisi
+/// miss `is_visible=true`. Field `is_visible` di wire boleh diabaikan.
 @freezed
 abstract class SearchMissDto with _$SearchMissDto {
   const factory SearchMissDto({
     required String id,
     required String term,
-    @JsonKey(name: 'search_in') required String searchIn,
+    /// Wire API: `direction` (bukan `search_in`). Field Dart tetap searchIn
+    /// supaya UI/router lama tidak pecah.
+    @JsonKey(name: 'direction') required String searchIn,
     @JsonKey(name: 'hit_count') required int hitCount,
     @JsonKey(name: 'last_searched_at') DateTime? lastSearchedAt,
   }) = _SearchMissDto;

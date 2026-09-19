@@ -23,6 +23,17 @@ class _FakeRepo implements AuthRepository {
   }
 
   @override
+  Future<Either<AuthFailure, void>> register({
+    required String name,
+    required String email,
+    String? phone,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Either<AuthFailure, void>> logout() async {
     throw UnimplementedError();
   }

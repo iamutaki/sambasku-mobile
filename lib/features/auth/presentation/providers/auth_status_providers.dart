@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
 import '../models/auth_status_state.dart';
 
@@ -8,7 +9,10 @@ part 'auth_status_providers.g.dart';
 
 /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
 /// supaya Profile + router otomatis tahu user sudah jadi tamu.
-@riverpod
+///
+/// keepAlive: sesi tidak boleh autoDispose saat pindah /login → / (gap
+/// antar listener sempat cancel rebuild + sisakan cache isAuth:false).
+@Riverpod(keepAlive: true)
 class AuthStatusNotifier extends _$AuthStatusNotifier {
   @override
   Future<AuthStatusState> build() async {
@@ -20,6 +24,20 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
       username: user.username,
       role: user.role,
       userId: user.userId,
+    );
+  }
+
+  /// Dipanggil langsung setelah login sukses (token sudah di storage).
+  /// Hindari invalidate: reload async masih bawa previous isAuth:false
+  /// → form KBBI/gambar sempat mengira user masih tamu.
+  void markLoggedIn(AuthSession session) {
+    state = AsyncData(
+      AuthStatusState(
+        isAuth: true,
+        username: session.username,
+        role: session.role,
+        userId: session.userId,
+      ),
     );
   }
 

@@ -81,13 +81,7 @@ void main() {
   }
 
   Future<void> submitForm(WidgetTester tester) async {
-    await tester.scrollUntilVisible(
-      find.text('Kirim Usulan Kata'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.text('Kirim Usulan Kata'));
+    await tester.tap(find.text('Kirim Usulan'));
     await tester.pump(const Duration(milliseconds: 400));
   }
 

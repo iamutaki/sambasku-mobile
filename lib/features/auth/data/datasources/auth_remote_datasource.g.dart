@@ -20,6 +20,39 @@ class _AuthRemoteDatasource implements AuthRemoteDatasource {
   final ParseErrorLogger? errorLogger;
 
   @override
+  Future<ApiResponse<RegisterResponseDto>> register(
+    RegisterRequestDto body,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<ApiResponse<RegisterResponseDto>>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/auth/register',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiResponse<RegisterResponseDto> _value;
+    try {
+      _value = ApiResponse<RegisterResponseDto>.fromJson(
+        _result.data!,
+        (json) => RegisterResponseDto.fromJson(json as Map<String, dynamic>),
+      );
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<ApiResponse<LoginResponseDto>> login(LoginRequestDto body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

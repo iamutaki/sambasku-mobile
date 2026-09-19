@@ -29,7 +29,11 @@ class WordDetailPage extends ConsumerWidget {
     return FScaffold(
       childPad: true,
       header: FHeader.nested(
-        title: const Text('Detail kata'),
+        title: Text(
+          async.maybeWhen(data: (d) => d.lemma, orElse: () => 'Detail kata'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
       ),
       child: async.when(
@@ -49,18 +53,18 @@ class WordDetailPage extends ConsumerWidget {
                     isNotFound
                         ? FLucideIcons.searchX
                         : FLucideIcons.circleAlert,
-                    size: 56,
+                    size: 40,
                     color: theme.colors.mutedForeground,
                   ),
-                  const Gap(12),
+                  const Gap(10),
                   Text(
                     isNotFound ? 'Kata tidak ditemukan' : 'Gagal memuat detail',
-                    style: theme.typography.lg.copyWith(
+                    style: theme.typography.md.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const Gap(8),
+                  const Gap(6),
                   Text(
                     failure.message,
                     style: theme.typography.sm.copyWith(
@@ -68,7 +72,7 @@ class WordDetailPage extends ConsumerWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const Gap(20),
+                  const Gap(16),
                   FButton(
                     variant: FButtonVariant.outline,
                     onPress: () => ref.invalidate(wordDetailProvider(wordId)),
@@ -99,47 +103,73 @@ class _DetailBody extends StatelessWidget {
         detail.images.firstOrNull;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
-        if (primaryImage != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              primaryImage.url,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            ),
-          ),
-          const Gap(16),
-        ],
+        // Header compact: thumb + meta
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                detail.lemma,
-                style: theme.typography.xl2.copyWith(
-                  fontWeight: FontWeight.w700,
+            if (primaryImage != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  primaryImage.url,
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
-            ),
-            if (detail.isVerified)
-              Icon(
-                FLucideIcons.badgeCheck,
-                size: 22,
-                color: theme.colors.primary,
+              const Gap(12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          detail.lemma,
+                          style: theme.typography.xl.copyWith(
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                      if (detail.isVerified)
+                        Icon(
+                          FLucideIcons.badgeCheck,
+                          size: 18,
+                          color: theme.colors.primary,
+                        ),
+                    ],
+                  ),
+                  const Gap(2),
+                  Text(
+                    detail.wordTypeLabel,
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                  if (detail.pronunciations.isNotEmpty) ...[
+                    const Gap(4),
+                    Text(
+                      detail.pronunciations
+                          .map((p) => '${p.notation} ${p.value}')
+                          .join(' · '),
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
               ),
+            ),
           ],
         ),
-        const Gap(6),
-        Text(
-          detail.wordTypeLabel,
-          style: theme.typography.sm.copyWith(
-            color: theme.colors.mutedForeground,
-          ),
-        ),
+
         if (detail.notes != null && detail.notes!.isNotEmpty) ...[
           const Gap(8),
           Text(
@@ -149,74 +179,93 @@ class _DetailBody extends StatelessWidget {
             ),
           ),
         ],
-        if (detail.pronunciations.isNotEmpty) ...[
-          const Gap(12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: detail.pronunciations
-                .map((p) => FBadge(child: Text('${p.notation}: ${p.value}')))
-                .toList(),
-          ),
-        ],
+
         if (detail.categories.isNotEmpty) ...[
-          const Gap(12),
+          const Gap(8),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: detail.categories
-                .map((c) => FBadge(child: Text(c.name)))
+                .map(
+                  (c) => FBadge(
+                    variant: FBadgeVariant.secondary,
+                    child: Text(c.name),
+                  ),
+                )
                 .toList(),
           ),
         ],
-        const Gap(16),
+
+        const Gap(10),
         _WordVoteBar(wordId: wordId),
+
         if (detail.meanings.isNotEmpty) ...[
-          const Gap(24),
-          _SectionTitle('Makna'),
-          const Gap(8),
-          ...detail.meanings.map((m) => _MeaningCard(meaning: m)),
+          const Gap(16),
+          const _SectionLabel('Makna'),
+          const Gap(6),
+          ...detail.meanings.asMap().entries.map(
+            (e) => _MeaningBlock(index: e.key + 1, meaning: e.value),
+          ),
         ],
-        if (detail.relatedWords.isNotEmpty) ...[
-          const Gap(24),
-          _SectionTitle('Relasi'),
-          const Gap(8),
-          ...detail.relatedWords.map((r) => _RelatedTile(related: r)),
-        ],
-        if (detail.appearsIn.isNotEmpty) ...[
-          const Gap(24),
-          _SectionTitle('Muncul dalam'),
-          const Gap(8),
-          ...detail.appearsIn.map((r) => _RelatedTile(related: r)),
-        ],
+
         if (detail.variants.isNotEmpty) ...[
-          const Gap(24),
-          _SectionTitle('Varian'),
-          const Gap(8),
-          ...detail.variants.map((v) {
-            final affix = [
-              if (v.affixValue != null) v.affixValue,
-              v.variantType,
-            ].whereType<String>().join(' · ');
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                title: Text(v.form),
-                subtitle: Text(
-                  v.notes?.isNotEmpty == true ? '${v.notes} · $affix' : affix,
-                ),
-              ),
-            );
-          }),
+          const Gap(14),
+          _SectionLabel(
+            detail.variants.every((v) => v.isSpellingVariant)
+                ? 'Variasi penulisan'
+                : 'Variasi & bentuk turunan',
+          ),
+          const Gap(6),
+          ...detail.variants.map((v) => _VariantRow(variant: v)),
         ],
-        const Gap(24),
+
+        ..._relatedSections(detail.relatedWords),
+
+        if (detail.appearsIn.isNotEmpty) ...[
+          const Gap(14),
+          const _SectionLabel('Muncul dalam'),
+          const Gap(4),
+          ...detail.appearsIn.map((r) => _RelatedRow(related: r)),
+        ],
+
+        const Gap(16),
         WordCommentsSection(wordId: wordId),
       ],
     );
   }
+
+  /// Kelompokkan relasi per tipe (Sinonim, Antonim, …) supaya jelas di UI.
+  static List<Widget> _relatedSections(List<RelatedWord> related) {
+    if (related.isEmpty) return const [];
+
+    const order = [
+      'synonym',
+      'antonym',
+      'derived_from',
+      'has_component',
+      'see_also',
+    ];
+    final grouped = <String, List<RelatedWord>>{};
+    for (final r in related) {
+      grouped.putIfAbsent(r.relationType, () => []).add(r);
+    }
+
+    final keys = [
+      ...order.where(grouped.containsKey),
+      ...grouped.keys.where((k) => !order.contains(k)),
+    ];
+
+    return [
+      for (final key in keys) ...[
+        const Gap(14),
+        _SectionLabel(grouped[key]!.first.relationLabel),
+        const Gap(4),
+        ...grouped[key]!.map((r) => _RelatedRow(related: r)),
+      ],
+    ];
+  }
 }
 
-/// Vote bar kata (auth: toggle via VoteController; anonim: prompt login).
 class _WordVoteBar extends ConsumerWidget {
   const _WordVoteBar({required this.wordId});
 
@@ -228,8 +277,6 @@ class _WordVoteBar extends ConsumerWidget {
     final target = VoteTarget(type: 'word', id: wordId);
     final async = ref.watch(voteControllerProvider(target));
 
-    // Vote = bagian opsional detail: gagal load cukup shrink + toast,
-    // jangan ganggu sisa halaman.
     ref.listen(voteControllerProvider(target), (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
         final err = next.error;
@@ -241,10 +288,6 @@ class _WordVoteBar extends ConsumerWidget {
       }
     });
 
-    // Constraint degeneratif (lebar < 50, mis. frame awal rute di device
-    // Oppo yang mengirim width 0/negatif) langsung shrink - layout anak
-    // tidak boleh melihat constraint gila. Guard di luar async.when agar
-    // ketiga cabang (loading/error/data) terlindungi.
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 50) return const SizedBox.shrink();
@@ -252,44 +295,39 @@ class _WordVoteBar extends ConsumerWidget {
         return async.when(
           loading: () => Skeletonizer(
             enabled: true,
-            child: Row(
-              children: const [
-                Flexible(
-                  child: Text(
-                    'Apakah kata ini membantu?',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Membantu?',
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
                   ),
-                ),
-                Gap(12),
-                Text('Upvote 0'),
-                Gap(6),
-                Text('Downvote 0'),
-              ],
+                  const Gap(8),
+                  const VoteButtonsSkeleton(compact: true),
+                ],
+              ),
             ),
           ),
           error: (_, _) => const SizedBox.shrink(),
           data: (view) => Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Flexible(
-                child: Text(
-                  'Apakah kata ini membantu?',
-                  style: theme.typography.sm.copyWith(
-                    color: theme.colors.mutedForeground,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                'Membantu?',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
                 ),
               ),
-              const Gap(12),
-              Flexible(
-                child: VoteButtons(
-                  upvotes: view.upvotes,
-                  downvotes: view.downvotes,
-                  myVote: view.myVote,
-                  onVote: (value) => _vote(context, ref, target, value),
-                ),
+              const Gap(8),
+              VoteButtons(
+                upvotes: view.upvotes,
+                downvotes: view.downvotes,
+                myVote: view.myVote,
+                compact: true,
+                onVote: (value) => _vote(context, ref, target, value),
               ),
             ],
           ),
@@ -327,95 +365,150 @@ class _WordVoteBar extends ConsumerWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
     return Text(
-      text,
-      style: context.theme.typography.lg.copyWith(fontWeight: FontWeight.w600),
+      text.toUpperCase(),
+      style: theme.typography.sm.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.06,
+        color: theme.colors.mutedForeground,
+        fontSize: 11,
+      ),
     );
   }
 }
 
-class _MeaningCard extends StatelessWidget {
-  const _MeaningCard({required this.meaning});
+class _MeaningBlock extends StatelessWidget {
+  const _MeaningBlock({required this.index, required this.meaning});
 
+  final int index;
   final WordMeaning meaning;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final titleParts = <String>[
-      if (meaning.wordClassName != null) meaning.wordClassName!,
-      if (meaning.definition != null && meaning.definition!.isNotEmpty)
-        meaning.definition!,
-    ];
-    final title = titleParts.isEmpty
-        ? 'Makna ${meaning.orderIndex}'
-        : titleParts.join(' - ');
+    final className = meaning.wordClassName;
+    final definition = meaning.definition?.trim();
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: FCard(
-        title: Text(title),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text(
+              '$index.',
+              style: theme.typography.sm.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colors.mutedForeground,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (className != null && className.isNotEmpty)
+                  Text(
+                    className,
+                    style: theme.typography.sm.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colors.primary,
+                      fontSize: 12,
+                    ),
+                  ),
+                if (definition != null && definition.isNotEmpty)
+                  Text(
+                    definition,
+                    style: theme.typography.sm.copyWith(height: 1.35),
+                  ),
+                if (meaning.translations.isNotEmpty) ...[
+                  const Gap(4),
+                  ...meaning.translations.map(
+                    (t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        '→ ${t.text}',
+                        style: theme.typography.sm.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (meaning.examples.isNotEmpty) ...[
+                  const Gap(4),
+                  ...meaning.examples.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.sourceSentence,
+                            style: theme.typography.sm.copyWith(
+                              fontStyle: FontStyle.italic,
+                              height: 1.3,
+                            ),
+                          ),
+                          if (e.targetSentence.trim().isNotEmpty)
+                            Text(
+                              e.targetSentence,
+                              style: theme.typography.sm.copyWith(
+                                color: theme.colors.mutedForeground,
+                                height: 1.3,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RelatedRow extends StatelessWidget {
+  const _RelatedRow({required this.related});
+
+  final RelatedWord related;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return InkWell(
+      onTap: () => context.push('/words/${related.wordId}'),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
           children: [
-            if (meaning.translations.isNotEmpty) ...[
-              const Gap(8),
-              Text(
-                'Terjemahan',
+            Expanded(
+              child: Text(
+                related.lemma,
                 style: theme.typography.sm.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Gap(4),
-              ...meaning.translations.map(
-                (t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    '• ${t.text} (${t.typeLabel})',
-                    style: theme.typography.sm,
-                  ),
-                ),
-              ),
-            ],
-            if (meaning.examples.isNotEmpty) ...[
-              const Gap(8),
-              Text(
-                'Contoh',
-                style: theme.typography.sm.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Gap(4),
-              ...meaning.examples.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        e.sourceSentence,
-                        style: theme.typography.sm.copyWith(
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      Text(
-                        e.targetSentence,
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
+            Icon(
+              FLucideIcons.chevronRight,
+              size: 14,
+              color: theme.colors.mutedForeground,
+            ),
           ],
         ),
       ),
@@ -423,20 +516,44 @@ class _MeaningCard extends StatelessWidget {
   }
 }
 
-class _RelatedTile extends StatelessWidget {
-  const _RelatedTile({required this.related});
+class _VariantRow extends StatelessWidget {
+  const _VariantRow({required this.variant});
 
-  final RelatedWord related;
+  final WordVariant variant;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
+    final meta = [
+      if (!variant.isSpellingVariant) variant.variantTypeLabel,
+      if (variant.affixValue != null && variant.affixValue!.isNotEmpty)
+        '"${variant.affixValue}"',
+      if (variant.notes != null && variant.notes!.isNotEmpty) variant.notes!,
+    ].join(' · ');
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: FTile(
-        title: Text(related.lemma),
-        subtitle: Text(related.relationLabel),
-        suffix: const Icon(FLucideIcons.chevronRight, size: 16),
-        onPress: () => context.push('/words/${related.wordId}'),
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          FBadge(
+            variant: FBadgeVariant.secondary,
+            child: Text(variant.form),
+          ),
+          if (meta.isNotEmpty) ...[
+            const Gap(8),
+            Expanded(
+              child: Text(
+                meta,
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -447,20 +564,202 @@ class _DetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Skeletonizer(
-      enabled: true,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          Text('lemma skeleton judul panjang'),
-          Gap(8),
-          Text('tipe kata'),
-          Gap(24),
-          Text('Makna'),
-          Gap(8),
-          Text('definisi makna yang sedang dimuat dari server'),
-          Gap(8),
-          Text('terjemahan contoh baris'),
+    final theme = context.theme;
+    final materialBrightness = Theme.of(context).brightness;
+    final isDark = materialBrightness == Brightness.dark;
+    final muted = theme.colors.muted;
+    final shimmer = ShimmerEffect(
+      baseColor: isDark
+          ? muted.withValues(alpha: 0.35)
+          : const Color(0xFFE7E7EA),
+      highlightColor: isDark
+          ? muted.withValues(alpha: 0.55)
+          : const Color(0xFFF4F4F5),
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    // Mirror 1:1 struktur [_DetailBody]: thumb+meta → vote → makna → komentar.
+    return SkeletonizerConfig(
+      data: SkeletonizerConfigData(effect: shimmer),
+      child: IgnorePointer(
+        child: Skeletonizer(
+          enabled: true,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Bone(
+                    width: 72,
+                    height: 72,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'lemma contoh kata',
+                          style: theme.typography.xl.copyWith(
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                          ),
+                        ),
+                        const Gap(2),
+                        Text(
+                          'Nomina',
+                          style: theme.typography.sm.copyWith(
+                            color: theme.colors.mutedForeground,
+                          ),
+                        ),
+                        const Gap(4),
+                        Text(
+                          '/ma.kan/',
+                          style: theme.typography.sm.copyWith(
+                            color: theme.colors.mutedForeground,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  Bone(
+                    width: 56,
+                    height: 22,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  Bone(
+                    width: 72,
+                    height: 22,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ],
+              ),
+              const Gap(10),
+              Row(
+                children: [
+                  Text(
+                    'Membantu?',
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                  const Gap(8),
+                  const VoteButtonsSkeleton(compact: true),
+                ],
+              ),
+              const Gap(16),
+              const _SectionLabel('Makna'),
+              const Gap(6),
+              const _MeaningSkeletonBlock(index: 1),
+              const _MeaningSkeletonBlock(index: 2),
+              const Gap(16),
+              Text(
+                'Komentar',
+                style: theme.typography.sm.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colors.mutedForeground,
+                  fontSize: 11,
+                  letterSpacing: 0.06,
+                ),
+              ),
+              const Gap(8),
+              const _CommentSkeletonCard(),
+              const Gap(8),
+              const _CommentSkeletonCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MeaningSkeletonBlock extends StatelessWidget {
+  const _MeaningSkeletonBlock({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text(
+              '$index.',
+              style: theme.typography.sm.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colors.mutedForeground,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verba',
+                  style: theme.typography.sm.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colors.primary,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Definisi makna singkat untuk skeleton layout',
+                  style: theme.typography.sm.copyWith(height: 1.35),
+                ),
+                const Gap(4),
+                Text(
+                  '→ terjemahan contoh',
+                  style: theme.typography.sm.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentSkeletonCard extends StatelessWidget {
+  const _CommentSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return FCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'nama pengguna',
+            style: theme.typography.sm.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const Gap(6),
+          Text(
+            'isi komentar skeleton beberapa kata di sini',
+            style: theme.typography.sm,
+          ),
+          const Gap(10),
+          const VoteButtonsSkeleton(compact: true),
         ],
       ),
     );

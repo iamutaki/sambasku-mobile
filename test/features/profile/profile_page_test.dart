@@ -22,6 +22,16 @@ class _FakeAuthRepository implements AuthRepository {
       Either.left(const AuthFailure('tidak dipakai pada test ini'));
 
   @override
+  Future<Either<AuthFailure, void>> register({
+    required String name,
+    required String email,
+    String? phone,
+    required String password,
+    required String confirmPassword,
+  }) async =>
+      Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
   Future<Either<AuthFailure, void>> logout() async => Either.right(null);
 }
 
@@ -56,13 +66,14 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('tamu - menampilkan ajakan masuk tanpa tombol Keluar', (
+  testWidgets('tamu - menampilkan ajakan masuk dan daftar tanpa tombol Keluar', (
     tester,
   ) async {
     await pumpProfile(tester);
 
     expect(find.text('Belum masuk'), findsOneWidget);
     expect(find.text('Masuk / Login'), findsOneWidget);
+    expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
   });
 
@@ -83,7 +94,16 @@ void main() {
       },
     );
 
-    expect(find.text('Masuk sebagai budi'), findsOneWidget);
+    expect(find.text('budi'), findsOneWidget);
+    expect(find.text('Masuk / Login'), findsNothing);
+    expect(find.text('Daftar'), findsNothing);
+
+    // ListView lazy: tile Keluar di bawah fold belum di-build
+    await tester.scrollUntilVisible(
+      find.text('Keluar'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Keluar'), findsOneWidget);
 
     await tester.tap(find.text('Keluar'));
@@ -96,6 +116,7 @@ void main() {
 
     expect(find.text('Belum masuk'), findsOneWidget);
     expect(find.text('Masuk / Login'), findsOneWidget);
+    expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
   });
 }

@@ -2,15 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/widgets/theme_toggle_header_action.dart';
+import '../../../search_miss/domain/entities/search_miss.dart';
+import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
+import '../../../search_miss/presentation/widgets/search_miss_skeleton_list.dart';
 
-class ActivityPage extends StatelessWidget {
+/// Tab KONTRIBUSI: CTA usul kosong + daftar search-miss untuk dipilih.
+class ActivityPage extends ConsumerWidget {
   const ActivityPage({super.key});
 
+  static const _limit = 30;
+
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(searchMissListProvider(_limit));
+    await ref.read(searchMissListProvider(_limit).future);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
+    final missesAsync = ref.watch(searchMissListProvider(_limit));
 
     return Column(
       children: [
@@ -19,135 +32,137 @@ class ActivityPage extends StatelessWidget {
           suffixes: [ThemeToggleHeaderAction()],
         ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-            children: [
-              FCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: RefreshIndicator(
+            onRefresh: () => _refresh(ref),
+            child: missesAsync.when(
+              loading: () => SearchMissSkeletonList(
+                itemCount: 8,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                header: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          FLucideIcons.fileQuestion,
-                          color: theme.colors.primary,
-                        ),
-                        const Gap(8),
-                        Text(
-                          'Usul Kata Baru',
-                          style: theme.typography.lg.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: theme.colors.foreground,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Gap(4),
+                    _BlankContributeTile(theme: theme),
+                    const Gap(14),
                     Text(
-                      'Ketemu kata Sambas atau Indonesia yang belum ada di kamus? Usulkan sekarang, nanti tim kami verifikasi.',
+                      'Kata yang sering dicari tapi belum ada',
+                      style: theme.typography.sm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
                       style: theme.typography.sm.copyWith(
                         color: theme.colors.mutedForeground,
                       ),
                     ),
-                    const Gap(12),
-                    FButton(
-                      onPress: () => context.push('/contribute'),
-                      prefix: const Icon(FLucideIcons.plusCircle),
-                      child: const Text('Mulai Usul Kata'),
-                    ),
                   ],
                 ),
               ),
-              const Gap(12),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.colors.muted.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colors.border.withValues(alpha: 0.3),
+              error: (_, _) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: [
+                  _BlankContributeTile(theme: theme),
+                  const Gap(14),
+                  FAlert(
+                    variant: FAlertVariant.destructive,
+                    title: const Text('Gagal memuat daftar pencarian'),
+                    icon: const Icon(FLucideIcons.circleAlert),
                   ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      FLucideIcons.clock,
+                ],
+              ),
+              data: (items) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: [
+                  _BlankContributeTile(theme: theme),
+                  const Gap(14),
+                  Text(
+                    'Kata yang sering dicari tapi belum ada',
+                    style: theme.typography.sm.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: theme.colors.mutedForeground,
                     ),
-                    const Gap(10),
-                    Expanded(
+                  ),
+                  const Gap(2),
+                  Text(
+                    'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                  const Gap(8),
+                  if (items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'Kata Anda masuk antrean verifikasi sebelum tayang.',
+                        'Belum ada pencarian kosong. Coba usul kata baru di atas.',
                         style: theme.typography.sm.copyWith(
                           color: theme.colors.mutedForeground,
                         ),
                       ),
+                    )
+                  else
+                    FTileGroup(
+                      children: [
+                        for (final item in items)
+                          FTile(
+                            title: Text(item.term),
+                            subtitle: Text(_missSubtitle(item)),
+                            suffix: Icon(
+                              FLucideIcons.chevronRight,
+                              color: theme.colors.mutedForeground,
+                            ),
+                            onPress: () {
+                              final q = Uri(
+                                queryParameters: <String, String>{
+                                  'lemma': item.term,
+                                  'search_in': item.searchIn,
+                                  'miss_id': item.id,
+                                },
+                              ).query;
+                              context.push('/contribute?$q');
+                            },
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                ],
               ),
-              const Gap(16),
-              Text(
-                'Fitur lain menyusul',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Gap(8),
-              const _ComingSoonTile(
-                icon: FLucideIcons.camera,
-                title: 'Kontribusi Gambar',
-                subtitle: 'Unggah foto contoh benda / situasi kata',
-              ),
-              const Gap(4),
-              const _ComingSoonTile(
-                icon: FLucideIcons.mic,
-                title: 'Rekam Pengucapan',
-                subtitle: 'Bantu pengguna lain mendengar cara pengucapan',
-              ),
-              const Gap(4),
-              const _ComingSoonTile(
-                icon: FLucideIcons.checkCircle2,
-                title: 'Riwayat Usulan Saya',
-                subtitle: 'Lihat status usulan Anda diterima / ditinjau',
-              ),
-            ],
+            ),
           ),
         ),
       ],
     );
   }
+
+  static String _missSubtitle(SearchMiss item) {
+    final direction = item.searchIn == 'translation'
+        ? 'Indonesia → Sambas'
+        : 'Sambas → Indonesia';
+    final hits = item.hitCount > 99 ? '99×' : '${item.hitCount}×';
+    return '$direction · $hits dicari';
+  }
 }
 
-class _ComingSoonTile extends StatelessWidget {
-  const _ComingSoonTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+class _BlankContributeTile extends StatelessWidget {
+  const _BlankContributeTile({required this.theme});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  final FThemeData theme;
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    return Opacity(
-      opacity: 0.65,
-      child: FTile(
-        prefix: Icon(icon, size: 20, color: theme.colors.mutedForeground),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        suffix: FBadge(
-          variant: FBadgeVariant.secondary,
-          child: const Text('Soon'),
+    return FTileGroup(
+      children: [
+        FTile(
+          prefix: Icon(FLucideIcons.plusCircle, color: theme.colors.primary),
+          title: const Text('Usul kata baru'),
+          subtitle: const Text('Isi form kosong dari awal'),
+          suffix: const Icon(FLucideIcons.chevronRight),
+          onPress: () => context.push('/contribute'),
         ),
-      ),
+      ],
     );
   }
 }

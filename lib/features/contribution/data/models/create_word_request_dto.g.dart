@@ -22,6 +22,13 @@ _CreateWordRequestDto _$CreateWordRequestDtoFromJson(
           .toList() ??
       const [],
   notes: json['notes'] as String?,
+  variants: (json['variants'] as List<dynamic>?)
+      ?.map((e) => CreateWordVariantDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  images: (json['images'] as List<dynamic>?)
+      ?.map((e) => CreateWordImageDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  searchMissId: json['search_miss_id'] as String?,
 );
 
 Map<String, dynamic> _$CreateWordRequestDtoToJson(
@@ -34,4 +41,7 @@ Map<String, dynamic> _$CreateWordRequestDtoToJson(
   'meanings': instance.meanings,
   'category_ids': instance.categoryIds,
   'notes': ?instance.notes,
+  'variants': ?instance.variants,
+  'images': ?instance.images,
+  'search_miss_id': ?instance.searchMissId,
 };

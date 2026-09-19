@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/about/about_router.dart';
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/auth_router.dart';
 import '../../features/change_password/change_password_router.dart';
@@ -32,6 +33,7 @@ class AppRouter {
       ...SplashRouter.routes,
       ...AuthRouter.routes,
       ...ChangePasswordRouter.routes,
+      ...AboutRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
       StatefulShellRoute.indexedStack(
@@ -75,15 +77,17 @@ class AppRouter {
   );
 
   /// Tamu BOLEH pakai app (pencarian publik). Redirect hanya:
-  /// - user sudah login tapi masih di /login → HOME
+  /// - user sudah login tapi masih di /login atau /register → HOME
   static Future<String?> _redirect(
     BuildContext context,
     GoRouterState state,
   ) async {
     final isAuth = await _tokenStorage.getIsAuth();
-    final isOnLogin = state.matchedLocation == AuthRouter.login.path;
+    final loc = state.matchedLocation;
+    final isOnAuth =
+        loc == AuthRouter.login.path || loc == AuthRouter.register.path;
 
-    if (isAuth && isOnLogin) return '/';
+    if (isAuth && isOnAuth) return '/';
 
     return null;
   }
@@ -106,7 +110,12 @@ class _HomeShell extends StatelessWidget {
       scaffoldStyle: .delta(footerDecoration: .value(const BoxDecoration())),
       footer: FBottomNavigationBar(
         index: navigationShell.currentIndex,
-        onChange: navigationShell.goBranch,
+        onChange: (index) {
+          // IndexedStack menyimpan fokus search → keyboard ikut "nempel"
+          // saat ganti tab / setelah hot reload. Unfocus dulu.
+          FocusManager.instance.primaryFocus?.unfocus();
+          navigationShell.goBranch(index);
+        },
         children: const [
           FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.house),

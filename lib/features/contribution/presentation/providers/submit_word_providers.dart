@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/providers/contribution_domain_providers.dart';
+import '../../domain/repositories/contribution_repository.dart';
 import '../../domain/usecases/submit_anon_word_use_case.dart';
 import '../models/submit_word_state.dart';
 
@@ -16,26 +17,19 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     return const SubmitWordState();
   }
 
-  /// Set initial value dari GoRouter query params.
-  /// Dipanggil 1x di initState contribute_page.
-  void initPrefill({String? lemma, String? searchIn}) {
+  void initPrefill({String? lemma, String? searchIn, String? searchMissId}) {
     state = state.copyWith(
       initialLemma: lemma,
       initialSearchIn: searchIn,
+      initialSearchMissId: searchMissId,
     );
   }
 
-  /// Clear inline VALIDATION_ERROR details saat user mulai mengetik lagi
-  /// (UX: error hilang saat edit, supaya tidak "mengganggu").
   void clearFieldErrors() {
     if (state.failure is! ContributionFailure) return;
     state = state.copyWith(clearFailure: true, clearErrorMessage: true);
   }
 
-  /// Trigger kirim usulan kata (anonim).
-  ///
-  /// Semua parameter WAJIB dari form UI. Minimal 1 translation_text.
-  /// `translationLanguageId` = bahasa target terjemahan (Indonesia/IDN).
   Future<void> submit({
     required String lemma,
     required String languageId,
@@ -45,7 +39,10 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
+    List<String> spellingVariants = const [],
     required String translationLanguageId,
+    List<SubmitWordImage> images = const [],
+    String? searchMissId,
   }) async {
     if (state.isSubmitting) return;
 
@@ -66,7 +63,10 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
       translationTexts: translationTexts,
       categoryIds: categoryIds,
       notes: notes,
+      spellingVariants: spellingVariants,
       translationLanguageId: translationLanguageId,
+      images: images,
+      searchMissId: searchMissId ?? state.initialSearchMissId,
     ));
 
     result.match(
@@ -88,14 +88,12 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     );
   }
 
-  /// Helper read error inline untuk field. UI panggil ini di bawah FTextField.
   String? errorFor(String field) {
     final f = state.failure;
     if (f is! ContributionFailure) return null;
     return f.errorFor(field);
   }
 
-  /// Shortcut untuk UI: jika success, kembalikan result typed.
   SubmitWordResult? get successResult {
     final r = state.result;
     return r is SubmitWordResult ? r : null;

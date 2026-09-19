@@ -133,6 +133,7 @@ class RelatedWord {
         'antonym' => 'Antonim',
         'has_component' => 'Komponen',
         'see_also' => 'Lihat juga',
+        'derived_from' => 'Diturunkan dari',
         _ => relationType,
       };
 }
@@ -151,4 +152,14 @@ class WordVariant {
   final String? affixType;
   final String? affixValue;
   final String? notes;
+
+  String get variantTypeLabel => switch (variantType) {
+        'alternative' => 'Variasi penulisan',
+        'inflection' => 'Fleksi',
+        'derivation' => 'Derivasi',
+        'reduplication' => 'Reduplikasi',
+        _ => variantType,
+      };
+
+  bool get isSpellingVariant => variantType == 'alternative';
 }

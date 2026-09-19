@@ -21,7 +21,12 @@ class ContributionRouter {
         final q = state.uri.queryParameters;
         final lemma = q['lemma'];
         final searchIn = q['search_in'];
-        return ContributePage(initialLemma: lemma, initialSearchIn: searchIn);
+        final missId = q['miss_id'] ?? q['search_miss_id'];
+        return ContributePage(
+          initialLemma: lemma,
+          initialSearchIn: searchIn,
+          initialSearchMissId: missId,
+        );
       },
     ),
   ];

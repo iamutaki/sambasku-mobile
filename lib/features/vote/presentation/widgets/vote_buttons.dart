@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// Pasangan tombol upvote/downvote + count (state-icon murni, tanpa fetch).
 ///
@@ -89,6 +90,31 @@ class _VoteButtonsState extends State<VoteButtons> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Loading placeholder: dua pill (bentuk tombol vote).
+/// Bungkus dengan [Skeletonizer] di caller bila belum ada.
+class VoteButtonsSkeleton extends StatelessWidget {
+  const VoteButtonsSkeleton({super.key, this.compact = true});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = compact ? 24.0 : 28.0;
+    final w = compact ? 52.0 : 64.0;
+    final gap = compact ? 6.0 : 10.0;
+    final radius = BorderRadius.circular(8);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Bone(width: w, height: h, borderRadius: radius),
+        Gap(gap),
+        Bone(width: w, height: h, borderRadius: radius),
+      ],
     );
   }
 }

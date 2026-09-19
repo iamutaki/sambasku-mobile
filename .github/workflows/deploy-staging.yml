@@ -4,10 +4,10 @@ name: Deploy (Staging)
 # Pola jnn_mobile. Trigger: push branch `staging` (atau workflow_dispatch).
 #
 # Secrets GitHub yang DIBUTUHKAN (Settings → Secrets → Actions):
-#   KEYSTORE_BASE64     — isi upload-keystore.jks di-encode base64
-#   KEYSTORE_PASSWORD   — store password
-#   KEY_ALIAS           — key alias
-#   KEY_PASSWORD        — key password
+#   KEYSTORE_BASE64     - isi upload-keystore.jks di-encode base64
+#   KEYSTORE_PASSWORD   - store password
+#   KEY_ALIAS           - key alias
+#   KEY_PASSWORD        - key password
 #
 # One-time keystore (lokal, jangan commit):
 #   keytool -genkey -v -keystore upload-keystore.jks \
