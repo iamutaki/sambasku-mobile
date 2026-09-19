@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/auth_router.dart';
+import '../../features/change_password/change_password_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
 import '../../features/dictionary/presentation/pages/home_search_page.dart';
@@ -30,6 +31,7 @@ class AppRouter {
     routes: [
       ...SplashRouter.routes,
       ...AuthRouter.routes,
+      ...ChangePasswordRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
       StatefulShellRoute.indexedStack(

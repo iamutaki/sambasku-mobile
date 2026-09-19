@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
@@ -30,8 +31,10 @@ void main() {
   Future<void> pumpProfile(
     WidgetTester tester, {
     Map<String, Object> prefs = const {},
+    Map<String, String> secure = const {},
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
+    FlutterSecureStorage.setMockInitialValues(secure);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -66,11 +69,19 @@ void main() {
   testWidgets('sudah login - tombol Keluar tampil dan logout berfungsi', (
     tester,
   ) async {
-    await pumpProfile(tester, prefs: {
-      'isAuth': true,
-      'sessionUsername': 'budi',
-      'sessionRole': 'contributor',
-    });
+    // getIsAuth() = prefs isAuth + access token di secure storage.
+    await pumpProfile(
+      tester,
+      prefs: {
+        'isAuth': true,
+        'sessionUsername': 'budi',
+        'sessionRole': 'contributor',
+      },
+      secure: {
+        'accessToken': 'test-access',
+        'refreshToken': 'test-refresh',
+      },
+    );
 
     expect(find.text('Masuk sebagai budi'), findsOneWidget);
     expect(find.text('Keluar'), findsOneWidget);

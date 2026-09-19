@@ -59,7 +59,7 @@ final class VoteControllerProvider
   }
 }
 
-String _$voteControllerHash() => r'98a04c969b704e864462ed019f889033b7a92920';
+String _$voteControllerHash() => r'720e7520294a714ec19c7c117bfa2620da1bd1c3';
 
 /// State vote per target (1 keluarga = 1 VoteTarget). Load counts (publik)
 /// + my_vote (kalau login), lalu toggle memutakhirkan state in-place

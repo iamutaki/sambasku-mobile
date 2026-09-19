@@ -7,8 +7,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../../features/auth/presentation/providers/auth_status_providers.dart';
 
-/// Tab PROFILE. Saat sudah login: info user + tombol logout
-/// (revoke refresh token, 00-api-auth.md). Saat tamu: ajakan masuk.
+/// Tab PROFILE. Saat sudah login: info user + menu akun (ubah password)
+/// + tombol logout (revoke refresh token, 00-api-auth.md). Saat tamu:
+/// ajakan masuk.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -24,14 +25,13 @@ class ProfilePage extends ConsumerWidget {
           suffixes: [ThemeToggleHeaderAction()],
         ),
         Expanded(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: authStatus.when(
-                loading: () => const FCircularProgress(),
-                error: (_, _) => const FCircularProgress(),
-                data: (status) => Column(
-                  mainAxisAlignment: .center,
+          child: authStatus.when(
+            loading: () => const Center(child: FCircularProgress()),
+            error: (_, _) => const Center(child: FCircularProgress()),
+            data: (status) => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              children: [
+                Column(
                   children: [
                     Icon(
                       FLucideIcons.userRound,
@@ -50,36 +50,65 @@ class ProfilePage extends ConsumerWidget {
                     const Gap(4),
                     Text(
                       status.isAuth
-                          ? 'Kamu dapat keluar kapan saja'
+                          ? 'Kelola akun dan keamananmu di bawah'
                           : 'Masuk untuk berkontribusi kata',
                       textAlign: .center,
                       style: theme.typography.sm.copyWith(
                         color: theme.colors.mutedForeground,
                       ),
                     ),
-                    const Gap(24),
-                    if (status.isAuth)
-                      FButton(
-                        variant: .outline,
-                        onPress: status.isLoggingOut
-                            ? null
-                            : () => ref
-                                  .read(authStatusProvider.notifier)
-                                  .logout(),
-                        prefix: status.isLoggingOut
-                            ? const FCircularProgress()
-                            : null,
-                        child: Text(status.isLoggingOut ? 'Keluar...' : 'Keluar'),
-                      )
-                    else
-                      FButton(
-                        variant: .outline,
-                        onPress: () => context.go('/login'),
-                        child: const Text('Masuk / Login'),
-                      ),
                   ],
                 ),
-              ),
+                if (status.isAuth) ...[
+                  const Gap(24),
+                  FCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16, top: 12, bottom: 4),
+                          child: Text(
+                            'Akun',
+                            style: theme.typography.sm.copyWith(
+                              color: theme.colors.mutedForeground,
+                            ),
+                          ),
+                        ),
+                        FTile(
+                          prefix: Icon(
+                            FLucideIcons.keyRound,
+                            size: 20,
+                            color: theme.colors.primary,
+                          ),
+                          title: const Text('Ubah Password'),
+                          subtitle: const Text('Ganti password akun kamu'),
+                          onPress: () => context.go('/change-password'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Gap(24),
+                  Center(
+                    child: FButton(
+                      variant: .outline,
+                      onPress: status.isLoggingOut
+                          ? null
+                          : () => ref.read(authStatusProvider.notifier).logout(),
+                      prefix: status.isLoggingOut ? const FCircularProgress() : null,
+                      child: Text(status.isLoggingOut ? 'Keluar...' : 'Keluar'),
+                    ),
+                  ),
+                ] else ...[
+                  const Gap(24),
+                  Center(
+                    child: FButton(
+                      variant: .outline,
+                      onPress: () => context.go('/login'),
+                      child: const Text('Masuk / Login'),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
