@@ -68,6 +68,8 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Akses galeri digunakan untuk memilih foto yang sudah ada di perangkat.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Akses galeri digunakan untuk menyimpan kartu share SambasKu.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Akses kamera digunakan untuk mengambil foto yang diperlukan di dalam aplikasi.</string>
 	<key>UIBackgroundModes</key>

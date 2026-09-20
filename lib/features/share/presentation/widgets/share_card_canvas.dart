@@ -242,6 +242,10 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
 }
 
 /// Bungkus elemen agar bisa di-drag saat mode atur posisi.
+///
+/// Transform harus membungkus GestureDetector (bukan sebaliknya): hit-test
+/// mengikuti posisi visual. Kalau GestureDetector di luar, setelah digeser
+/// target sentuhan masih di slot layout asli → elemen “macet”.
 Widget _laidOut({
   required ShareTextElementId id,
   required ShareEditorSettings settings,
@@ -262,21 +266,29 @@ Widget _laidOut({
       child: child,
     );
   }
-  final content = Transform.translate(
+
+  if (!layout.editMode) {
+    return Transform.translate(
+      offset: l.offset,
+      child: Transform.rotate(
+        angle: l.rotationDeg * math.pi / 180,
+        child: inner,
+      ),
+    );
+  }
+
+  return Transform.translate(
     offset: l.offset,
     child: Transform.rotate(
       angle: l.rotationDeg * math.pi / 180,
-      child: inner,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => layout.onSelect?.call(id),
+        onPanStart: (_) => layout.onSelect?.call(id),
+        onPanUpdate: (d) => layout.onPan?.call(id, d.delta),
+        child: inner,
+      ),
     ),
-  );
-
-  if (!layout.editMode) return content;
-
-  return GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () => layout.onSelect?.call(id),
-    onPanUpdate: (d) => layout.onPan?.call(id, d.delta),
-    child: content,
   );
 }
 

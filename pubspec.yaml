@@ -40,6 +40,7 @@ dependencies:
   flutter_udid: ^4.1.2
   share_plus: ^13.3.0
   google_fonts: ^6.3.2
+  gal: ^2.3.2
 
 dev_dependencies:
   flutter_test:

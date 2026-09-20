@@ -7,7 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/widgets/brand_logo.dart';
 import '../../../../flavors.dart';
 
-/// Halaman About: identitas app + versi + deskripsi singkat.
+/// Halaman About: identitas app + versi + deskripsi + pengembang.
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -82,12 +82,69 @@ class AboutPage extends StatelessWidget {
                       'Warga bisa mengusulkan kata baru. Usulan masuk antrean '
                       'verifikasi sebelum ditayangkan di kamus.',
                 ),
+                const Gap(16),
+                const _DeveloperSection(),
               ],
             );
           },
         ),
       ),
     );
+  }
+}
+
+class _DeveloperSection extends StatelessWidget {
+  const _DeveloperSection();
+
+  static const _developers = <String>['Ibnul Mutaki'];
+
+  @override
+  Widget build(BuildContext context) {
+    return FTileGroup(
+      label: const Text('Pengembang'),
+      children: [
+        for (final name in _developers)
+          FTile(
+            prefix: _InitialsAvatar(name: name),
+            title: Text(name),
+          ),
+      ],
+    );
+  }
+}
+
+class _InitialsAvatar extends StatelessWidget {
+  const _InitialsAvatar({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return FAvatar.raw(
+      size: 40,
+      style: .delta(
+        backgroundColor: theme.colors.primary.withValues(alpha: 0.12),
+      ),
+      child: Text(
+        _initials(name),
+        style: theme.typography.sm.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colors.primary,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
+  static String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    final word = parts.first;
+    if (word.length >= 2) return word.substring(0, 2).toUpperCase();
+    return word.toUpperCase();
   }
 }
 

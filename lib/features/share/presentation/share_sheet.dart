@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
+import 'package:gal/gal.dart';
 import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -95,6 +95,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
 
   bool _loadingBg = true;
   bool _sharing = false;
+  bool _saving = false;
   bool _degraded = false;
   List<ShareBackground> _bgItems = const [];
   int? _selectedBgIndex;
@@ -264,7 +265,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
   }
 
   Future<void> _onShare() async {
-    if (_sharing) return;
+    if (_sharing || _saving) return;
     setState(() => _sharing = true);
     try {
       final provider = _imageProvider;
@@ -296,10 +297,50 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     }
   }
 
-  Future<void> _onCopy() async {
-    await Clipboard.setData(ClipboardData(text: _cardData.copyText));
-    if (!mounted) return;
-    showFToast(context: context, title: const Text('Teks disalin'));
+  Future<void> _onSave() async {
+    if (_saving || _sharing) return;
+    setState(() => _saving = true);
+    try {
+      final provider = _imageProvider;
+      if (provider is NetworkImage) {
+        await precacheImage(provider, context);
+      } else if (provider is FileImage) {
+        await precacheImage(provider, context);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      if (!mounted) return;
+
+      final saved = await saveCardToGallery(repaintKey: _repaintKey);
+      if (!mounted) return;
+      if (!saved) {
+        showPermissionDeniedDialog(context);
+        return;
+      }
+      showFToast(
+        context: context,
+        title: const Text('Tersimpan di galeri'),
+      );
+    } on GalException catch (e) {
+      if (!mounted) return;
+      if (e.type == GalExceptionType.accessDenied) {
+        showPermissionDeniedDialog(context);
+        return;
+      }
+      showFToast(
+        context: context,
+        title: Text('Gagal menyimpan: ${e.type.message}'),
+        variant: FToastVariant.destructive,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showFToast(
+        context: context,
+        title: Text('Gagal menyimpan: $e'),
+        variant: FToastVariant.destructive,
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _openLayoutEditor() async {
@@ -923,17 +964,17 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                         Expanded(
                           child: FButton(
                             variant: FButtonVariant.outline,
-                            onPress: _onCopy,
-                            child: const Text('Salin teks'),
+                            onPress: (_saving || _sharing) ? null : _onSave,
+                            prefix: _saving ? const FCircularProgress() : null,
+                            child: const Text('Simpan'),
                           ),
                         ),
                         const Gap(12),
                         Expanded(
-                          flex: 2,
                           child: FButton(
-                            onPress: _sharing ? null : _onShare,
+                            onPress: (_sharing || _saving) ? null : _onShare,
                             prefix: _sharing ? const FCircularProgress() : null,
-                            child: Text(_sharing ? 'Menyiapkan…' : 'Bagikan'),
+                            child: const Text('Bagikan'),
                           ),
                         ),
                       ],

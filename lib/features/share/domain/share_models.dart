@@ -327,10 +327,10 @@ extension ShareRatioIdX on ShareRatioId {
 
 extension ShareTemplateIdX on ShareTemplateId {
   String get label => switch (this) {
-    ShareTemplateId.unsplash => 'Unsplash',
+    ShareTemplateId.unsplash => 'Foto',
     ShareTemplateId.kamusEditorial => 'Editorial',
     ShareTemplateId.posterHuruf => 'Poster',
-    ShareTemplateId.polaroid => 'Polaroid',
+    ShareTemplateId.polaroid => 'Bingkai',
   };
 
   bool get forcesNoPhoto => this == ShareTemplateId.posterHuruf;
