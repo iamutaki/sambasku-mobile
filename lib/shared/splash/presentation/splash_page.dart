@@ -1,6 +1,10 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../core/widgets/brand_logo.dart';
+import '../../../flavors.dart';
 
 /// Cek sesi singkat lalu arahkan ke HOME.
 /// Login opsional (via tab Profil / route /login) - pencarian publik
@@ -24,9 +28,25 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const FScaffold(
+    return FScaffold(
       childPad: true,
-      child: Center(child: FCircularProgress()),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BrandLogo(size: 160),
+            const Gap(16),
+            Text(
+              F.title,
+              style: context.theme.typography.lg.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Gap(32),
+            const FCircularProgress(),
+          ],
+        ),
+      ),
     );
   }
 }

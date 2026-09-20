@@ -10,6 +10,7 @@ class WordDetail {
     required this.isCorrected,
     this.notes,
     this.verifiedAt,
+    this.verifiedBy,
     this.meanings = const [],
     this.categories = const [],
     this.pronunciations = const [],
@@ -28,6 +29,7 @@ class WordDetail {
   final bool isVerified;
   final bool isCorrected;
   final String? verifiedAt;
+  final WordVerifier? verifiedBy;
   final List<WordMeaning> meanings;
   final List<WordCategory> categories;
   final List<WordPronunciation> pronunciations;
@@ -37,11 +39,18 @@ class WordDetail {
   final List<WordVariant> variants;
 
   String get wordTypeLabel => switch (wordType) {
-        'idiom' => 'Idiom',
-        'peribahasa' => 'Peribahasa',
-        'ungkapan' => 'Ungkapan',
-        _ => 'Kata',
-      };
+    'idiom' => 'Idiom',
+    'peribahasa' => 'Peribahasa',
+    'ungkapan' => 'Ungkapan',
+    _ => 'Kata',
+  };
+}
+
+class WordVerifier {
+  const WordVerifier({required this.username, required this.role});
+
+  final String username;
+  final String role;
 }
 
 class WordMeaning {
@@ -76,10 +85,10 @@ class WordTranslation {
   final String? languageId;
 
   String get typeLabel => switch (type) {
-        'descriptive' => 'deskriptif',
-        'idiomatic' => 'idiomatis',
-        _ => 'langsung',
-      };
+    'descriptive' => 'deskriptif',
+    'idiomatic' => 'idiomatis',
+    _ => 'langsung',
+  };
 }
 
 class WordExample {
@@ -100,10 +109,7 @@ class WordCategory {
 }
 
 class WordPronunciation {
-  const WordPronunciation({
-    required this.notation,
-    required this.value,
-  });
+  const WordPronunciation({required this.notation, required this.value});
 
   final String notation;
   final String value;
@@ -135,13 +141,13 @@ class RelatedWord {
   final String relationType;
 
   String get relationLabel => switch (relationType) {
-        'synonym' => 'Sinonim',
-        'antonym' => 'Antonim',
-        'has_component' => 'Komponen',
-        'see_also' => 'Lihat juga',
-        'derived_from' => 'Diturunkan dari',
-        _ => relationType,
-      };
+    'synonym' => 'Sinonim',
+    'antonym' => 'Antonim',
+    'has_component' => 'Komponen',
+    'see_also' => 'Lihat juga',
+    'derived_from' => 'Diturunkan dari',
+    _ => relationType,
+  };
 }
 
 class WordVariant {
@@ -160,12 +166,12 @@ class WordVariant {
   final String? notes;
 
   String get variantTypeLabel => switch (variantType) {
-        'alternative' => 'Variasi penulisan',
-        'inflection' => 'Fleksi',
-        'derivation' => 'Derivasi',
-        'reduplication' => 'Reduplikasi',
-        _ => variantType,
-      };
+    'alternative' => 'Variasi penulisan',
+    'inflection' => 'Fleksi',
+    'derivation' => 'Derivasi',
+    'reduplication' => 'Reduplikasi',
+    _ => variantType,
+  };
 
   bool get isSpellingVariant => variantType == 'alternative';
 }

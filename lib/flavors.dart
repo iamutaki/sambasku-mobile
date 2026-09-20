@@ -12,4 +12,8 @@ class F {
 
   static String get title =>
       isStaging ? 'SambasKu Staging' : 'SambasKu';
+
+  /// Path aset logo in-app + sumber ikon launcher (pola jnn_mobile).
+  static String get logoAsset =>
+      isStaging ? 'assets/icons/logo.staging.png' : 'assets/icons/logo.png';
 }

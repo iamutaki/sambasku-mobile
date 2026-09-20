@@ -99,17 +99,26 @@ class HomeSearchPage extends HookConsumerWidget {
             ],
           ),
         ),
-        // Entry Daftar Kosakata A-Z (/words) - tile dengan subtitle supaya
-        // fungsinya jelas, bukan ikon kecil di app bar.
+        // Entry Daftar Kosakata A-Z — satu baris compact (tanpa subtitle).
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: FTileGroup(
             children: [
               FTile(
-                prefix: const Icon(FLucideIcons.listOrdered),
-                title: const Text('Daftar Kosakata'),
-                subtitle: const Text('Telusuri semua kata dari A sampai Z'),
-                suffix: const Icon(FLucideIcons.chevronRight),
+                style: .delta(
+                  contentStyle: .delta(
+                    suffixedPadding: .value(
+                      const EdgeInsets.fromLTRB(12, 8, 10, 8),
+                    ),
+                    unsuffixedPadding: .value(
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    prefixIconSpacing: 8,
+                  ),
+                ),
+                prefix: const Icon(FLucideIcons.listOrdered, size: 18),
+                title: const Text('Daftar Kosakata A–Z'),
+                suffix: const Icon(FLucideIcons.chevronRight, size: 16),
                 onPress: () {
                   FocusManager.instance.primaryFocus?.unfocus();
                   context.push(DictionaryRouter.list.path);
@@ -201,18 +210,19 @@ class HomeSearchPage extends HookConsumerWidget {
       );
     }
 
-    return ListView.separated(
+    return ListView(
       controller: scroll,
+      physics: const AlwaysScrollableScrollPhysics(),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-      itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, _) => const Gap(6),
-      itemBuilder: (ctx, index) {
-        if (index >= state.items.length) {
-          return const _LoadingMoreFooter();
-        }
-        return _WordResultTile(item: state.items[index]);
-      },
+      children: [
+        FTileGroup(
+          children: [
+            for (final item in state.items) _wordResultTile(context, item),
+          ],
+        ),
+        if (state.isLoadingMore) const _LoadingMoreFooter(),
+      ],
     );
   }
 }
@@ -242,11 +252,15 @@ class _WordSkeletonList extends StatelessWidget {
       child: IgnorePointer(
         child: Skeletonizer(
           enabled: true,
-          child: ListView.separated(
+          child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-            itemCount: itemCount,
-            separatorBuilder: (_, _) => const Gap(6),
-            itemBuilder: (_, _) => const _SkeletonTile(),
+            children: [
+              FTileGroup(
+                children: [
+                  for (var i = 0; i < itemCount; i++) const _SkeletonTile(),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -254,7 +268,7 @@ class _WordSkeletonList extends StatelessWidget {
   }
 }
 
-class _SkeletonTile extends StatelessWidget {
+class _SkeletonTile extends StatelessWidget with FTileMixin {
   const _SkeletonTile();
 
   @override
@@ -298,29 +312,22 @@ class _LoadingMoreFooter extends StatelessWidget {
   }
 }
 
-class _WordResultTile extends StatelessWidget {
-  const _WordResultTile({required this.item});
+FTile _wordResultTile(BuildContext context, WordSummary item) {
+  final theme = context.theme;
+  final matched = item.matchedTranslation;
+  final title = matched != null ? '$matched → ${item.lemma}' : item.lemma;
 
-  final WordSummary item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final matched = item.matchedTranslation;
-    final title = matched != null ? '$matched → ${item.lemma}' : item.lemma;
-
-    return FTile(
-      title: Text(title),
-      subtitle: Text('${item.wordTypeLabel} · ${item.languageCode}'),
-      suffix: item.isVerified
-          ? Icon(FLucideIcons.badgeCheck, size: 18, color: theme.colors.primary)
-          : null,
-      onPress: () {
-        FocusManager.instance.primaryFocus?.unfocus();
-        context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));
-      },
-    );
-  }
+  return FTile(
+    title: Text(title),
+    subtitle: Text('${item.wordTypeLabel} · ${item.languageCode}'),
+    suffix: item.isVerified
+        ? Icon(FLucideIcons.badgeCheck, size: 18, color: theme.colors.primary)
+        : null,
+    onPress: () {
+      FocusManager.instance.primaryFocus?.unfocus();
+      context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));
+    },
+  );
 }
 
 /// Idle beranda: daftar miss sebagai konten utama (bukan chip + empty-state).

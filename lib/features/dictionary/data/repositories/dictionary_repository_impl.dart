@@ -29,40 +29,48 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
       });
 
       if (response.success == false) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Pencarian gagal',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Pencarian gagal',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
       final items = response.data;
       if (items == null) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Pencarian gagal',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Pencarian gagal',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
       final meta = response.meta;
-      return Either.right(WordSearchPage(
-        items: items
-            .map(
-              (dto) => WordSummary(
-                id: dto.id,
-                lemma: dto.lemma,
-                languageCode: dto.languageCode,
-                wordType: dto.wordType,
-                status: dto.status,
-                isVerified: dto.isVerified,
-                matchedTranslation: dto.matchedTranslation,
-              ),
-            )
-            .toList(),
-        nextCursor: meta?['next_cursor'] as String?,
-        hasMore: meta?['has_more'] as bool? ?? false,
-      ));
+      return Either.right(
+        WordSearchPage(
+          items: items
+              .map(
+                (dto) => WordSummary(
+                  id: dto.id,
+                  lemma: dto.lemma,
+                  languageCode: dto.languageCode,
+                  wordType: dto.wordType,
+                  status: dto.status,
+                  isVerified: dto.isVerified,
+                  matchedTranslation: dto.matchedTranslation,
+                ),
+              )
+              .toList(),
+          nextCursor: meta?['next_cursor'] as String?,
+          hasMore: meta?['has_more'] as bool? ?? false,
+        ),
+      );
     } on DioException catch (error) {
-      return Either.left(_mapDio(error, fallback: 'Pencarian gagal, periksa koneksi'));
+      return Either.left(
+        _mapDio(error, fallback: 'Pencarian gagal, periksa koneksi'),
+      );
     } catch (error) {
       return Either.left(DictionaryFailure(error.toString()));
     }
@@ -82,37 +90,43 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
       });
 
       if (response.success == false) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Daftar kata gagal dimuat',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Daftar kata gagal dimuat',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
       final items = response.data;
       if (items == null) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Daftar kata gagal dimuat',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Daftar kata gagal dimuat',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
       final meta = response.meta;
-      return Either.right(WordSearchPage(
-        items: items
-            .map(
-              (dto) => WordSummary(
-                id: dto.id,
-                lemma: dto.lemma,
-                languageCode: dto.languageCode,
-                wordType: dto.wordType,
-                status: dto.status,
-                isVerified: dto.isVerified,
-              ),
-            )
-            .toList(),
-        nextCursor: meta?['next_cursor'] as String?,
-        hasMore: meta?['has_more'] as bool? ?? false,
-      ));
+      return Either.right(
+        WordSearchPage(
+          items: items
+              .map(
+                (dto) => WordSummary(
+                  id: dto.id,
+                  lemma: dto.lemma,
+                  languageCode: dto.languageCode,
+                  wordType: dto.wordType,
+                  status: dto.status,
+                  isVerified: dto.isVerified,
+                ),
+              )
+              .toList(),
+          nextCursor: meta?['next_cursor'] as String?,
+          hasMore: meta?['has_more'] as bool? ?? false,
+        ),
+      );
     } on DioException catch (error) {
       return Either.left(
         _mapDio(error, fallback: 'Daftar kata gagal dimuat, periksa koneksi'),
@@ -128,126 +142,133 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
       final response = await _remoteDatasource.getWordById(id);
 
       if (response.success == false) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Kata tidak ditemukan',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Kata tidak ditemukan',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
       final dto = response.data;
       if (dto == null) {
-        return Either.left(DictionaryFailure(
-          response.message ?? 'Kata tidak ditemukan',
-          errorCode: response.errorCode ?? 'WORD_NOT_FOUND',
-        ));
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Kata tidak ditemukan',
+            errorCode: response.errorCode ?? 'WORD_NOT_FOUND',
+          ),
+        );
       }
 
       return Either.right(_mapDetail(dto));
     } on DioException catch (error) {
-      return Either.left(_mapDio(
-        error,
-        fallback: 'Gagal memuat detail kata',
-        notFoundMessage: 'Kata tidak ditemukan',
-      ));
+      return Either.left(
+        _mapDio(
+          error,
+          fallback: 'Gagal memuat detail kata',
+          notFoundMessage: 'Kata tidak ditemukan',
+        ),
+      );
     } catch (error) {
       return Either.left(DictionaryFailure(error.toString()));
     }
   }
 
   WordDetail _mapDetail(WordDetailDto dto) => WordDetail(
-        id: dto.id,
-        lemma: dto.lemma,
-        languageId: dto.languageId,
-        notes: dto.notes,
-        wordType: dto.wordType,
-        status: dto.status,
-        isVerified: dto.isVerified,
-        isCorrected: dto.isCorrected,
-        verifiedAt: dto.verifiedAt,
-        meanings: dto.meanings
-            .map(
-              (m) => WordMeaning(
-                id: m.id,
-                wordClassId: m.wordClass?.id,
-                // ponytail: format di mapper biar UI cukup pakai wordClassName
-                wordClassName: m.wordClass == null
-                    ? null
-                    : (m.wordClass!.alias == null || m.wordClass!.alias!.isEmpty)
-                        ? m.wordClass!.name
-                        : '${m.wordClass!.name} (${m.wordClass!.alias})',
-                definition: m.definition,
-                orderIndex: m.orderIndex,
-                translations: m.translations
-                    .map(
-                      (t) => WordTranslation(
-                        text: t.translationText,
-                        type: t.translationType,
-                        languageId: t.languageId,
-                      ),
-                    )
-                    .toList(),
-                examples: m.examples
-                    .map(
-                      (e) => WordExample(
-                        sourceSentence: e.sourceSentence,
-                        targetSentence: e.targetSentence,
-                      ),
-                    )
-                    .toList(),
-              ),
-            )
-            .toList(),
-        categories: dto.categories
-            .map((c) => WordCategory(id: c.id, name: c.name))
-            .toList(),
-        pronunciations: dto.pronunciations
-            .map(
-              (p) => WordPronunciation(
-                notation: p.notation,
-                value: p.value,
-              ),
-            )
-            .toList(),
-        images: dto.images
-            .map(
-              (i) => WordImage(
-                id: i.id,
-                url: i.url,
-                altText: i.altText,
-                isPrimary: i.isPrimary,
-              ),
-            )
-            .toList(),
-        relatedWords: dto.relatedWords
-            .map(
-              (r) => RelatedWord(
-                wordId: r.wordId,
-                lemma: r.lemma,
-                relationType: r.relationType,
-              ),
-            )
-            .toList(),
-        appearsIn: dto.appearsIn
-            .map(
-              (r) => RelatedWord(
-                wordId: r.wordId,
-                lemma: r.lemma,
-                relationType: r.relationType,
-              ),
-            )
-            .toList(),
-        variants: dto.variants
-            .map(
-              (v) => WordVariant(
-                form: v.form,
-                variantType: v.variantType,
-                affixType: v.affixType,
-                affixValue: v.affixValue,
-                notes: v.notes,
-              ),
-            )
-            .toList(),
-      );
+    id: dto.id,
+    lemma: dto.lemma,
+    languageId: dto.languageId,
+    notes: dto.notes,
+    wordType: dto.wordType,
+    status: dto.status,
+    isVerified: dto.isVerified,
+    isCorrected: dto.isCorrected,
+    verifiedAt: dto.verifiedAt,
+    verifiedBy: dto.verifiedBy == null
+        ? null
+        : WordVerifier(
+            username: dto.verifiedBy!.username,
+            role: dto.verifiedBy!.role,
+          ),
+    meanings: dto.meanings
+        .map(
+          (m) => WordMeaning(
+            id: m.id,
+            wordClassId: m.wordClass?.id,
+            // ponytail: format di mapper biar UI cukup pakai wordClassName
+            wordClassName: m.wordClass == null
+                ? null
+                : (m.wordClass!.alias == null || m.wordClass!.alias!.isEmpty)
+                ? m.wordClass!.name
+                : '${m.wordClass!.name} (${m.wordClass!.alias})',
+            definition: m.definition,
+            orderIndex: m.orderIndex,
+            translations: m.translations
+                .map(
+                  (t) => WordTranslation(
+                    text: t.translationText,
+                    type: t.translationType,
+                    languageId: t.languageId,
+                  ),
+                )
+                .toList(),
+            examples: m.examples
+                .map(
+                  (e) => WordExample(
+                    sourceSentence: e.sourceSentence,
+                    targetSentence: e.targetSentence,
+                  ),
+                )
+                .toList(),
+          ),
+        )
+        .toList(),
+    categories: dto.categories
+        .map((c) => WordCategory(id: c.id, name: c.name))
+        .toList(),
+    pronunciations: dto.pronunciations
+        .map((p) => WordPronunciation(notation: p.notation, value: p.value))
+        .toList(),
+    images: dto.images
+        .map(
+          (i) => WordImage(
+            id: i.id,
+            url: i.url,
+            altText: i.altText,
+            isPrimary: i.isPrimary,
+          ),
+        )
+        .toList(),
+    relatedWords: dto.relatedWords
+        .map(
+          (r) => RelatedWord(
+            wordId: r.wordId,
+            lemma: r.lemma,
+            relationType: r.relationType,
+          ),
+        )
+        .toList(),
+    appearsIn: dto.appearsIn
+        .map(
+          (r) => RelatedWord(
+            wordId: r.wordId,
+            lemma: r.lemma,
+            relationType: r.relationType,
+          ),
+        )
+        .toList(),
+    variants: dto.variants
+        .map(
+          (v) => WordVariant(
+            form: v.form,
+            variantType: v.variantType,
+            affixType: v.affixType,
+            affixValue: v.affixValue,
+            notes: v.notes,
+          ),
+        )
+        .toList(),
+  );
 
   DictionaryFailure _mapDio(
     DioException error, {

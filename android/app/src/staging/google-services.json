@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521883940125",
+    "project_id": "sambasku-staging",
+    "storage_bucket": "sambasku-staging.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521883940125:android:73b1c29ab1403dbe8b1df4",
+        "android_client_info": {
+          "package_name": "com.iamutaki.sambasku.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnJL-q0LsS45pB0gdrt1TTUAFZQA5Mg7k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

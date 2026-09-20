@@ -17,6 +17,8 @@ import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_detail.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../providers/word_detail_providers.dart';
+import '../../../../core/utils/format_datetime.dart';
+import '../../../user_profile/user_profile_router.dart';
 
 /// Halaman detail kata publik - GET /api/v1/words/:id.
 class WordDetailPage extends ConsumerWidget {
@@ -127,7 +129,9 @@ class _DetailBody extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => showImagePreview(
                     context,
-                    urls: detail.images.map((i) => i.url).toList(growable: false),
+                    urls: detail.images
+                        .map((i) => i.url)
+                        .toList(growable: false),
                     initialIndex: detail.images.indexOf(primaryImage),
                   ),
                   child: ClipRRect(
@@ -160,10 +164,18 @@ class _DetailBody extends StatelessWidget {
                         ),
                       ),
                       if (detail.isVerified)
-                        Icon(
-                          FLucideIcons.badgeCheck,
-                          size: 18,
-                          color: theme.colors.primary,
+                        Semantics(
+                          button: true,
+                          label: 'Lihat verifikator',
+                          child: GestureDetector(
+                            onTap: () =>
+                                showVerifierAttributionSheet(context, detail),
+                            child: Icon(
+                              FLucideIcons.badgeCheck,
+                              size: 18,
+                              color: theme.colors.primary,
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -174,6 +186,24 @@ class _DetailBody extends StatelessWidget {
                       color: theme.colors.mutedForeground,
                     ),
                   ),
+                  if (detail.verifiedBy != null) ...[
+                    const Gap(6),
+                    Semantics(
+                      button: true,
+                      label: 'Diverifikasi ${detail.verifiedBy!.username}',
+                      child: GestureDetector(
+                        onTap: () =>
+                            showVerifierAttributionSheet(context, detail),
+                        child: Text(
+                          'Diverifikasi ${detail.verifiedBy!.username}',
+                          style: theme.typography.sm.copyWith(
+                            color: theme.colors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (detail.pronunciations.isNotEmpty) ...[
                     const Gap(4),
                     Text(
@@ -405,11 +435,8 @@ class _WordBookmarkHeaderAction extends ConsumerWidget {
     // Error seed → tetap tampilkan tombol (unbookmarked) supaya user bisa
     // coba toggle; jangan SizedBox.shrink (hilang tanpa pesan).
     return async.when(
-      loading: () => const BookmarkButton(
-        isBookmarked: false,
-        busy: true,
-        onPress: _noop,
-      ),
+      loading: () =>
+          const BookmarkButton(isBookmarked: false, busy: true, onPress: _noop),
       error: (_, _) => BookmarkButton(
         isBookmarked: false,
         onPress: () => _toggle(context, ref),
@@ -662,10 +689,7 @@ class _VariantRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          FBadge(
-            variant: FBadgeVariant.secondary,
-            child: Text(variant.form),
-          ),
+          FBadge(variant: FBadgeVariant.secondary, child: Text(variant.form)),
           if (meta.isNotEmpty) ...[
             const Gap(8),
             Expanded(
@@ -889,4 +913,73 @@ class _CommentSkeletonCard extends StatelessWidget {
       ),
     );
   }
+}
+
+void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
+  final username = detail.verifiedBy?.username;
+  final verifiedAt = formatDateTimeIso(detail.verifiedAt);
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      final theme = sheetContext.theme;
+      return Material(
+        color: Theme.of(sheetContext).colorScheme.surface,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Verifikator',
+                        style: theme.typography.lg.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                Text(
+                  username != null
+                      ? 'Diverifikasi oleh $username'
+                      : 'Verifikator tidak diketahui',
+                  style: theme.typography.sm,
+                ),
+                if (verifiedAt.isNotEmpty) ...[
+                  const Gap(4),
+                  Text(
+                    verifiedAt,
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                ],
+                if (username != null) ...[
+                  const Gap(16),
+                  FButton(
+                    onPress: () {
+                      Navigator.of(sheetContext).pop();
+                      UserProfileRouter.open(context, username);
+                    },
+                    child: const Text('Lihat profil'),
+                  ),
+                ],
+                const Gap(8),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }

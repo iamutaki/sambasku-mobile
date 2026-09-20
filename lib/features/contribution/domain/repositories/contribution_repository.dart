@@ -32,9 +32,10 @@ class SubmitWordRelation {
 
 /// Kontrak repository submit kata.
 ///
-/// Method `submitAnon` = endpoint publik `POST /api/v1/contributions/words`
-/// (tidak butuh Authorization header). Hasil selalu `pending_review`
-/// (approval gate di backend). User anonim tidak bisa langsung tayang.
+/// Method `submitAnon` = endpoint `POST /api/v1/contributions/words`
+/// (auth opsional). Tanpa token → atribusi anonim; Dio menyisipkan
+/// Bearer saat login → atribusi user real (backend optionalAuthenticate).
+/// Hasil selalu `pending_review` untuk contributor.
 /// `images` opsional - hanya untuk user yang sudah upload via token.
 abstract interface class ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({

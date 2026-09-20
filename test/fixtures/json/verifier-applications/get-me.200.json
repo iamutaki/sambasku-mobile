@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": {
+    "id": "01JDVA00000000000000000000",
+    "status": "pending",
+    "phone": "6281234567890",
+    "address": "Jl. Merdeka No. 1, Sambas, Kalimantan Barat",
+    "social_links": [
+      { "platform": "instagram", "url": "https://instagram.com/budi" }
+    ],
+    "admin_comment": null,
+    "reviewed_at": null,
+    "created_at": "2026-09-21T00:00:00.000Z",
+    "updated_at": "2026-09-21T00:00:00.000Z"
+  }
+}

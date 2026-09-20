@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/services/device_registration_holder.dart';
 import '../../../bookmark/presentation/providers/bookmark_providers.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
@@ -46,6 +47,9 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
   Future<void> logout() async {
     final current = state.value ?? const AuthStatusState();
     state = AsyncData(current.copyWith(isLoggingOut: true));
+
+    // Detach FCM device dulu (butuh access token masih valid).
+    await DeviceRegistrationHolder.instance?.revokeBestEffort();
 
     await ref.read(authLogoutUseCaseProvider).call();
 

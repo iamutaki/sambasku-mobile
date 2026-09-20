@@ -31,6 +31,11 @@ class AuthTokenStorage {
   static const _roleKey = 'sessionRole';
   static const _userIdKey = 'sessionUserId';
 
+  final _authStateController = StreamController<bool>.broadcast();
+
+  /// Emit saat [setIsAuth] berubah — dipakai DeviceRegistrationService.
+  Stream<bool> get authStateChanges => _authStateController.stream;
+
   Future<SharedPreferences> get _sharedPrefs async =>
       _resolvedPrefs ??= await SharedPreferences.getInstance();
 
@@ -107,6 +112,12 @@ class AuthTokenStorage {
     return await getAccessToken() != null;
   }
 
-  Future<void> setIsAuth(bool value) async =>
-      (await _sharedPrefs).setBool(_isAuthKey, value);
+  Future<void> setIsAuth(bool value) async {
+    await (await _sharedPrefs).setBool(_isAuthKey, value);
+    _authStateController.add(value);
+  }
+
+  void dispose() {
+    _authStateController.close();
+  }
 }

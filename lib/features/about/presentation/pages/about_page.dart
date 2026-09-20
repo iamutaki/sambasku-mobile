@@ -4,6 +4,9 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/widgets/brand_logo.dart';
+import '../../../../flavors.dart';
+
 /// Halaman About: identitas app + versi + deskripsi singkat.
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -38,21 +41,10 @@ class AboutPage extends StatelessWidget {
                 Center(
                   child: Column(
                     children: [
-                      FAvatar.raw(
-                        size: 64,
-                        style: .delta(
-                          backgroundColor:
-                              theme.colors.primary.withValues(alpha: 0.12),
-                        ),
-                        child: Icon(
-                          FLucideIcons.bookOpen,
-                          size: 28,
-                          color: theme.colors.primary,
-                        ),
-                      ),
+                      const BrandLogo(size: 140),
                       const Gap(12),
                       Text(
-                        'SambasKu',
+                        F.title,
                         style: theme.typography.xl.copyWith(
                           fontWeight: FontWeight.w800,
                           color: theme.colors.foreground,
@@ -60,7 +52,7 @@ class AboutPage extends StatelessWidget {
                       ),
                       const Gap(4),
                       Text(
-                        'Kamus Digital Sambas–Indonesia',
+                        'Kamus Digital Sambas-Indonesia',
                         textAlign: TextAlign.center,
                         style: theme.typography.sm.copyWith(
                           color: theme.colors.mutedForeground,

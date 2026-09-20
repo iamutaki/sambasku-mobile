@@ -4,7 +4,10 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/widgets/brand_logo.dart';
+import '../../../../flavors.dart';
 import '../providers/auth_login_providers.dart';
 import '../providers/auth_status_providers.dart';
 
@@ -21,6 +24,7 @@ class LoginPage extends HookConsumerWidget {
     final alreadyAuth = authStatus.value?.isAuth ?? false;
     final email = useTextEditingController();
     final password = useTextEditingController();
+    final logoLoaded = useState(false);
     useListenable(email);
     useListenable(password);
 
@@ -62,14 +66,27 @@ class LoginPage extends HookConsumerWidget {
               mainAxisAlignment: .center,
               crossAxisAlignment: .stretch,
               children: [
-                Icon(
-                  FLucideIcons.bookOpen,
-                  size: 64,
-                  color: theme.colors.primary,
+                Skeletonizer(
+                  enabled: !logoLoaded.value,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.55,
+                    child: BrandLogo(
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
+                        if ((wasSynchronouslyLoaded || frame != null) &&
+                            !logoLoaded.value) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (context.mounted) logoLoaded.value = true;
+                          });
+                        }
+                        return child;
+                      },
+                    ),
+                  ),
                 ),
                 const Gap(12),
                 Text(
-                  'Kamus Sambas',
+                  F.title,
                   textAlign: .center,
                   style: theme.typography.xl2.copyWith(
                     fontWeight: .w600,

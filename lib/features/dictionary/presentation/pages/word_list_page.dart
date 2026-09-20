@@ -85,7 +85,8 @@ class WordListPage extends HookConsumerWidget {
     ScrollController scroll,
   ) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final skeletonPerPage = (viewportHeight ~/ 80) + 2;
+    // Row compact ~52–56px; hitung skeleton agar penuh viewport.
+    final skeletonPerPage = (viewportHeight ~/ 56) + 2;
 
     if (state.isLoading) {
       return _ListSkeleton(itemCount: skeletonPerPage);
@@ -149,9 +150,9 @@ class WordListPage extends HookConsumerWidget {
         controller: scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(0, 6, 0, 24),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 20),
         itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-        separatorBuilder: (_, _) => const Gap(2),
+        separatorBuilder: (_, _) => const SizedBox(height: 1),
         itemBuilder: (ctx, index) {
           if (index >= state.items.length) {
             return const _LoadingMoreFooter();
@@ -163,19 +164,32 @@ class WordListPage extends HookConsumerWidget {
   }
 }
 
-/// Tile compact SATU BARIS - list ini berpotensi memuat ribuan kata:
-/// lemma + label jenis (hanya non-'word', sisanya noise) + ikon
-/// verifikasi. Bahasa & info lengkap ada di detail.
+/// Tile padat satu baris — list bisa ribuan kata.
+/// Padding FTile default (~14.5) diperkecil lewat style.delta.
 class _WordTile extends StatelessWidget {
   const _WordTile({required this.item});
 
   final WordSummary item;
+
+  static const _compactStyle = FItemStyleDelta.delta(
+    contentStyle: FItemContentStyleDelta.delta(
+      suffixedPadding: EdgeInsetsGeometryDelta.value(
+        EdgeInsets.fromLTRB(12, 7, 10, 7),
+      ),
+      unsuffixedPadding: EdgeInsetsGeometryDelta.value(
+        EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      ),
+      prefixIconSpacing: 8,
+      suffixIconSpacing: 4,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
 
     return FTile(
+      style: _compactStyle,
       title: Row(
         children: [
           Flexible(
@@ -183,21 +197,26 @@ class _WordTile extends StatelessWidget {
               item.lemma,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              style: theme.typography.sm.copyWith(
+                color: theme.colors.foreground,
+                height: 1.2,
+              ),
             ),
           ),
           if (item.wordType != 'word') ...[
-            const Gap(8),
+            const Gap(6),
             Text(
               item.wordTypeLabel,
-              style: theme.typography.sm.copyWith(
+              style: theme.typography.xs.copyWith(
                 color: theme.colors.mutedForeground,
+                height: 1.2,
               ),
             ),
           ],
         ],
       ),
       suffix: item.isVerified
-          ? Icon(FLucideIcons.badgeCheck, size: 16, color: theme.colors.primary)
+          ? Icon(FLucideIcons.badgeCheck, size: 14, color: theme.colors.primary)
           : null,
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();
@@ -234,10 +253,11 @@ class _ListSkeleton extends StatelessWidget {
           enabled: true,
           child: ListView.separated(
             // Tanpa horizontal: FScaffold(childPad) sudah memberi inset.
-            padding: const EdgeInsets.fromLTRB(0, 6, 0, 24),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 20),
             itemCount: itemCount,
-            separatorBuilder: (_, _) => const Gap(2),
+            separatorBuilder: (_, _) => const SizedBox(height: 1),
             itemBuilder: (_, _) => FTile(
+              style: _WordTile._compactStyle,
               title: const Text('kata Sambas contoh'),
             ),
           ),

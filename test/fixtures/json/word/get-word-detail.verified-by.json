@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": {
+    "id": "01JDWORDMAKATN000000000000",
+    "lemma": "makatn",
+    "language_id": "01JDSBSLANG000000000000000",
+    "word_type": "word",
+    "status": "published",
+    "is_verified": true,
+    "is_corrected": false,
+    "verified_by": { "username": "budi", "role": "reviewer" },
+    "verified_at": "2026-09-12T03:00:00.000Z",
+    "meanings": [],
+    "categories": [],
+    "pronunciations": [],
+    "images": [],
+    "related_words": [],
+    "appears_in": [],
+    "variants": []
+  }
+}

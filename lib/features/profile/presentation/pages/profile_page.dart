@@ -13,7 +13,7 @@ import '../widgets/appearance_tiles.dart';
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
-  static const _roleLabels = <String, String>{
+  static const roleLabels = <String, String>{
     'root': 'Root',
     'admin': 'Admin',
     'editor': 'Editor',
@@ -92,6 +92,17 @@ class ProfilePage extends ConsumerWidget {
                   FTileGroup(
                     label: const Text('Akun'),
                     children: [
+                      if (status.role == 'contributor')
+                        FTile(
+                          prefix: const Icon(FLucideIcons.badgeCheck),
+                          title: const Text('Jadi verifikator'),
+                          subtitle: const Text(
+                            'Ajukan diri untuk meninjau kontribusi',
+                          ),
+                          suffix: const Icon(FLucideIcons.chevronRight),
+                          onPress: () =>
+                              context.push('/verifier-application'),
+                        ),
                       FTile(
                         prefix: const Icon(FLucideIcons.keyRound),
                         title: const Text('Ubah Password'),
@@ -182,7 +193,7 @@ class _IdentityTileGroup extends StatelessWidget {
         ? (username?.isNotEmpty == true ? username! : 'Pengguna')
         : 'Belum masuk';
     final roleLabel = status.isAuth && status.role != null
-        ? (ProfilePage._roleLabels[status.role!] ?? status.role!)
+        ? (ProfilePage.roleLabels[status.role!] ?? status.role!)
         : null;
     final subtitle = status.isAuth
         ? (roleLabel ?? 'Kelola akun dan keamanan')

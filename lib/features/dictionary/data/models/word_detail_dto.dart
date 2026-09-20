@@ -16,17 +16,31 @@ abstract class WordDetailDto with _$WordDetailDto {
     @JsonKey(name: 'is_verified') required bool isVerified,
     @JsonKey(name: 'is_corrected') @Default(false) bool isCorrected,
     @JsonKey(name: 'verified_at') String? verifiedAt,
+    @JsonKey(name: 'verified_by') WordVerifierDto? verifiedBy,
     @Default([]) List<MeaningDto> meanings,
     @Default([]) List<CategoryDto> categories,
     @Default([]) List<PronunciationDto> pronunciations,
     @Default([]) List<WordImageDto> images,
-    @JsonKey(name: 'related_words') @Default([]) List<RelatedWordDto> relatedWords,
+    @JsonKey(name: 'related_words')
+    @Default([])
+    List<RelatedWordDto> relatedWords,
     @JsonKey(name: 'appears_in') @Default([]) List<RelatedWordDto> appearsIn,
     @Default([]) List<WordVariantDto> variants,
   }) = _WordDetailDto;
 
   factory WordDetailDto.fromJson(Map<String, dynamic> json) =>
       _$WordDetailDtoFromJson(json);
+}
+
+@freezed
+abstract class WordVerifierDto with _$WordVerifierDto {
+  const factory WordVerifierDto({
+    required String username,
+    required String role,
+  }) = _WordVerifierDto;
+
+  factory WordVerifierDto.fromJson(Map<String, dynamic> json) =>
+      _$WordVerifierDtoFromJson(json);
 }
 
 @freezed
@@ -88,10 +102,8 @@ abstract class ExampleDto with _$ExampleDto {
 
 @freezed
 abstract class CategoryDto with _$CategoryDto {
-  const factory CategoryDto({
-    required String id,
-    required String name,
-  }) = _CategoryDto;
+  const factory CategoryDto({required String id, required String name}) =
+      _CategoryDto;
 
   factory CategoryDto.fromJson(Map<String, dynamic> json) =>
       _$CategoryDtoFromJson(json);

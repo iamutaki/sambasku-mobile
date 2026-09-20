@@ -17,6 +17,11 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
       isVerified: json['is_verified'] as bool,
       isCorrected: json['is_corrected'] as bool? ?? false,
       verifiedAt: json['verified_at'] as String?,
+      verifiedBy: json['verified_by'] == null
+          ? null
+          : WordVerifierDto.fromJson(
+              json['verified_by'] as Map<String, dynamic>,
+            ),
       meanings:
           (json['meanings'] as List<dynamic>?)
               ?.map((e) => MeaningDto.fromJson(e as Map<String, dynamic>))
@@ -65,6 +70,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'is_verified': instance.isVerified,
       'is_corrected': instance.isCorrected,
       'verified_at': instance.verifiedAt,
+      'verified_by': instance.verifiedBy,
       'meanings': instance.meanings,
       'categories': instance.categories,
       'pronunciations': instance.pronunciations,
@@ -73,6 +79,15 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'appears_in': instance.appearsIn,
       'variants': instance.variants,
     };
+
+_WordVerifierDto _$WordVerifierDtoFromJson(Map<String, dynamic> json) =>
+    _WordVerifierDto(
+      username: json['username'] as String,
+      role: json['role'] as String,
+    );
+
+Map<String, dynamic> _$WordVerifierDtoToJson(_WordVerifierDto instance) =>
+    <String, dynamic>{'username': instance.username, 'role': instance.role};
 
 _MeaningDto _$MeaningDtoFromJson(Map<String, dynamic> json) => _MeaningDto(
   id: json['id'] as String,
