@@ -143,12 +143,10 @@ class WordChangeHistorySection extends ConsumerWidget {
             subtitle: 'Perubahan yang diterapkan ke kata ini akan muncul di sini.',
           );
         }
-        return Column(
+        return FTileGroup(
+          physics: const NeverScrollableScrollPhysics(),
           children: [
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const Gap(10),
-              _HistoryEntryCard(item: items[i]),
-            ],
+            for (final item in items) _HistoryTile(item: item),
           ],
         );
       },
@@ -156,151 +154,87 @@ class WordChangeHistorySection extends ConsumerWidget {
   }
 }
 
-class _HistoryEntryCard extends StatelessWidget {
-  const _HistoryEntryCard({required this.item});
+const _fieldLabels = <String, String>{
+  'lemma': 'Lemma',
+  'notes': 'Catatan',
+  'definition': 'Definisi',
+  'translation': 'Terjemahan',
+  'translations': 'Terjemahan',
+  'meaning': 'Makna',
+  'meanings': 'Makna',
+  'meanings_count': 'Makna',
+  'example': 'Contoh',
+  'examples': 'Contoh',
+  'variant': 'Variasi',
+  'variants': 'Variasi',
+  'category': 'Kategori',
+  'categories': 'Kategori',
+  'relation': 'Relasi',
+  'relations': 'Relasi',
+  'related_words': 'Relasi',
+  'image': 'Gambar',
+  'images': 'Gambar',
+  'pronunciation': 'Pengucapan',
+  'pronunciations': 'Pengucapan',
+  'word_type': 'Jenis',
+  'language_id': 'Bahasa',
+  'is_verified': 'Verifikasi',
+  'status': 'Status',
+};
+
+class _HistoryTile extends StatelessWidget with FTileMixin {
+  const _HistoryTile({required this.item});
 
   final ChangeHistoryItem item;
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final when = item.timestamp.isNotEmpty
-        ? formatDateTimeIso(item.timestamp)
-        : null;
-    final who = (item.actorUsername != null && item.actorUsername!.isNotEmpty)
-        ? item.actorUsername!
-        : 'Sistem';
     final kind = item.isSuggestEdit ? 'Dari usulan' : 'Edit langsung';
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colors.border),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  item.isSuggestEdit
-                      ? FLucideIcons.gitPullRequestArrow
-                      : FLucideIcons.penLine,
-                  size: 16,
-                  color: theme.colors.mutedForeground,
-                ),
-                const Gap(8),
-                Expanded(
-                  child: Text(
-                    kind,
-                    style: theme.typography.sm.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (when != null)
-                  Text(
-                    when,
-                    style: theme.typography.xs.copyWith(
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
-              ],
-            ),
-            const Gap(4),
-            Text(
-              who,
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-            if (item.suggestedByUsername != null &&
-                item.suggestedByUsername!.isNotEmpty) ...[
-              const Gap(2),
-              Text(
-                'Diusulkan oleh ${item.suggestedByUsername}',
-                style: theme.typography.xs.copyWith(
-                  color: theme.colors.mutedForeground,
-                ),
-              ),
-            ],
-            if (item.reason != null && item.reason!.trim().isNotEmpty) ...[
-              const Gap(8),
-              Text(
-                item.reason!.trim(),
-                style: theme.typography.sm.copyWith(height: 1.35),
-              ),
-            ],
-            if (item.changes.isNotEmpty) ...[
-              const Gap(10),
-              for (var i = 0; i < item.changes.length; i++) ...[
-                if (i > 0) const Gap(8),
-                _FieldDiffRow(diff: item.changes[i]),
-              ],
-            ],
-            if (item.reviewComment != null &&
-                item.reviewComment!.trim().isNotEmpty) ...[
-              const Gap(8),
-              Text(
-                'Catatan reviewer: ${item.reviewComment!.trim()}',
-                style: theme.typography.xs.copyWith(
-                  color: theme.colors.mutedForeground,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    final summary = _changeSummary();
+    return FTile(
+      title: Text(summary.isNotEmpty ? summary : kind),
+      subtitle: Text(_subtitle(kind, hasSummary: summary.isNotEmpty)),
     );
   }
-}
 
-class _FieldDiffRow extends StatelessWidget {
-  const _FieldDiffRow({required this.diff});
-
-  final ChangeHistoryFieldDiff diff;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final label = [
-      if (diff.entity.isNotEmpty) diff.entity,
-      if (diff.field.isNotEmpty) diff.field,
+  String _subtitle(String kind, {required bool hasSummary}) {
+    final actor = (item.actorUsername != null && item.actorUsername!.isNotEmpty)
+        ? item.actorUsername!
+        : 'Sistem';
+    final suggested = item.suggestedByUsername?.trim() ?? '';
+    final when = item.timestamp.isNotEmpty
+        ? formatDateTimeIso(item.timestamp)
+        : '';
+    final who = item.isSuggestEdit &&
+            suggested.isNotEmpty &&
+            suggested != actor
+        ? '$suggested → $actor'
+        : actor;
+    return [
+      if (hasSummary) kind,
+      who,
+      if (when.isNotEmpty) when,
     ].join(' · ');
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty)
-          Text(
-            label,
-            style: theme.typography.xs.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colors.mutedForeground,
-            ),
-          ),
-        if (label.isNotEmpty) const Gap(4),
-        if (diff.displayOld.isNotEmpty)
-          Text(
-            diff.displayOld,
-            style: theme.typography.sm.copyWith(
-              color: theme.colors.mutedForeground,
-              decoration: TextDecoration.lineThrough,
-              height: 1.35,
-            ),
-          ),
-        Text(
-          diff.displayNew.isEmpty ? '(kosong)' : diff.displayNew,
-          style: theme.typography.sm.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
+  String _changeSummary() {
+    final seen = <String>{};
+    final labels = <String>[];
+    for (final diff in item.changes) {
+      final label = _labelFor(diff);
+      if (label.isEmpty || !seen.add(label)) continue;
+      if (labels.length < 3) labels.add(label);
+    }
+    if (seen.length > 3) labels.add('…');
+    return labels.join(', ');
+  }
+
+  String _labelFor(ChangeHistoryFieldDiff diff) {
+    final field = diff.field.trim().toLowerCase();
+    final entity = diff.entity.trim().toLowerCase();
+    return _fieldLabels[field] ??
+        _fieldLabels[entity] ??
+        (diff.field.isNotEmpty ? diff.field : diff.entity);
   }
 }
 

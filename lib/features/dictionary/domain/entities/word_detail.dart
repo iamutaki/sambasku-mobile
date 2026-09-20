@@ -8,6 +8,7 @@ class WordDetail {
     required this.status,
     required this.isVerified,
     required this.isCorrected,
+    this.selfVerified = false,
     this.notes,
     this.verifiedAt,
     this.verifiedBy,
@@ -28,6 +29,7 @@ class WordDetail {
   final String status;
   final bool isVerified;
   final bool isCorrected;
+  final bool selfVerified;
   final String? verifiedAt;
   final WordVerifier? verifiedBy;
   final List<WordMeaning> meanings;
@@ -44,6 +46,16 @@ class WordDetail {
     'ungkapan' => 'Ungkapan',
     _ => 'Kata',
   };
+
+  String get verifierAttributionLabel {
+    final username = verifiedBy?.username;
+    if (username == null || username.isEmpty) {
+      return 'Verifikator tidak diketahui';
+    }
+    return selfVerified
+        ? 'Dibuat dan diverifikasi oleh $username'
+        : 'Diverifikasi oleh $username';
+  }
 }
 
 class WordVerifier {

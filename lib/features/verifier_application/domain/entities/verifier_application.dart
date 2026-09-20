@@ -1,8 +1,20 @@
+class SocialScreenshot {
+  const SocialScreenshot({required this.url, required this.providerFileId});
+
+  final String url;
+  final String providerFileId;
+}
+
 class SocialLink {
-  const SocialLink({required this.platform, required this.url});
+  const SocialLink({
+    required this.platform,
+    required this.username,
+    required this.screenshot,
+  });
 
   final String platform;
-  final String url;
+  final String username;
+  final SocialScreenshot screenshot;
 }
 
 class VerifierApplication {

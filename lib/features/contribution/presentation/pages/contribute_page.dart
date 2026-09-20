@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
 import '../models/submit_word_state.dart';
@@ -262,7 +263,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           const Gap(12),
           const _FieldCaption(
             'Apa yang kamu ketahui? *',
-            info: 'Centang yang kamu tahu (boleh keduanya).\n\n'
+            info:
+                'Centang yang kamu tahu (boleh keduanya).\n\n'
                 '• Definisi - uraian makna berbahasa Indonesia.\n'
                 '• Padanan - satu kata/frasa setara.\n\n'
                 'Form di bawah muncul sesuai centangan.',
@@ -297,7 +299,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 info: widget.initialSearchIn == 'translation'
                     ? 'Satu kata/frasa Sambas yang setara - bukan uraian panjang.'
                     : 'Satu kata/frasa Indonesia yang setara dengan lemma Sambas.\n\n'
-                        'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
+                          'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
               ),
               FTextField(
                 control: FTextFieldControl.managed(controller: _tr1Ctrl),
@@ -306,7 +308,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                     : 'Satu kata/frasa setara di Indonesia',
                 description: widget.initialSearchIn == 'translation'
                     ? null
-                    : const Text('Tekan icon buku untuk mencari definisi di KBBI'),
+                    : const Text(
+                        'Tekan icon buku untuk mencari definisi di KBBI',
+                      ),
                 textInputAction: TextInputAction.next,
                 suffixBuilder: (context, style, _) => Padding(
                   padding: style.clearButtonPadding,
@@ -339,7 +343,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                   children: [
                     const _FieldCaption(
                       'Kelas kata *',
-                      info: 'Nomina, verba, adjektiva, dsb. Bisa dibantu isi lewat ikon buku di kolom padanan.',
+                      info:
+                          'Nomina, verba, adjektiva, dsb. Bisa dibantu isi lewat ikon buku di kolom padanan.',
                     ),
                     _SelectField(
                       selectedLabel: selected?.displayLabel,
@@ -356,7 +361,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
               const Gap(8),
               const _FieldCaption(
                 'Definisi *',
-                info: 'Uraian makna berbahasa Indonesia - bukan padanan satu kata.\n\n'
+                info:
+                    'Uraian makna berbahasa Indonesia - bukan padanan satu kata.\n\n'
                     'Contoh: “aktivitas memasukkan makanan ke mulut”.',
               ),
               FTextField(
@@ -374,7 +380,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
           const _FieldCaption(
             'Kelengkapan',
-            info: 'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
+            info:
+                'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
           ),
           _SelectField(
             selectedLabel: _relations.isEmpty ? null : _relations.summaryLabel,
@@ -629,6 +636,14 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             },
             child: const Text('Ke beranda'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.invalidate(myContributionsListControllerProvider);
+              context.push('/contributions');
+            },
+            child: const Text('Lihat usulan'),
+          ),
         ],
       ),
     );
@@ -710,10 +725,7 @@ class _FieldCaption extends StatelessWidget {
               ),
             ),
           ),
-          if (info != null) ...[
-            const Gap(4),
-            _InfoTip(message: info!),
-          ],
+          if (info != null) ...[const Gap(4), _InfoTip(message: info!)],
         ],
       ),
     );
@@ -734,10 +746,7 @@ class _InfoTip extends StatelessWidget {
       constraints: const FPortalConstraints(maxWidth: 280),
       popoverBuilder: (context, _) => Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        child: Text(
-          message,
-          style: theme.typography.sm.copyWith(height: 1.35),
-        ),
+        child: Text(message, style: theme.typography.sm.copyWith(height: 1.35)),
       ),
       builder: (context, controller, child) => GestureDetector(
         behavior: HitTestBehavior.opaque,

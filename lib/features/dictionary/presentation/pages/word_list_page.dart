@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../dictionary_router.dart';
 import '../../domain/entities/word_summary.dart';
 import '../models/word_list_state.dart';
@@ -85,8 +86,7 @@ class WordListPage extends HookConsumerWidget {
     ScrollController scroll,
   ) {
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    // Row compact ~52–56px; hitung skeleton agar penuh viewport.
-    final skeletonPerPage = (viewportHeight ~/ 56) + 2;
+    final skeletonPerPage = (viewportHeight ~/ 80) + 2;
 
     if (state.isLoading) {
       return _ListSkeleton(itemCount: skeletonPerPage);
@@ -141,83 +141,38 @@ class WordListPage extends HookConsumerWidget {
       onRefresh: () async {
         ref.invalidate(wordListProvider);
       },
-      // List normal urut server (lemma ASC, id ASC - urutan kamus
-      // en_US.utf8: apostrof/kapital diabaikan level primer). TANPA
-      // grouping header huruf: client tidak boleh mengurutkan ulang
-      // (pagination keyset), grouping dari karakter pertama mentah
-      // justru berosilasi ('#, A, #, B') untuk lemma ber-apostrof.
-      child: ListView.separated(
+      // Satu FTileGroup: semua lemma dalam 1 kartu + divider Forui.
+      // Urutan server (lemma ASC) - TANPA grouping header huruf.
+      child: ListView(
         controller: scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(0, 4, 0, 20),
-        itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-        separatorBuilder: (_, _) => const SizedBox(height: 1),
-        itemBuilder: (ctx, index) {
-          if (index >= state.items.length) {
-            return const _LoadingMoreFooter();
-          }
-          return _WordTile(item: state.items[index]);
-        },
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+        children: [
+          FTileGroup(
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              for (final item in state.items) _WordTile(item: item),
+            ],
+          ),
+          if (state.isLoadingMore) const _LoadingMoreFooter(),
+        ],
       ),
     );
   }
 }
 
-/// Tile padat satu baris — list bisa ribuan kata.
-/// Padding FTile default (~14.5) diperkecil lewat style.delta.
-class _WordTile extends StatelessWidget {
+class _WordTile extends StatelessWidget with FTileMixin {
   const _WordTile({required this.item});
 
   final WordSummary item;
 
-  static const _compactStyle = FItemStyleDelta.delta(
-    contentStyle: FItemContentStyleDelta.delta(
-      suffixedPadding: EdgeInsetsGeometryDelta.value(
-        EdgeInsets.fromLTRB(12, 7, 10, 7),
-      ),
-      unsuffixedPadding: EdgeInsetsGeometryDelta.value(
-        EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      ),
-      prefixIconSpacing: 8,
-      suffixIconSpacing: 4,
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-
     return FTile(
-      style: _compactStyle,
-      title: Row(
-        children: [
-          Flexible(
-            child: Text(
-              item.lemma,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.foreground,
-                height: 1.2,
-              ),
-            ),
-          ),
-          if (item.wordType != 'word') ...[
-            const Gap(6),
-            Text(
-              item.wordTypeLabel,
-              style: theme.typography.xs.copyWith(
-                color: theme.colors.mutedForeground,
-                height: 1.2,
-              ),
-            ),
-          ],
-        ],
-      ),
-      suffix: item.isVerified
-          ? Icon(FLucideIcons.badgeCheck, size: 14, color: theme.colors.primary)
-          : null,
+      title: Text(item.lemma),
+      subtitle: item.wordType != 'word' ? Text(item.wordTypeLabel) : null,
+      suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();
         context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));
@@ -251,17 +206,34 @@ class _ListSkeleton extends StatelessWidget {
       child: IgnorePointer(
         child: Skeletonizer(
           enabled: true,
-          child: ListView.separated(
-            // Tanpa horizontal: FScaffold(childPad) sudah memberi inset.
-            padding: const EdgeInsets.fromLTRB(0, 4, 0, 20),
-            itemCount: itemCount,
-            separatorBuilder: (_, _) => const SizedBox(height: 1),
-            itemBuilder: (_, _) => FTile(
-              style: _WordTile._compactStyle,
-              title: const Text('kata Sambas contoh'),
-            ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+            children: [
+              FTileGroup(
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (var i = 0; i < itemCount; i++) const _SkeletonTile(),
+                ],
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SkeletonTile extends StatelessWidget with FTileMixin {
+  const _SkeletonTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return FTile(
+      title: const Text('kata Sambas contoh'),
+      suffix: Icon(
+        FLucideIcons.badgeCheck,
+        size: 18,
+        color: context.theme.colors.mutedForeground,
       ),
     );
   }

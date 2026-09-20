@@ -16,6 +16,7 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String,
       isVerified: json['is_verified'] as bool,
       isCorrected: json['is_corrected'] as bool? ?? false,
+      selfVerified: json['self_verified'] as bool? ?? false,
       verifiedAt: json['verified_at'] as String?,
       verifiedBy: json['verified_by'] == null
           ? null
@@ -69,6 +70,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'status': instance.status,
       'is_verified': instance.isVerified,
       'is_corrected': instance.isCorrected,
+      'self_verified': instance.selfVerified,
       'verified_at': instance.verifiedAt,
       'verified_by': instance.verifiedBy,
       'meanings': instance.meanings,

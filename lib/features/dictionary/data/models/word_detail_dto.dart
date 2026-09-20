@@ -15,6 +15,7 @@ abstract class WordDetailDto with _$WordDetailDto {
     required String status,
     @JsonKey(name: 'is_verified') required bool isVerified,
     @JsonKey(name: 'is_corrected') @Default(false) bool isCorrected,
+    @JsonKey(name: 'self_verified') @Default(false) bool selfVerified,
     @JsonKey(name: 'verified_at') String? verifiedAt,
     @JsonKey(name: 'verified_by') WordVerifierDto? verifiedBy,
     @Default([]) List<MeaningDto> meanings,

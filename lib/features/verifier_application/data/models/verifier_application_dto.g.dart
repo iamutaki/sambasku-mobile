@@ -6,14 +6,34 @@ part of 'verifier_application_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_SocialScreenshotDto _$SocialScreenshotDtoFromJson(Map<String, dynamic> json) =>
+    _SocialScreenshotDto(
+      url: json['url'] as String,
+      providerFileId: json['provider_file_id'] as String,
+    );
+
+Map<String, dynamic> _$SocialScreenshotDtoToJson(
+  _SocialScreenshotDto instance,
+) => <String, dynamic>{
+  'url': instance.url,
+  'provider_file_id': instance.providerFileId,
+};
+
 _SocialLinkDto _$SocialLinkDtoFromJson(Map<String, dynamic> json) =>
     _SocialLinkDto(
       platform: json['platform'] as String,
-      url: json['url'] as String,
+      username: json['username'] as String,
+      screenshot: SocialScreenshotDto.fromJson(
+        json['screenshot'] as Map<String, dynamic>,
+      ),
     );
 
 Map<String, dynamic> _$SocialLinkDtoToJson(_SocialLinkDto instance) =>
-    <String, dynamic>{'platform': instance.platform, 'url': instance.url};
+    <String, dynamic>{
+      'platform': instance.platform,
+      'username': instance.username,
+      'screenshot': instance.screenshot.toJson(),
+    };
 
 _VerifierApplicationDto _$VerifierApplicationDtoFromJson(
   Map<String, dynamic> json,
@@ -38,7 +58,7 @@ Map<String, dynamic> _$VerifierApplicationDtoToJson(
   'status': instance.status,
   'phone': instance.phone,
   'address': instance.address,
-  'social_links': instance.socialLinks,
+  'social_links': instance.socialLinks.map((e) => e.toJson()).toList(),
   'admin_comment': instance.adminComment,
   'reviewed_at': instance.reviewedAt,
   'created_at': instance.createdAt,
@@ -60,5 +80,5 @@ Map<String, dynamic> _$SubmitVerifierApplicationRequestDtoToJson(
 ) => <String, dynamic>{
   'phone': instance.phone,
   'address': instance.address,
-  'social_links': instance.socialLinks,
+  'social_links': instance.socialLinks.map((e) => e.toJson()).toList(),
 };

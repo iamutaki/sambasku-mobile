@@ -20,7 +20,7 @@ class WordChangeHistoryPage extends StatelessWidget {
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
         children: [WordChangeHistorySection(wordId: wordId)],
       ),
     );

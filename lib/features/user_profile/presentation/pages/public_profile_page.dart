@@ -4,7 +4,9 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/theme/f_colors_x.dart';
 import '../../../../core/utils/format_datetime.dart';
+import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../domain/entities/public_profile.dart';
 import '../../domain/failures/user_profile_failure.dart';
@@ -76,16 +78,12 @@ class _ProfileBody extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    FLucideIcons.badgeCheck,
-                    size: 14,
-                    color: theme.colors.primary,
-                  ),
+                  const VerifiedBadgeIcon(size: 14),
                   const Gap(4),
                   Text(
                     'Verifikator',
                     style: theme.typography.sm.copyWith(
-                      color: theme.colors.primary,
+                      color: theme.colors.success,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

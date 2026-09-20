@@ -28,10 +28,10 @@ class VerifierApplicationState {
     return VerifierApplicationState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      application: clearApplication
+      application: clearApplication ? null : application ?? this.application,
+      errorMessage: clearErrorMessage
           ? null
-          : application ?? this.application,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+          : errorMessage ?? this.errorMessage,
       successMessage: clearSuccessMessage
           ? null
           : successMessage ?? this.successMessage,

@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../../contribution/presentation/widgets/contribute_images_field.dart';
 import '../../../contribution/presentation/widgets/contribute_relations_sheet.dart';
 import '../../../contribution/presentation/widgets/kbbi_definition_sheet.dart';
@@ -90,13 +91,14 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
     }
   }
 
-  List<String> _csvParts(String raw) => raw
-      .split(',')
-      .map((e) => e.trim())
-      .where((e) => e.isNotEmpty)
-      .toList();
+  List<String> _csvParts(String raw) =>
+      raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
 
-  Future<String?> _resolveLemmaId(Dio dio, String lemma, String excludeId) async {
+  Future<String?> _resolveLemmaId(
+    Dio dio,
+    String lemma,
+    String excludeId,
+  ) async {
     final res = await dio.get<Map<String, dynamic>>(
       '/api/v1/words/search',
       queryParameters: {'q': lemma, 'limit': 10},
@@ -376,7 +378,10 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
         context: context,
         title: const Text('Usulan terkirim - menunggu review'),
       );
-      context.pop();
+      ref.invalidate(myContributionsListControllerProvider);
+      final router = GoRouter.of(context);
+      router.pop();
+      router.push('/contributions');
     } on DioException catch (e) {
       final data = e.response?.data;
       var msg = 'Gagal mengirim usulan';
@@ -462,7 +467,8 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                 const Gap(12),
                 const _FieldCaption(
                   'Padanan Indonesia',
-                  info: 'Satu kata/frasa setara dengan lemma.\n\n'
+                  info:
+                      'Satu kata/frasa setara dengan lemma.\n\n'
                       'Contoh: “makan”. Beda dari definisi.',
                 ),
                 FTextField(
@@ -492,8 +498,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                   ),
                   error: (_, _) => FButton(
                     variant: .outline,
-                    onPress: () =>
-                        ref.invalidate(_suggestWordClassesProvider),
+                    onPress: () => ref.invalidate(_suggestWordClassesProvider),
                     child: const Text('Gagal muat kelas kata - coba lagi'),
                   ),
                   data: (items) {
@@ -520,11 +525,13 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                 const Gap(8),
                 const _FieldCaption(
                   'Definisi',
-                  info: 'Uraian makna berbahasa Indonesia - bukan padanan satu kata.',
+                  info:
+                      'Uraian makna berbahasa Indonesia - bukan padanan satu kata.',
                 ),
                 FTextField(
-                  control:
-                      FTextFieldControl.managed(controller: _definitionCtrl),
+                  control: FTextFieldControl.managed(
+                    controller: _definitionCtrl,
+                  ),
                   hint: 'Jelaskan makna kata ini',
                   maxLines: 3,
                   minLines: 2,
@@ -537,8 +544,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                 info: 'Opsional: catatan, variasi, sinonim, antonim.',
               ),
               _SelectField(
-                selectedLabel:
-                    _extras.isEmpty ? null : _extras.summaryLabel,
+                selectedLabel: _extras.isEmpty ? null : _extras.summaryLabel,
                 hint: 'Tambah variasi, sinonim, antonim…',
                 onTap: () => _openExtrasSheet(detail),
               ),
@@ -602,8 +608,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                             },
                           ),
                         ),
-                        if (!_removeImageIds.contains(img.id) &&
-                            !img.isPrimary)
+                        if (!_removeImageIds.contains(img.id) && !img.isPrimary)
                           FButton(
                             variant: .outline,
                             onPress: () =>
@@ -652,7 +657,9 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                 const Gap(8),
                 Text(
                   _error!,
-                  style: theme.typography.sm.copyWith(color: theme.colors.error),
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.error,
+                  ),
                 ),
               ],
             ],
@@ -784,10 +791,7 @@ class _FieldCaption extends StatelessWidget {
               ),
             ),
           ),
-          if (info != null) ...[
-            const Gap(4),
-            _InfoTip(message: info!),
-          ],
+          if (info != null) ...[const Gap(4), _InfoTip(message: info!)],
         ],
       ),
     );
@@ -806,10 +810,7 @@ class _InfoTip extends StatelessWidget {
       constraints: const FPortalConstraints(maxWidth: 280),
       popoverBuilder: (context, _) => Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        child: Text(
-          message,
-          style: theme.typography.sm.copyWith(height: 1.35),
-        ),
+        child: Text(message, style: theme.typography.sm.copyWith(height: 1.35)),
       ),
       builder: (context, controller, child) => GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -866,11 +867,7 @@ final _suggestWordClassesProvider = FutureProvider<List<_RefItem>>((ref) async {
       .toList(growable: false);
 });
 
-String? _matchWordClassId(
-  List<_RefItem> classes,
-  String? code,
-  String? label,
-) {
+String? _matchWordClassId(List<_RefItem> classes, String? code, String? label) {
   final normalizedCode = code?.trim().toLowerCase();
   if (normalizedCode != null && normalizedCode.isNotEmpty) {
     final byCode = classes

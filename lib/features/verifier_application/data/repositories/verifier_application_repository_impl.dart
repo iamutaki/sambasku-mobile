@@ -15,7 +15,8 @@ class VerifierApplicationRepositoryImpl
   final VerifierApplicationRemoteDatasource _remote;
 
   @override
-  Future<Either<VerifierApplicationFailure, VerifierApplication?>> getMine() async {
+  Future<Either<VerifierApplicationFailure, VerifierApplication?>>
+  getMine() async {
     try {
       final response = await _remote.getMine();
       if (response.success == false || response.data == null) {
@@ -90,7 +91,16 @@ class VerifierApplicationRepositoryImpl
     phone: phone,
     address: address,
     socialLinks: socialLinks
-        .map((l) => SocialLinkDto(platform: l.platform, url: l.url))
+        .map(
+          (l) => SocialLinkDto(
+            platform: l.platform,
+            username: l.username,
+            screenshot: SocialScreenshotDto(
+              url: l.screenshot.url,
+              providerFileId: l.screenshot.providerFileId,
+            ),
+          ),
+        )
         .toList(),
   );
 
@@ -100,7 +110,16 @@ class VerifierApplicationRepositoryImpl
     phone: dto.phone,
     address: dto.address,
     socialLinks: dto.socialLinks
-        .map((l) => SocialLink(platform: l.platform, url: l.url))
+        .map(
+          (l) => SocialLink(
+            platform: l.platform,
+            username: l.username,
+            screenshot: SocialScreenshot(
+              url: l.screenshot.url,
+              providerFileId: l.screenshot.providerFileId,
+            ),
+          ),
+        )
         .toList(),
     adminComment: dto.adminComment,
     reviewedAt: dto.reviewedAt,

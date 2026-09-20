@@ -49,7 +49,7 @@ final class AuthStatusNotifierProvider
 }
 
 String _$authStatusNotifierHash() =>
-    r'4d87ad7e7efdfe44a95e994723e9fec43f84a76d';
+    r'7732a0ef884508886179c09731233c42d5a6a9d3';
 
 /// Status auth global (reaktif) dari AuthTokenStorage. Logout lewat sini
 /// supaya Profile + router otomatis tahu user sudah jadi tamu.

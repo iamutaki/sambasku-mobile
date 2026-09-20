@@ -22,6 +22,9 @@ void main() {
     expect(dto.address, contains('Sambas'));
     expect(dto.socialLinks, hasLength(1));
     expect(dto.socialLinks.first.platform, 'instagram');
+    expect(dto.socialLinks.first.username, 'budi');
+    expect(dto.socialLinks.first.screenshot.url, contains('ik.imagekit.io'));
+    expect(dto.socialLinks.first.screenshot.providerFileId, 'file_va_budi');
     expect(dto.adminComment, isNull);
   });
 

@@ -15,6 +15,7 @@ void main() {
     final dto = WordDetailDto.fromJson(json['data'] as Map<String, dynamic>);
 
     expect(dto.isVerified, isTrue);
+    expect(dto.selfVerified, isTrue);
     expect(dto.verifiedBy?.username, 'budi');
     expect(dto.verifiedBy?.role, 'reviewer');
     expect(dto.verifiedAt, '2026-09-12T03:00:00.000Z');
@@ -25,6 +26,7 @@ void main() {
     final dto = WordDetailDto.fromJson(json['data'] as Map<String, dynamic>);
 
     expect(dto.isVerified, isFalse);
+    expect(dto.selfVerified, isFalse);
     expect(dto.verifiedBy, isNull);
     expect(dto.verifiedAt, isNull);
   });

@@ -4,10 +4,24 @@ part 'verifier_application_dto.freezed.dart';
 part 'verifier_application_dto.g.dart';
 
 @freezed
+abstract class SocialScreenshotDto with _$SocialScreenshotDto {
+  const factory SocialScreenshotDto({
+    required String url,
+    @JsonKey(name: 'provider_file_id') required String providerFileId,
+  }) = _SocialScreenshotDto;
+
+  factory SocialScreenshotDto.fromJson(Map<String, dynamic> json) =>
+      _$SocialScreenshotDtoFromJson(json);
+}
+
+@freezed
 abstract class SocialLinkDto with _$SocialLinkDto {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(explicitToJson: true)
   const factory SocialLinkDto({
     required String platform,
-    required String url,
+    required String username,
+    required SocialScreenshotDto screenshot,
   }) = _SocialLinkDto;
 
   factory SocialLinkDto.fromJson(Map<String, dynamic> json) =>
@@ -16,6 +30,8 @@ abstract class SocialLinkDto with _$SocialLinkDto {
 
 @freezed
 abstract class VerifierApplicationDto with _$VerifierApplicationDto {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(explicitToJson: true)
   const factory VerifierApplicationDto({
     required String id,
     required String status,
@@ -35,6 +51,8 @@ abstract class VerifierApplicationDto with _$VerifierApplicationDto {
 @freezed
 abstract class SubmitVerifierApplicationRequestDto
     with _$SubmitVerifierApplicationRequestDto {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(explicitToJson: true)
   const factory SubmitVerifierApplicationRequestDto({
     required String phone,
     required String address,

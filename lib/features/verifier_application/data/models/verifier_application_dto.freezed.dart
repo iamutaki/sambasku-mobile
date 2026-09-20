@@ -13,9 +13,275 @@ part of 'verifier_application_dto.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$SocialScreenshotDto {
+
+ String get url;@JsonKey(name: 'provider_file_id') String get providerFileId;
+/// Create a copy of SocialScreenshotDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SocialScreenshotDtoCopyWith<SocialScreenshotDto> get copyWith => _$SocialScreenshotDtoCopyWithImpl<SocialScreenshotDto>(this as SocialScreenshotDto, _$identity);
+
+  /// Serializes this SocialScreenshotDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SocialScreenshotDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,url,providerFileId);
+
+@override
+String toString() {
+  return 'SocialScreenshotDto(url: $url, providerFileId: $providerFileId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SocialScreenshotDtoCopyWith<$Res>  {
+  factory $SocialScreenshotDtoCopyWith(SocialScreenshotDto value, $Res Function(SocialScreenshotDto) _then) = _$SocialScreenshotDtoCopyWithImpl;
+@useResult
+$Res call({
+ String url,@JsonKey(name: 'provider_file_id') String providerFileId
+});
+
+
+
+
+}
+/// @nodoc
+class _$SocialScreenshotDtoCopyWithImpl<$Res>
+    implements $SocialScreenshotDtoCopyWith<$Res> {
+  _$SocialScreenshotDtoCopyWithImpl(this._self, this._then);
+
+  final SocialScreenshotDto _self;
+  final $Res Function(SocialScreenshotDto) _then;
+
+/// Create a copy of SocialScreenshotDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? providerFileId = null,}) {
+  return _then(_self.copyWith(
+url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String,providerFileId: null == providerFileId ? _self.providerFileId : providerFileId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SocialScreenshotDto].
+extension SocialScreenshotDtoPatterns on SocialScreenshotDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SocialScreenshotDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SocialScreenshotDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SocialScreenshotDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _SocialScreenshotDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SocialScreenshotDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SocialScreenshotDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SocialScreenshotDto() when $default != null:
+return $default(_that.url,_that.providerFileId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId)  $default,) {final _that = this;
+switch (_that) {
+case _SocialScreenshotDto():
+return $default(_that.url,_that.providerFileId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId)?  $default,) {final _that = this;
+switch (_that) {
+case _SocialScreenshotDto() when $default != null:
+return $default(_that.url,_that.providerFileId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SocialScreenshotDto implements SocialScreenshotDto {
+  const _SocialScreenshotDto({required this.url, @JsonKey(name: 'provider_file_id') required this.providerFileId});
+  factory _SocialScreenshotDto.fromJson(Map<String, dynamic> json) => _$SocialScreenshotDtoFromJson(json);
+
+@override final  String url;
+@override@JsonKey(name: 'provider_file_id') final  String providerFileId;
+
+/// Create a copy of SocialScreenshotDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SocialScreenshotDtoCopyWith<_SocialScreenshotDto> get copyWith => __$SocialScreenshotDtoCopyWithImpl<_SocialScreenshotDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SocialScreenshotDtoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SocialScreenshotDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,url,providerFileId);
+
+@override
+String toString() {
+  return 'SocialScreenshotDto(url: $url, providerFileId: $providerFileId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SocialScreenshotDtoCopyWith<$Res> implements $SocialScreenshotDtoCopyWith<$Res> {
+  factory _$SocialScreenshotDtoCopyWith(_SocialScreenshotDto value, $Res Function(_SocialScreenshotDto) _then) = __$SocialScreenshotDtoCopyWithImpl;
+@override @useResult
+$Res call({
+ String url,@JsonKey(name: 'provider_file_id') String providerFileId
+});
+
+
+
+
+}
+/// @nodoc
+class __$SocialScreenshotDtoCopyWithImpl<$Res>
+    implements _$SocialScreenshotDtoCopyWith<$Res> {
+  __$SocialScreenshotDtoCopyWithImpl(this._self, this._then);
+
+  final _SocialScreenshotDto _self;
+  final $Res Function(_SocialScreenshotDto) _then;
+
+/// Create a copy of SocialScreenshotDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? providerFileId = null,}) {
+  return _then(_SocialScreenshotDto(
+url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String,providerFileId: null == providerFileId ? _self.providerFileId : providerFileId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$SocialLinkDto {
 
- String get platform; String get url;
+ String get platform; String get username; SocialScreenshotDto get screenshot;
 /// Create a copy of SocialLinkDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +294,16 @@ $SocialLinkDtoCopyWith<SocialLinkDto> get copyWith => _$SocialLinkDtoCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SocialLinkDto&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.url, url) || other.url == url));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SocialLinkDto&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.username, username) || other.username == username)&&(identical(other.screenshot, screenshot) || other.screenshot == screenshot));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,platform,url);
+int get hashCode => Object.hash(runtimeType,platform,username,screenshot);
 
 @override
 String toString() {
-  return 'SocialLinkDto(platform: $platform, url: $url)';
+  return 'SocialLinkDto(platform: $platform, username: $username, screenshot: $screenshot)';
 }
 
 
@@ -48,11 +314,11 @@ abstract mixin class $SocialLinkDtoCopyWith<$Res>  {
   factory $SocialLinkDtoCopyWith(SocialLinkDto value, $Res Function(SocialLinkDto) _then) = _$SocialLinkDtoCopyWithImpl;
 @useResult
 $Res call({
- String platform, String url
+ String platform, String username, SocialScreenshotDto screenshot
 });
 
 
-
+$SocialScreenshotDtoCopyWith<$Res> get screenshot;
 
 }
 /// @nodoc
@@ -65,14 +331,24 @@ class _$SocialLinkDtoCopyWithImpl<$Res>
 
 /// Create a copy of SocialLinkDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? platform = null,Object? url = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? platform = null,Object? username = null,Object? screenshot = null,}) {
   return _then(_self.copyWith(
 platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
-as String,url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,
+as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,screenshot: null == screenshot ? _self.screenshot : screenshot // ignore: cast_nullable_to_non_nullable
+as SocialScreenshotDto,
   ));
 }
-
+/// Create a copy of SocialLinkDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SocialScreenshotDtoCopyWith<$Res> get screenshot {
+  
+  return $SocialScreenshotDtoCopyWith<$Res>(_self.screenshot, (value) {
+    return _then(_self.copyWith(screenshot: value));
+  });
+}
 }
 
 
@@ -154,10 +430,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String platform,  String url)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String platform,  String username,  SocialScreenshotDto screenshot)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SocialLinkDto() when $default != null:
-return $default(_that.platform,_that.url);case _:
+return $default(_that.platform,_that.username,_that.screenshot);case _:
   return orElse();
 
 }
@@ -175,10 +451,10 @@ return $default(_that.platform,_that.url);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String platform,  String url)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String platform,  String username,  SocialScreenshotDto screenshot)  $default,) {final _that = this;
 switch (_that) {
 case _SocialLinkDto():
-return $default(_that.platform,_that.url);case _:
+return $default(_that.platform,_that.username,_that.screenshot);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +471,10 @@ return $default(_that.platform,_that.url);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String platform,  String url)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String platform,  String username,  SocialScreenshotDto screenshot)?  $default,) {final _that = this;
 switch (_that) {
 case _SocialLinkDto() when $default != null:
-return $default(_that.platform,_that.url);case _:
+return $default(_that.platform,_that.username,_that.screenshot);case _:
   return null;
 
 }
@@ -207,14 +483,15 @@ return $default(_that.platform,_that.url);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _SocialLinkDto implements SocialLinkDto {
-  const _SocialLinkDto({required this.platform, required this.url});
+  const _SocialLinkDto({required this.platform, required this.username, required this.screenshot});
   factory _SocialLinkDto.fromJson(Map<String, dynamic> json) => _$SocialLinkDtoFromJson(json);
 
 @override final  String platform;
-@override final  String url;
+@override final  String username;
+@override final  SocialScreenshotDto screenshot;
 
 /// Create a copy of SocialLinkDto
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +506,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SocialLinkDto&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.url, url) || other.url == url));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SocialLinkDto&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.username, username) || other.username == username)&&(identical(other.screenshot, screenshot) || other.screenshot == screenshot));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,platform,url);
+int get hashCode => Object.hash(runtimeType,platform,username,screenshot);
 
 @override
 String toString() {
-  return 'SocialLinkDto(platform: $platform, url: $url)';
+  return 'SocialLinkDto(platform: $platform, username: $username, screenshot: $screenshot)';
 }
 
 
@@ -249,11 +526,11 @@ abstract mixin class _$SocialLinkDtoCopyWith<$Res> implements $SocialLinkDtoCopy
   factory _$SocialLinkDtoCopyWith(_SocialLinkDto value, $Res Function(_SocialLinkDto) _then) = __$SocialLinkDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String platform, String url
+ String platform, String username, SocialScreenshotDto screenshot
 });
 
 
-
+@override $SocialScreenshotDtoCopyWith<$Res> get screenshot;
 
 }
 /// @nodoc
@@ -266,15 +543,25 @@ class __$SocialLinkDtoCopyWithImpl<$Res>
 
 /// Create a copy of SocialLinkDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? platform = null,Object? url = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? platform = null,Object? username = null,Object? screenshot = null,}) {
   return _then(_SocialLinkDto(
 platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
-as String,url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,
+as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,screenshot: null == screenshot ? _self.screenshot : screenshot // ignore: cast_nullable_to_non_nullable
+as SocialScreenshotDto,
   ));
 }
 
-
+/// Create a copy of SocialLinkDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SocialScreenshotDtoCopyWith<$Res> get screenshot {
+  
+  return $SocialScreenshotDtoCopyWith<$Res>(_self.screenshot, (value) {
+    return _then(_self.copyWith(screenshot: value));
+  });
+}
 }
 
 
@@ -480,8 +767,8 @@ return $default(_that.id,_that.status,_that.phone,_that.address,_that.socialLink
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _VerifierApplicationDto implements VerifierApplicationDto {
   const _VerifierApplicationDto({required this.id, required this.status, required this.phone, required this.address, @JsonKey(name: 'social_links') required final  List<SocialLinkDto> socialLinks, @JsonKey(name: 'admin_comment') this.adminComment, @JsonKey(name: 'reviewed_at') this.reviewedAt, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt}): _socialLinks = socialLinks;
   factory _VerifierApplicationDto.fromJson(Map<String, dynamic> json) => _$VerifierApplicationDtoFromJson(json);
@@ -767,8 +1054,8 @@ return $default(_that.phone,_that.address,_that.socialLinks);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _SubmitVerifierApplicationRequestDto implements SubmitVerifierApplicationRequestDto {
   const _SubmitVerifierApplicationRequestDto({required this.phone, required this.address, @JsonKey(name: 'social_links') required final  List<SocialLinkDto> socialLinks}): _socialLinks = socialLinks;
   factory _SubmitVerifierApplicationRequestDto.fromJson(Map<String, dynamic> json) => _$SubmitVerifierApplicationRequestDtoFromJson(json);

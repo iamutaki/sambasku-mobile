@@ -9,7 +9,9 @@ import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../bookmark/presentation/providers/bookmark_providers.dart';
 import '../../../bookmark/presentation/widgets/bookmark_button.dart';
 import '../../../comment/presentation/widgets/word_comments_section.dart';
+import '../../../../core/theme/f_colors_x.dart';
 import '../../../../core/widgets/image_preview.dart';
+import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../vote/domain/entities/vote_target.dart';
 import '../../../vote/domain/failures/vote_failure.dart';
 import '../../../vote/presentation/providers/vote_providers.dart';
@@ -19,6 +21,9 @@ import '../../domain/failures/dictionary_failure.dart';
 import '../providers/word_detail_providers.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../user_profile/user_profile_router.dart';
+import '../../../share/data/share_background_repository.dart';
+import '../../../share/presentation/share_sheet.dart';
+import '../../../../core/network/network_providers.dart';
 
 /// Halaman detail kata publik - GET /api/v1/words/:id.
 class WordDetailPage extends ConsumerWidget {
@@ -102,14 +107,26 @@ class WordDetailPage extends ConsumerWidget {
   }
 }
 
-class _DetailBody extends StatelessWidget {
+void openWordShareSheet(
+  BuildContext context,
+  WidgetRef ref,
+  WordDetail detail,
+) {
+  showWordShareSheet(
+    context,
+    detail: detail,
+    backgrounds: ShareBackgroundRepository(ref.read(dioProvider)),
+  );
+}
+
+class _DetailBody extends ConsumerWidget {
   const _DetailBody({required this.detail, required this.wordId});
 
   final WordDetail detail;
   final String wordId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
     final primaryImage =
         detail.images.where((i) => i.isPrimary).firstOrNull ??
@@ -170,11 +187,7 @@ class _DetailBody extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () =>
                                 showVerifierAttributionSheet(context, detail),
-                            child: Icon(
-                              FLucideIcons.badgeCheck,
-                              size: 18,
-                              color: theme.colors.primary,
-                            ),
+                            child: const VerifiedBadgeIcon(),
                           ),
                         ),
                     ],
@@ -190,14 +203,14 @@ class _DetailBody extends StatelessWidget {
                     const Gap(6),
                     Semantics(
                       button: true,
-                      label: 'Diverifikasi ${detail.verifiedBy!.username}',
+                      label: detail.verifierAttributionLabel,
                       child: GestureDetector(
                         onTap: () =>
                             showVerifierAttributionSheet(context, detail),
                         child: Text(
-                          'Diverifikasi ${detail.verifiedBy!.username}',
+                          detail.verifierAttributionLabel,
                           style: theme.typography.sm.copyWith(
-                            color: theme.colors.primary,
+                            color: theme.colors.success,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -251,9 +264,6 @@ class _DetailBody extends StatelessWidget {
         const Gap(10),
         _WordVoteBar(wordId: wordId),
 
-        const Gap(10),
-        _SuggestEditCta(wordId: wordId),
-
         if (detail.meanings.isNotEmpty) ...[
           const Gap(16),
           const _SectionLabel('Makna'),
@@ -282,6 +292,9 @@ class _DetailBody extends StatelessWidget {
           const Gap(4),
           ...detail.appearsIn.map((r) => _RelatedRow(related: r)),
         ],
+
+        const Gap(16),
+        _WordActionTileGroup(detail: detail, wordId: wordId),
 
         const Gap(16),
         WordCommentsSection(wordId: wordId),
@@ -321,6 +334,8 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
+const _votePrompt = 'Entri ini membantu?';
+
 class _WordVoteBar extends ConsumerWidget {
   const _WordVoteBar({required this.wordId});
 
@@ -350,30 +365,30 @@ class _WordVoteBar extends ConsumerWidget {
         return async.when(
           loading: () => Skeletonizer(
             enabled: true,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Membantu?',
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _votePrompt,
                     style: theme.typography.sm.copyWith(
                       color: theme.colors.mutedForeground,
                     ),
                   ),
-                  const Gap(8),
-                  const VoteButtonsSkeleton(compact: true),
-                ],
-              ),
+                ),
+                const Gap(8),
+                const VoteButtonsSkeleton(compact: true),
+              ],
             ),
           ),
           error: (_, _) => const SizedBox.shrink(),
           data: (view) => Row(
             children: [
-              Text(
-                'Membantu?',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
+              Expanded(
+                child: Text(
+                  _votePrompt,
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.mutedForeground,
+                  ),
                 ),
               ),
               const Gap(8),
@@ -474,36 +489,49 @@ class _WordBookmarkHeaderAction extends ConsumerWidget {
   }
 }
 
-/// CTA usul edit entri (sinonim, definisi, dll.) via moderasi admin.
-class _SuggestEditCta extends ConsumerWidget {
-  const _SuggestEditCta({required this.wordId});
+/// Aksi di atas komentar: bagikan kartu + usul perubahan.
+class _WordActionTileGroup extends ConsumerWidget {
+  const _WordActionTileGroup({required this.detail, required this.wordId});
 
+  final WordDetail detail;
   final String wordId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return FTile(
-      prefix: const Icon(FLucideIcons.penLine),
-      title: const Text('Usulkan perubahan'),
-      subtitle: const Text('Lemma, definisi, catatan - masuk antrean review'),
-      suffix: Icon(
-        FLucideIcons.chevronRight,
-        size: 16,
-        color: context.theme.colors.mutedForeground,
-      ),
-      onPress: () async {
-        final auth = await ref.read(authStatusProvider.future);
-        if (!context.mounted) return;
-        if (!auth.isAuth) {
-          showFToast(
-            context: context,
-            title: const Text('Masuk dulu untuk mengusulkan perubahan'),
-          );
-          context.push('/login');
-          return;
-        }
-        context.push('/suggest-edit/$wordId');
-      },
+    final muted = context.theme.colors.mutedForeground;
+    return FTileGroup(
+      children: [
+        FTile(
+          prefix: const Icon(FLucideIcons.image),
+          title: const Text('Bagikan kartu gambar'),
+          subtitle: const Text(
+            'Buat gambar untuk cerita IG, WhatsApp, dan lainnya',
+          ),
+          suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
+          onPress: () => openWordShareSheet(context, ref, detail),
+        ),
+        FTile(
+          prefix: const Icon(FLucideIcons.penLine),
+          title: const Text('Usulkan perubahan'),
+          subtitle: const Text(
+            'Lemma, definisi, catatan - masuk antrean review',
+          ),
+          suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
+          onPress: () async {
+            final auth = await ref.read(authStatusProvider.future);
+            if (!context.mounted) return;
+            if (!auth.isAuth) {
+              showFToast(
+                context: context,
+                title: const Text('Masuk dulu untuk mengusulkan perubahan'),
+              );
+              context.push('/login');
+              return;
+            }
+            context.push('/suggest-edit/$wordId');
+          },
+        ),
+      ],
     );
   }
 }
@@ -641,9 +669,9 @@ class _RelatedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return InkWell(
+    return GestureDetector(
       onTap: () => context.push('/words/${related.wordId}'),
-      borderRadius: BorderRadius.circular(6),
+      behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
@@ -796,10 +824,12 @@ class _DetailSkeleton extends StatelessWidget {
               const Gap(10),
               Row(
                 children: [
-                  Text(
-                    'Membantu?',
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
+                  Expanded(
+                    child: Text(
+                      _votePrompt,
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
                     ),
                   ),
                   const Gap(8),
@@ -950,9 +980,7 @@ void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
                   ],
                 ),
                 Text(
-                  username != null
-                      ? 'Diverifikasi oleh $username'
-                      : 'Verifikator tidak diketahui',
+                  detail.verifierAttributionLabel,
                   style: theme.typography.sm,
                 ),
                 if (verifiedAt.isNotEmpty) ...[

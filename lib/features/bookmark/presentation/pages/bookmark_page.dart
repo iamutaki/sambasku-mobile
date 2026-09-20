@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../domain/entities/bookmark_item.dart';
 import '../../domain/failures/bookmark_failure.dart';
@@ -192,8 +193,6 @@ class _BookmarkRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = context.theme;
-
     return FTile(
       title: Text(item.word.lemma),
       subtitle: Text(item.word.wordTypeLabel),
@@ -201,11 +200,7 @@ class _BookmarkRow extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (item.word.isVerified) ...[
-            Icon(
-              FLucideIcons.badgeCheck,
-              size: 16,
-              color: theme.colors.primary,
-            ),
+            const VerifiedBadgeIcon(size: 16),
             const Gap(4),
           ],
           _RemoveButton(wordId: item.wordId),

@@ -53,8 +53,7 @@ class ProfilePage extends ConsumerWidget {
                         title: const Text('Kontribusi Saya'),
                         subtitle: const Text('Riwayat & status usulan kata'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        // ponytail: halaman Usulanku belum ada - toast dulu
-                        onPress: () => _comingSoon(context, 'Kontribusi Saya'),
+                        onPress: () => context.push('/contributions'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.bookmark),
@@ -100,8 +99,7 @@ class ProfilePage extends ConsumerWidget {
                             'Ajukan diri untuk meninjau kontribusi',
                           ),
                           suffix: const Icon(FLucideIcons.chevronRight),
-                          onPress: () =>
-                              context.push('/verifier-application'),
+                          onPress: () => context.push('/verifier-application'),
                         ),
                       FTile(
                         prefix: const Icon(FLucideIcons.keyRound),

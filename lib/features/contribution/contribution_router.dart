@@ -2,9 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import 'presentation/pages/contribute_page.dart';
 
-/// Router untuk module kontribusi kata anonim / user login.
-/// Isi sementara cuma 1 page: /contribute (form usul kata anonim).
-/// Nanti extend: /contributions/:id (detail status usulan user).
+/// Router form usul kata baru (`/contribute`). Daftar + detail status
+/// milik user ada di `MyContributionsRouter` (`/contributions`).
 class ContributionRouter {
   ContributionRouter._();
 

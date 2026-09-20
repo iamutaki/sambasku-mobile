@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/widgets/theme_toggle_header_action.dart';
+import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../search_miss/domain/entities/search_miss.dart';
 import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
 import '../../../search_miss/presentation/widgets/search_miss_skeleton_list.dart';
@@ -99,26 +100,16 @@ class HomeSearchPage extends HookConsumerWidget {
             ],
           ),
         ),
-        // Entry Daftar Kosakata A-Z — satu baris compact (tanpa subtitle).
+        // Entry Daftar Kosakata A-Z — tile penuh + subtitle (07-mobile-list-words).
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: FTileGroup(
             children: [
               FTile(
-                style: .delta(
-                  contentStyle: .delta(
-                    suffixedPadding: .value(
-                      const EdgeInsets.fromLTRB(12, 8, 10, 8),
-                    ),
-                    unsuffixedPadding: .value(
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    prefixIconSpacing: 8,
-                  ),
-                ),
-                prefix: const Icon(FLucideIcons.listOrdered, size: 18),
+                prefix: const Icon(FLucideIcons.listOrdered),
                 title: const Text('Daftar Kosakata A–Z'),
-                suffix: const Icon(FLucideIcons.chevronRight, size: 16),
+                subtitle: const Text('Telusuri semua kata dari A sampai Z'),
+                suffix: const Icon(FLucideIcons.chevronRight),
                 onPress: () {
                   FocusManager.instance.primaryFocus?.unfocus();
                   context.push(DictionaryRouter.list.path);
@@ -313,16 +304,13 @@ class _LoadingMoreFooter extends StatelessWidget {
 }
 
 FTile _wordResultTile(BuildContext context, WordSummary item) {
-  final theme = context.theme;
   final matched = item.matchedTranslation;
   final title = matched != null ? '$matched → ${item.lemma}' : item.lemma;
 
   return FTile(
     title: Text(title),
     subtitle: Text('${item.wordTypeLabel} · ${item.languageCode}'),
-    suffix: item.isVerified
-        ? Icon(FLucideIcons.badgeCheck, size: 18, color: theme.colors.primary)
-        : null,
+    suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
     onPress: () {
       FocusManager.instance.primaryFocus?.unfocus();
       context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));

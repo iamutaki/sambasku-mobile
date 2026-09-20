@@ -183,6 +183,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
     status: dto.status,
     isVerified: dto.isVerified,
     isCorrected: dto.isCorrected,
+    selfVerified: dto.selfVerified,
     verifiedAt: dto.verifiedAt,
     verifiedBy: dto.verifiedBy == null
         ? null
