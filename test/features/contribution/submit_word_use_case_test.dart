@@ -17,6 +17,7 @@ class _FakeRepo implements ContributionRepository {
   String? wordClassId;
   String? definition;
   bool? isHaveDefinition;
+  bool? isHaveTranslation;
   String? dialectId;
   List<String>? translationTexts;
   List<String>? categoryIds;
@@ -34,6 +35,7 @@ class _FakeRepo implements ContributionRepository {
     required String wordClassId,
     required String definition,
     bool isHaveDefinition = true,
+    bool isHaveTranslation = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],
@@ -49,6 +51,7 @@ class _FakeRepo implements ContributionRepository {
     this.wordClassId = wordClassId;
     this.definition = definition;
     this.isHaveDefinition = isHaveDefinition;
+    this.isHaveTranslation = isHaveTranslation;
     this.dialectId = dialectId;
     this.translationTexts = translationTexts;
     this.categoryIds = categoryIds;
@@ -145,7 +148,7 @@ void main() {
     expect(repo.translationTexts, isEmpty);
   });
 
-  test('tanpa definisi - paksa "-" + isHaveDefinition false', () async {
+  test('tanpa definisi - paksa definition "-" saja; terjemahan tetap', () async {
     final repo = _FakeRepo(Either.right(result));
     final usecase = SubmitAnonWordUseCase(repo);
 
@@ -156,7 +159,7 @@ void main() {
         wordClassId: 'wc-01',
         definition: 'akan diabaikan',
         isHaveDefinition: false,
-        translationTexts: ['juga diabaikan'],
+        translationTexts: ['  memakai  '],
         translationLanguageId: 'lan-idn',
         relatedWords: [
           SubmitWordRelation(relationType: 'synonym', lemma: ' make '),
@@ -166,11 +169,32 @@ void main() {
     );
 
     expect(repo.definition, '-');
-    expect(repo.translationTexts, ['-']);
+    expect(repo.translationTexts, ['memakai']);
     expect(repo.isHaveDefinition, false);
     // lemma induk didrop; synonym tetap
     expect(repo.relatedWords?.length, 1);
     expect(repo.relatedWords?.first.lemma, 'make');
     expect(repo.relatedWords?.first.relationType, 'synonym');
+  });
+
+  test('tanpa padanan - translations kosong, isHaveTranslation false', () async {
+    final repo = _FakeRepo(Either.right(result));
+    final usecase = SubmitAnonWordUseCase(repo);
+
+    await usecase(
+      const SubmitAnonWordParams(
+        lemma: 'makai',
+        languageId: 'lan-sbs',
+        wordClassId: 'wc-01',
+        definition: 'uraian makna tanpa padanan tunggal',
+        isHaveTranslation: false,
+        translationTexts: ['akan diabaikan'],
+        translationLanguageId: 'lan-idn',
+      ),
+    );
+
+    expect(repo.definition, 'uraian makna tanpa padanan tunggal');
+    expect(repo.translationTexts, isEmpty);
+    expect(repo.isHaveTranslation, false);
   });
 }

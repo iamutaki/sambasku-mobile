@@ -44,6 +44,8 @@ abstract interface class ContributionRepository {
     required String definition,
     // false = placeholder "-" (docs: is_have_definition).
     bool isHaveDefinition = true,
+    // false = tanpa padanan (docs: is_have_translation).
+    bool isHaveTranslation = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],

@@ -12,10 +12,7 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
   @override
   AuthLoginState build() => const AuthLoginState();
 
-  Future<void> submit({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> submit({required String email, required String password}) async {
     state = state.copyWith(
       isSubmitting: true,
       clearErrorMessage: true,
@@ -35,13 +32,10 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
         );
       },
       (session) {
-        // Token sudah di storage — set status langsung, jangan invalidate
+        // Token sudah di storage - set status langsung, jangan invalidate
         // (reload async masih expose previous isAuth:false).
         ref.read(authStatusProvider.notifier).markLoggedIn(session);
-        state = state.copyWith(
-          isSubmitting: false,
-          session: session,
-        );
+        state = state.copyWith(isSubmitting: false, session: session);
       },
     );
   }

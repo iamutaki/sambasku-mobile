@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/utils/format_datetime.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_comment.dart';
@@ -40,27 +41,6 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
 
   static bool _isVerifier(String? role) =>
       role == 'admin' || role == 'root' || role == 'reviewer';
-
-  String _formatDate(String? iso) {
-    final dt = DateTime.tryParse(iso ?? '');
-    if (dt == null) return '';
-    final local = dt.toLocal();
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    return '${local.day} ${months[local.month - 1]} ${local.year}';
-  }
 
   bool _isAuth() => ref.read(authStatusProvider).value?.isAuth ?? false;
 
@@ -209,7 +189,7 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                           (c.isOwner(auth.userId) || _isVerifier(auth.role));
                       return _CommentRow(
                         comment: c,
-                        dateLabel: _formatDate(c.createdAt),
+                        dateLabel: formatDateTimeIso(c.createdAt),
                         onVote: (value) => _toggleVote(c, value),
                         onDelete: canDelete ? () => _deleteComment(c) : null,
                       );

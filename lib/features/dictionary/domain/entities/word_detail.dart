@@ -107,11 +107,13 @@ class WordPronunciation {
 
 class WordImage {
   const WordImage({
+    required this.id,
     required this.url,
     this.altText,
     required this.isPrimary,
   });
 
+  final String id;
   final String url;
   final String? altText;
   final bool isPrimary;

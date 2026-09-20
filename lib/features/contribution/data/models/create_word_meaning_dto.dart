@@ -16,6 +16,8 @@ abstract class CreateWordMeaningDto with _$CreateWordMeaningDto {
     required String definition,
     // false = placeholder "-" (kontributor belum tahu definisi Indonesia).
     @JsonKey(name: 'is_have_definition') @Default(true) bool isHaveDefinition,
+    // false = sengaja tanpa padanan kata Indonesia.
+    @JsonKey(name: 'is_have_translation') @Default(true) bool isHaveTranslation,
     @JsonKey(name: 'order_index') @Default(1) int orderIndex,
     required List<CreateWordTranslationDto> translations,
   }) = _CreateWordMeaningDto;

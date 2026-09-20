@@ -69,6 +69,60 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
   }
 
   @override
+  Future<Either<DictionaryFailure, WordSearchPage>> listWords({
+    required String q,
+    required int limit,
+    String? cursor,
+  }) async {
+    try {
+      final response = await _remoteDatasource.listWords({
+        'q': q,
+        'limit': limit,
+        'cursor': ?cursor,
+      });
+
+      if (response.success == false) {
+        return Either.left(DictionaryFailure(
+          response.message ?? 'Daftar kata gagal dimuat',
+          errorCode: response.errorCode,
+        ));
+      }
+
+      final items = response.data;
+      if (items == null) {
+        return Either.left(DictionaryFailure(
+          response.message ?? 'Daftar kata gagal dimuat',
+          errorCode: response.errorCode,
+        ));
+      }
+
+      final meta = response.meta;
+      return Either.right(WordSearchPage(
+        items: items
+            .map(
+              (dto) => WordSummary(
+                id: dto.id,
+                lemma: dto.lemma,
+                languageCode: dto.languageCode,
+                wordType: dto.wordType,
+                status: dto.status,
+                isVerified: dto.isVerified,
+              ),
+            )
+            .toList(),
+        nextCursor: meta?['next_cursor'] as String?,
+        hasMore: meta?['has_more'] as bool? ?? false,
+      ));
+    } on DioException catch (error) {
+      return Either.left(
+        _mapDio(error, fallback: 'Daftar kata gagal dimuat, periksa koneksi'),
+      );
+    } catch (error) {
+      return Either.left(DictionaryFailure(error.toString()));
+    }
+  }
+
+  @override
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id) async {
     try {
       final response = await _remoteDatasource.getWordById(id);
@@ -155,6 +209,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
         images: dto.images
             .map(
               (i) => WordImage(
+                id: i.id,
                 url: i.url,
                 altText: i.altText,
                 isPrimary: i.isPrimary,

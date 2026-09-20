@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../bookmark/presentation/providers/bookmark_providers.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
 import '../models/auth_status_state.dart';
@@ -28,7 +29,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
   }
 
   /// Dipanggil langsung setelah login sukses (token sudah di storage).
-  /// Hindari invalidate: reload async masih bawa previous isAuth:false
+  /// Hindari invalidate auth: reload async masih bawa previous isAuth:false
   /// → form KBBI/gambar sempat mengira user masih tamu.
   void markLoggedIn(AuthSession session) {
     state = AsyncData(
@@ -39,6 +40,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
         userId: session.userId,
       ),
     );
+    _invalidateBookmarks();
   }
 
   Future<void> logout() async {
@@ -48,5 +50,13 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
     await ref.read(authLogoutUseCaseProvider).call();
 
     state = const AsyncData(AuthStatusState(isAuth: false));
+    _invalidateBookmarks();
+  }
+
+  /// Bookmark terikat user: list keepAlive + toggle per-kata harus
+  /// di-reset saat sesi berganti (login user lain / logout).
+  void _invalidateBookmarks() {
+    ref.invalidate(bookmarkListControllerProvider);
+    ref.invalidate(bookmarkToggleControllerProvider);
   }
 }

@@ -12,7 +12,7 @@ part 'theme_mode_controller.g.dart';
 class ThemeModeController extends _$ThemeModeController {
   static const prefKey = 'themeMode';
 
-  /// Seed dari [preload] — default system hanya jika preload belum jalan.
+  /// Seed dari [preload] - default system hanya jika preload belum jalan.
   static ThemeMode initial = ThemeMode.system;
 
   static Future<void> preload([SharedPreferences? prefs]) async {
@@ -21,18 +21,19 @@ class ThemeModeController extends _$ThemeModeController {
   }
 
   static ThemeMode _parse(String? raw) => switch (raw) {
-        'light' => ThemeMode.light,
-        'dark' => ThemeMode.dark,
-        _ => ThemeMode.system,
-      };
+    'light' => ThemeMode.light,
+    'dark' => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
 
   @override
   ThemeMode build() => initial;
 
   /// Toggle berdasar brightness efektif saat ini → lawannya, lalu persist.
   Future<void> toggle(Brightness currentEffective) async {
-    final next =
-        currentEffective == Brightness.dark ? ThemeMode.light : ThemeMode.dark;
+    final next = currentEffective == Brightness.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
     state = next;
     initial = next;
     final prefs = await SharedPreferences.getInstance();

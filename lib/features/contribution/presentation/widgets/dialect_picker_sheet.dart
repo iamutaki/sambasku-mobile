@@ -14,7 +14,7 @@ class DialectPickItem {
   final bool isDefault;
 }
 
-/// Bottom sheet pilih dialek — tinggi form tetap (bukan ExpansionTile).
+/// Bottom sheet pilih dialek - tinggi form tetap (bukan ExpansionTile).
 Future<DialectPickItem?> showDialectPickerSheet(
   BuildContext context, {
   required List<DialectPickItem> items,
@@ -42,7 +42,7 @@ class _DialectPickerSheetBody extends StatelessWidget {
   double _sheetHeight(BuildContext context) {
     final media = MediaQuery.of(context);
     final available = media.size.height - media.viewInsets.bottom;
-    // Dialek biasanya sedikit — sheet lebih pendek dari kelas kata.
+    // Dialek biasanya sedikit - sheet lebih pendek dari kelas kata.
     final target = available * 0.45;
     return target.clamp(220.0, available);
   }
@@ -61,7 +61,11 @@ class _DialectPickerSheetBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
             child: Row(
               children: [
-                Icon(FLucideIcons.mapPin, size: 18, color: theme.colors.primary),
+                Icon(
+                  FLucideIcons.mapPin,
+                  size: 18,
+                  color: theme.colors.primary,
+                ),
                 const Gap(8),
                 Expanded(
                   child: Text(

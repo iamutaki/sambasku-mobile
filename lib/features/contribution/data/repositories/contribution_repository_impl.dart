@@ -25,6 +25,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
     required String wordClassId,
     required String definition,
     bool isHaveDefinition = true,
+    bool isHaveTranslation = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],
@@ -68,6 +69,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
             wordClassId: wordClassId,
             definition: definition,
             isHaveDefinition: isHaveDefinition,
+            isHaveTranslation: isHaveTranslation,
             orderIndex: 1,
             translations: translationTexts
                 .map(

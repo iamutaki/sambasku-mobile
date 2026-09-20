@@ -16,16 +16,17 @@ class SubmitAnonWordUseCase {
     final dialectId = params.dialectId?.trim();
     final notes = params.notes?.trim();
 
-    // Placeholder: definisi + terjemahan sentinel "-" + flag false
-    // (API create-word.validator + add-meaning e2e).
+    // Placeholder definisi: hanya definisi sentinel "-" + flag false.
+    // Padanan opsional: isHaveTranslation=false → translations [].
     final isHaveDefinition = params.isHaveDefinition;
+    final isHaveTranslation = params.isHaveTranslation && isHaveDefinition;
     final definition = isHaveDefinition ? params.definition.trim() : '-';
-    final translations = isHaveDefinition
+    final translations = isHaveTranslation
         ? params.translationTexts
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
             .toList(growable: false)
-        : const ['-'];
+        : <String>[];
 
     final categoryIds = params.categoryIds
         .map((e) => e.trim())
@@ -85,6 +86,7 @@ class SubmitAnonWordUseCase {
       wordClassId: params.wordClassId.trim(),
       definition: definition,
       isHaveDefinition: isHaveDefinition,
+      isHaveTranslation: isHaveTranslation,
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
       translationTexts: translations,
       categoryIds: categoryIds,
@@ -106,6 +108,7 @@ class SubmitAnonWordParams {
     required this.definition,
     required this.translationLanguageId,
     this.isHaveDefinition = true,
+    this.isHaveTranslation = true,
     this.dialectId,
     this.translationTexts = const [],
     this.categoryIds = const [],
@@ -122,6 +125,7 @@ class SubmitAnonWordParams {
   final String definition;
   final String translationLanguageId;
   final bool isHaveDefinition;
+  final bool isHaveTranslation;
   final String? dialectId;
   final List<String> translationTexts;
   final List<String> categoryIds;

@@ -15,6 +15,7 @@ import '../widgets/contribute_images_field.dart';
 import '../widgets/contribute_relations_sheet.dart';
 import '../widgets/dialect_picker_sheet.dart';
 import '../widgets/kbbi_definition_sheet.dart';
+import '../widgets/knowledge_toggles.dart';
 import '../widgets/word_class_picker_sheet.dart';
 
 class ContributePage extends ConsumerStatefulWidget {
@@ -41,9 +42,17 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   String? _wordClassId;
   String? _dialectId;
   bool _dialectSeeded = false;
-  bool _noDefinition = false;
+  // Independen: boleh keduanya, salah satu, atau belum ada (form kosong).
+  bool _wantDefinition = false;
+  bool _wantPadanan = false;
+  String _savedDefinition = '';
+  String _savedTranslation = '';
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
+
+  bool get _modePicked => _wantDefinition || _wantPadanan;
+  bool get _needPadanan => _wantPadanan;
+  bool get _needDefinition => _wantDefinition;
 
   @override
   void initState() {
@@ -118,7 +127,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         _dialectId == null &&
         dialectItems != null &&
         dialectItems.isNotEmpty) {
-      final def = dialectItems.where((e) => e.isDefault).firstOrNull ??
+      final def =
+          dialectItems.where((e) => e.isDefault).firstOrNull ??
           dialectItems.where((e) => e.code.toLowerCase() == 'umum').firstOrNull;
       if (def != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -242,9 +252,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 return _SelectField(
                   selectedLabel: selected?.name,
                   hint: items.isEmpty ? '-' : 'Pilih dialek…',
-                  onTap: items.isEmpty
-                      ? null
-                      : () => _openDialectSheet(items),
+                  onTap: items.isEmpty ? null : () => _openDialectSheet(items),
                 );
               },
             ),
@@ -252,121 +260,119 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           _inlineError(notifier.errorFor('language_id')),
 
           const Gap(12),
-          if (!_noDefinition) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.initialSearchIn == 'translation'
-                        ? 'Terjemahan Sambas *'
-                        : 'Terjemahan Indonesia *',
-                    style: theme.typography.sm.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colors.foreground,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _openKbbiSheet,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          FLucideIcons.bookOpen,
-                          size: 14,
-                          color: theme.colors.mutedForeground,
-                        ),
-                        const Gap(4),
-                        Text(
-                          'Ambil dari KBBI',
-                          style: theme.typography.sm.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: theme.colors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            FTextField(
-              control: FTextFieldControl.managed(controller: _tr1Ctrl),
-              hint: widget.initialSearchIn == 'translation'
-                  ? 'Padanan dalam bahasa Sambas'
-                  : 'Padanan dalam bahasa Indonesia',
-              textInputAction: TextInputAction.next,
-            ),
-            _inlineError(notifier.errorFor('translation_texts')),
-            const Gap(8),
-          ],
-
-          wordClassesAsync.when(
-            loading: () => const _FieldLoading(),
-            error: (e, _) => _BuildReferenceError(
-              message: 'Gagal muat kelas kata',
-              onRetry: () => ref.invalidate(_referenceWordClassesProvider),
-            ),
-            data: (items) {
-              final selected = _wordClassId == null
-                  ? null
-                  : items.where((e) => e.id == _wordClassId).firstOrNull;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _FieldCaption('Kelas kata *'),
-                  _SelectField(
-                    selectedLabel: selected?.displayLabel,
-                    hint: 'Pilih kelas kata…',
-                    onTap: () => _openWordClassSheet(items),
-                  ),
-                ],
-              );
-            },
-          ),
-          _inlineError(notifier.errorFor('word_class_id')),
-          const Gap(8),
-
-          FCheckbox(
-            value: _noDefinition,
-            onChange: (v) {
-              _onFieldEdited();
-              setState(() => _noDefinition = v);
-            },
-            label: const Text('Belum bisa definisikan ke bahasa Indonesia'),
-            description: const Text(
-              'Definisi & terjemahan diganti "-" — user lain bisa mengisi nanti via moderasi.',
-            ),
+          const _FieldCaption(
+            'Apa yang kamu ketahui? *',
+            info: 'Centang yang kamu tahu (boleh keduanya).\n\n'
+                '• Definisi - uraian makna berbahasa Indonesia.\n'
+                '• Padanan - satu kata/frasa setara.\n\n'
+                'Form di bawah muncul sesuai centangan.',
           ),
           const Gap(8),
-
-          if (!_noDefinition) ...[
-            const _FieldCaption('Definisi *'),
-            FTextField(
-              control: FTextFieldControl.managed(controller: _defCtrl),
-              hint: 'Jelaskan makna kata ini',
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              maxLines: 3,
-              minLines: 2,
-            ),
-            _inlineError(notifier.errorFor('definition')),
-            const Gap(12),
-          ] else ...[
-            Text(
-              'Kata akan masuk sebagai placeholder tanpa definisi.',
+          KnowledgeToggles(
+            wantDefinition: _wantDefinition,
+            wantPadanan: _wantPadanan,
+            onDefinitionChanged: _setWantDefinition,
+            onPadananChanged: _setWantPadanan,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 4),
+            child: Text(
+              knowledgeHint(
+                wantDefinition: _wantDefinition,
+                wantPadanan: _wantPadanan,
+              ),
               style: theme.typography.sm.copyWith(
                 color: theme.colors.mutedForeground,
+                height: 1.35,
               ),
             ),
-            const Gap(12),
-          ],
+          ),
+          if (_modePicked) ...[
+            if (_needPadanan) ...[
+              const Gap(8),
+              _FieldCaption(
+                widget.initialSearchIn == 'translation'
+                    ? 'Padanan Sambas *'
+                    : 'Padanan Indonesia *',
+                info: widget.initialSearchIn == 'translation'
+                    ? 'Satu kata/frasa Sambas yang setara - bukan uraian panjang.'
+                    : 'Satu kata/frasa Indonesia yang setara dengan lemma Sambas.\n\n'
+                        'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
+              ),
+              FTextField(
+                control: FTextFieldControl.managed(controller: _tr1Ctrl),
+                hint: widget.initialSearchIn == 'translation'
+                    ? 'Padanan dalam bahasa Sambas'
+                    : 'Satu kata/frasa setara di Indonesia',
+                textInputAction: TextInputAction.next,
+                suffixBuilder: (context, style, _) => Padding(
+                  padding: style.clearButtonPadding,
+                  child: FButton.icon(
+                    style: style.clearButtonStyle,
+                    onPress: _openKbbiSheet,
+                    child: Icon(
+                      FLucideIcons.bookOpen,
+                      semanticLabel: 'Ambil dari KBBI',
+                    ),
+                  ),
+                ),
+              ),
+              _inlineError(notifier.errorFor('translation_texts')),
+            ],
 
-          const _FieldCaption('Kelengkapan'),
+            const Gap(8),
+            wordClassesAsync.when(
+              loading: () => const _FieldLoading(),
+              error: (e, _) => _BuildReferenceError(
+                message: 'Gagal muat kelas kata',
+                onRetry: () => ref.invalidate(_referenceWordClassesProvider),
+              ),
+              data: (items) {
+                final selected = _wordClassId == null
+                    ? null
+                    : items.where((e) => e.id == _wordClassId).firstOrNull;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _FieldCaption(
+                      'Kelas kata *',
+                      info: 'Nomina, verba, adjektiva, dsb. Bisa dibantu isi lewat ikon buku di kolom padanan.',
+                    ),
+                    _SelectField(
+                      selectedLabel: selected?.displayLabel,
+                      hint: 'Pilih kelas kata…',
+                      onTap: () => _openWordClassSheet(items),
+                    ),
+                  ],
+                );
+              },
+            ),
+            _inlineError(notifier.errorFor('word_class_id')),
+
+            if (_needDefinition) ...[
+              const Gap(8),
+              const _FieldCaption(
+                'Definisi *',
+                info: 'Uraian makna berbahasa Indonesia - bukan padanan satu kata.\n\n'
+                    'Contoh: “aktivitas memasukkan makanan ke mulut”.',
+              ),
+              FTextField(
+                control: FTextFieldControl.managed(controller: _defCtrl),
+                hint: 'Jelaskan makna kata ini',
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                maxLines: 3,
+                minLines: 2,
+              ),
+              _inlineError(notifier.errorFor('definition')),
+            ],
+          ],
+          const Gap(12),
+
+          const _FieldCaption(
+            'Kelengkapan',
+            info: 'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
+          ),
           _SelectField(
             selectedLabel: _relations.isEmpty ? null : _relations.summaryLabel,
             hint: 'Tambah variasi, sinonim, antonim…',
@@ -375,14 +381,17 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 8),
             child: Text(
-              'Opsional — dibuka di bottomsheet',
+              'Opsional',
               style: theme.typography.sm.copyWith(
                 color: theme.colors.mutedForeground,
               ),
             ),
           ),
 
-          const _FieldCaption('Gambar'),
+          const _FieldCaption(
+            'Gambar',
+            info: 'Opsional. Perlu login untuk mengunggah gambar.',
+          ),
           ContributeImagesField(
             enabled: isAuth,
             images: _images,
@@ -391,6 +400,40 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         ],
       ),
     );
+  }
+
+  void _setWantDefinition(bool next) {
+    if (next == _wantDefinition) return;
+    _onFieldEdited();
+    setState(() {
+      if (_wantDefinition && !next) {
+        _savedDefinition = _defCtrl.text;
+        _defCtrl.text = '-';
+      } else if (!_wantDefinition && next) {
+        _defCtrl.text = _savedDefinition == '-' ? '' : _savedDefinition;
+      }
+      _wantDefinition = next;
+      if (!_wantDefinition &&
+          (_defCtrl.text.trim().isEmpty || _defCtrl.text.trim() == '-')) {
+        _defCtrl.text = '-';
+      } else if (_wantDefinition && _defCtrl.text.trim() == '-') {
+        _defCtrl.text = '';
+      }
+    });
+  }
+
+  void _setWantPadanan(bool next) {
+    if (next == _wantPadanan) return;
+    _onFieldEdited();
+    setState(() {
+      if (_wantPadanan && !next) {
+        _savedTranslation = _tr1Ctrl.text;
+        _tr1Ctrl.text = '';
+      } else if (!_wantPadanan && next) {
+        _tr1Ctrl.text = _savedTranslation;
+      }
+      _wantPadanan = next;
+    });
   }
 
   Future<void> _openDialectSheet(List<_OptionItem> items) async {
@@ -436,7 +479,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _openKbbiSheet() async {
-    // Baca status fresh (bukan snapshot build) — loading/stale previous
+    // Baca status fresh (bukan snapshot build) - loading/stale previous
     // isAuth:false setelah login sempat bikin toast palsu.
     final auth = await ref.read(authStatusProvider.future);
     if (!mounted) return;
@@ -467,7 +510,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
     _onFieldEdited();
     setState(() {
-      _noDefinition = false;
+      _wantDefinition = true;
+      _wantPadanan = true;
       _defCtrl.text = picked.definition;
       // Lemma KBBI = padanan Indonesia
       final lemmaId = picked.lemma.trim();
@@ -481,7 +525,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
     final parts = <String>['Definisi'];
     if (matched != null) parts.add('kelas kata');
-    if (picked.lemma.trim().isNotEmpty) parts.add('terjemahan');
+    if (picked.lemma.trim().isNotEmpty) parts.add('padanan');
     showFToast(
       context: context,
       title: Text('${parts.join(', ')} diisi dari KBBI - silakan review'),
@@ -489,6 +533,13 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _submitForm() async {
+    if (!_modePicked) {
+      showFToast(
+        context: context,
+        title: const Text('Centang dulu Definisi dan/atau Padanan'),
+      );
+      return;
+    }
     if (_images.any((e) => e.uploading)) {
       showFToast(
         context: context,
@@ -518,10 +569,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       lemma: _lemmaCtrl.text,
       languageId: languageId,
       wordClassId: _wordClassId ?? '',
-      definition: _noDefinition ? '-' : _defCtrl.text,
-      isHaveDefinition: !_noDefinition,
+      definition: _needDefinition ? _defCtrl.text : '-',
+      isHaveDefinition: _needDefinition,
+      isHaveTranslation: _needPadanan,
       dialectId: _dialectId,
-      translationTexts: _noDefinition ? const ['-'] : [_tr1Ctrl.text],
+      translationTexts: _needPadanan ? [_tr1Ctrl.text] : [],
       categoryIds: [],
       notes: notes.isEmpty ? null : notes,
       spellingVariants: _parseCsv(_relations.variantsText),
@@ -634,20 +686,67 @@ class _SelectField extends StatelessWidget {
 }
 
 class _FieldCaption extends StatelessWidget {
-  const _FieldCaption(this.text);
+  const _FieldCaption(this.text, {this.info});
 
   final String text;
+  final String? info;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        text,
-        style: theme.typography.sm.copyWith(
-          fontWeight: FontWeight.w600,
-          color: theme.colors.foreground,
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              style: theme.typography.sm.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colors.foreground,
+              ),
+            ),
+          ),
+          if (info != null) ...[
+            const Gap(4),
+            _InfoTip(message: info!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Ikon ⓘ - tap buka penjelasan singkat (FPopover, lebih jelas di touch
+/// daripada FTooltip long-press).
+class _InfoTip extends StatelessWidget {
+  const _InfoTip({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return FPopover(
+      constraints: const FPortalConstraints(maxWidth: 280),
+      popoverBuilder: (context, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Text(
+          message,
+          style: theme.typography.sm.copyWith(height: 1.35),
+        ),
+      ),
+      builder: (context, controller, child) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: controller.toggle,
+        child: child,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(
+          FLucideIcons.info,
+          size: 16,
+          color: theme.colors.mutedForeground,
         ),
       ),
     );

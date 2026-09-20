@@ -7,7 +7,7 @@ part 'forui_palette_controller.g.dart';
 
 /// Palet warna forui pilihan user: persist ke SharedPreferences.
 ///
-/// [preload] di main sebelum runApp — sama seperti ThemeModeController,
+/// [preload] di main sebelum runApp - sama seperti ThemeModeController,
 /// supaya frame pertama tidak flash ke [defaultPalette].
 @Riverpod(keepAlive: true)
 class ForuiPaletteController extends _$ForuiPaletteController {

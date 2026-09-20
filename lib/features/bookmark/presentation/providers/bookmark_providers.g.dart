@@ -131,6 +131,9 @@ abstract class _$BookmarkToggleController
 /// State halaman Bookmark (list milik user login, cursor pagination).
 /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
 /// optimistik + restore saat gagal.
+///
+/// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
+/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
 
 @ProviderFor(BookmarkListController)
 final bookmarkListControllerProvider = BookmarkListControllerProvider._();
@@ -138,18 +141,24 @@ final bookmarkListControllerProvider = BookmarkListControllerProvider._();
 /// State halaman Bookmark (list milik user login, cursor pagination).
 /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
 /// optimistik + restore saat gagal.
+///
+/// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
+/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
 final class BookmarkListControllerProvider
     extends $AsyncNotifierProvider<BookmarkListController, BookmarkListState> {
   /// State halaman Bookmark (list milik user login, cursor pagination).
   /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
   /// optimistik + restore saat gagal.
+  ///
+  /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
+  /// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
   BookmarkListControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'bookmarkListControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -163,11 +172,14 @@ final class BookmarkListControllerProvider
 }
 
 String _$bookmarkListControllerHash() =>
-    r'3e5a0205ddca65be72c31b25387523a4ebb030b1';
+    r'269ae45bb3e389eca12058a5ea027bcbd5466d3e';
 
 /// State halaman Bookmark (list milik user login, cursor pagination).
 /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
 /// optimistik + restore saat gagal.
+///
+/// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
+/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
 
 abstract class _$BookmarkListController
     extends $AsyncNotifier<BookmarkListState> {

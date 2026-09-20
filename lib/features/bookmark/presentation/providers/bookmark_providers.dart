@@ -49,7 +49,10 @@ class BookmarkToggleController extends _$BookmarkToggleController {
 /// State halaman Bookmark (list milik user login, cursor pagination).
 /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
 /// optimistik + restore saat gagal.
-@riverpod
+///
+/// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
+/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+@Riverpod(keepAlive: true)
 class BookmarkListController extends _$BookmarkListController {
   static const _pageSize = 20;
 

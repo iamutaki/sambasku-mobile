@@ -40,17 +40,17 @@ class RegisterPage extends HookConsumerWidget {
     });
 
     // Register ok tapi auto-login gagal → login manual
-    ref.listen(
-      authRegisterProvider.select((s) => s.needsManualLogin),
-      (_, needsManual) {
-        if (needsManual != true || !context.mounted) return;
-        showFToast(
-          context: context,
-          title: const Text('Akun dibuat — silakan masuk'),
-        );
-        context.go(AuthRouter.login.path);
-      },
-    );
+    ref.listen(authRegisterProvider.select((s) => s.needsManualLogin), (
+      _,
+      needsManual,
+    ) {
+      if (needsManual != true || !context.mounted) return;
+      showFToast(
+        context: context,
+        title: const Text('Akun dibuat - silakan masuk'),
+      );
+      context.go(AuthRouter.login.path);
+    });
 
     if (alreadyAuth) {
       return const FScaffold(
@@ -59,20 +59,25 @@ class RegisterPage extends HookConsumerWidget {
       );
     }
 
-    final passwordOk = password.text.length >= 8 &&
+    final passwordOk =
+        password.text.length >= 8 &&
         password.text.contains(RegExp(r'[a-zA-Z]')) &&
         password.text.contains(RegExp(r'[0-9]'));
-    final canSubmit = name.text.trim().isNotEmpty &&
+    final canSubmit =
+        name.text.trim().isNotEmpty &&
         email.text.contains('@') &&
         passwordOk &&
         confirmPassword.text == password.text &&
         !state.isSubmitting;
 
-    void submit() => ref.read(authRegisterProvider.notifier).submit(
+    void submit() => ref
+        .read(authRegisterProvider.notifier)
+        .submit(
           name: name.text,
           email: email.text,
-          phoneNationalDigits:
-              phone.text.trim().isEmpty ? null : phone.text.trim(),
+          phoneNationalDigits: phone.text.trim().isEmpty
+              ? null
+              : phone.text.trim(),
           password: password.text,
           confirmPassword: confirmPassword.text,
         );
@@ -174,12 +179,8 @@ class RegisterPage extends HookConsumerWidget {
                 const Gap(16),
                 FButton(
                   onPress: canSubmit ? submit : null,
-                  prefix: state.isSubmitting
-                      ? const FCircularProgress()
-                      : null,
-                  child: Text(
-                    state.isSubmitting ? 'Memproses...' : 'Daftar',
-                  ),
+                  prefix: state.isSubmitting ? const FCircularProgress() : null,
+                  child: Text(state.isSubmitting ? 'Memproses...' : 'Daftar'),
                 ),
                 const Gap(8),
                 FButton(

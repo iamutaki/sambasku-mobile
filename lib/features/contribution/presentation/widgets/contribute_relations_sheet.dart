@@ -35,14 +35,11 @@ class ContributeRelationsDraft {
     return parts.isEmpty ? 'Belum ada' : parts.join(' · ');
   }
 
-  static int _commaCount(String raw) => raw
-      .split(',')
-      .map((e) => e.trim())
-      .where((e) => e.isNotEmpty)
-      .length;
+  static int _commaCount(String raw) =>
+      raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).length;
 }
 
-/// Bottom sheet isi kelengkapan opsional — form utama tetap slim (required only).
+/// Bottom sheet isi kelengkapan opsional - form utama tetap slim (required only).
 Future<ContributeRelationsDraft?> showContributeRelationsSheet(
   BuildContext context, {
   required ContributeRelationsDraft initial,
@@ -144,12 +141,15 @@ class _ContributeRelationsSheetBodyState
       ..._fieldErrors(label: 'antonim', raw: _antonymsCtrl.text, maxItems: 5),
     ];
     final relatedTotal =
-        _parseCsv(_synonymsCtrl.text).length + _parseCsv(_antonymsCtrl.text).length;
+        _parseCsv(_synonymsCtrl.text).length +
+        _parseCsv(_antonymsCtrl.text).length;
     if (relatedTotal > 5) {
       errors.add('Sinonim + antonim maksimal 5 total');
     }
     // Cross-duplikat antar sinonim/antonim
-    final syn = _parseCsv(_synonymsCtrl.text).map((e) => e.toLowerCase()).toSet();
+    final syn = _parseCsv(
+      _synonymsCtrl.text,
+    ).map((e) => e.toLowerCase()).toSet();
     for (final a in _parseCsv(_antonymsCtrl.text)) {
       if (syn.contains(a.toLowerCase())) {
         errors.add('"$a" tidak boleh sinonim dan antonim sekaligus');
@@ -192,7 +192,11 @@ class _ContributeRelationsSheetBodyState
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
               child: Row(
                 children: [
-                  Icon(FLucideIcons.link, size: 18, color: theme.colors.primary),
+                  Icon(
+                    FLucideIcons.link,
+                    size: 18,
+                    color: theme.colors.primary,
+                  ),
                   const Gap(8),
                   Expanded(
                     child: Text(
@@ -214,7 +218,7 @@ class _ContributeRelationsSheetBodyState
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Text(
-                'Variasi ejaan, sinonim, antonim, atau catatan. Boleh dikosongkan.',
+                'Beberapa item: pisahkan dengan koma. Contoh: ketex, kettek, kete\'',
                 style: theme.typography.sm.copyWith(
                   color: theme.colors.mutedForeground,
                 ),
@@ -225,23 +229,29 @@ class _ContributeRelationsSheetBodyState
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   FTextField(
-                    control: FTextFieldControl.managed(controller: _variantsCtrl),
+                    control: FTextFieldControl.managed(
+                      controller: _variantsCtrl,
+                    ),
                     label: const Text('Variasi penulisan'),
-                    hint: "ketex, kettek, kete'",
+                    hint: "ketex, kettek, kete' - dipisah koma",
                     textInputAction: TextInputAction.next,
                   ),
                   const Gap(12),
                   FTextField(
-                    control: FTextFieldControl.managed(controller: _synonymsCtrl),
+                    control: FTextFieldControl.managed(
+                      controller: _synonymsCtrl,
+                    ),
                     label: const Text('Sinonim'),
-                    hint: 'Lemma lain, dipisah koma',
+                    hint: 'lemma1, lemma2 - dipisah koma',
                     textInputAction: TextInputAction.next,
                   ),
                   const Gap(12),
                   FTextField(
-                    control: FTextFieldControl.managed(controller: _antonymsCtrl),
+                    control: FTextFieldControl.managed(
+                      controller: _antonymsCtrl,
+                    ),
                     label: const Text('Antonim'),
-                    hint: 'Lemma lawan, dipisah koma',
+                    hint: 'lemma1, lemma2 - dipisah koma',
                     textInputAction: TextInputAction.next,
                   ),
                   const Gap(12),

@@ -38,7 +38,14 @@ class WordDetailPage extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         prefixes: [FHeaderAction.back(onPress: () => context.pop())],
-        suffixes: [_WordBookmarkHeaderAction(wordId: wordId)],
+        suffixes: [
+          FHeaderAction(
+            icon: const Icon(FLucideIcons.history),
+            semanticsLabel: 'Riwayat perubahan',
+            onPress: () => context.push('/words/$wordId/history'),
+          ),
+          _WordBookmarkHeaderAction(wordId: wordId),
+        ],
       ),
       child: async.when(
         loading: () => const _DetailSkeleton(),
@@ -215,7 +222,7 @@ class _DetailBody extends StatelessWidget {
         _WordVoteBar(wordId: wordId),
 
         const Gap(10),
-        const _SuggestEditCta(),
+        _SuggestEditCta(wordId: wordId),
 
         if (detail.meanings.isNotEmpty) ...[
           const Gap(16),
@@ -440,26 +447,36 @@ class _WordBookmarkHeaderAction extends ConsumerWidget {
   }
 }
 
-/// CTA placeholder: usul edit entri (sinonim, varian, pengucapan, …).
-/// Action sementara toast - form/alur submit belum ada.
-class _SuggestEditCta extends StatelessWidget {
-  const _SuggestEditCta();
+/// CTA usul edit entri (sinonim, definisi, dll.) via moderasi admin.
+class _SuggestEditCta extends ConsumerWidget {
+  const _SuggestEditCta({required this.wordId});
+
+  final String wordId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FTile(
       prefix: const Icon(FLucideIcons.penLine),
       title: const Text('Usulkan perubahan'),
-      subtitle: const Text('Sinonim, varian, pengucapan, dan sejenisnya'),
+      subtitle: const Text('Lemma, definisi, catatan - masuk antrean review'),
       suffix: Icon(
         FLucideIcons.chevronRight,
         size: 16,
         color: context.theme.colors.mutedForeground,
       ),
-      onPress: () => showFToast(
-        context: context,
-        title: const Text('Usulkan perubahan segera hadir'),
-      ),
+      onPress: () async {
+        final auth = await ref.read(authStatusProvider.future);
+        if (!context.mounted) return;
+        if (!auth.isAuth) {
+          showFToast(
+            context: context,
+            title: const Text('Masuk dulu untuk mengusulkan perubahan'),
+          );
+          context.push('/login');
+          return;
+        }
+        context.push('/suggest-edit/$wordId');
+      },
     );
   }
 }
@@ -540,6 +557,15 @@ class _MeaningBlock extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ),
+                  ),
+                ] else ...[
+                  const Gap(4),
+                  Text(
+                    'Belum ada padanan',
+                    style: theme.typography.sm.copyWith(
+                      color: theme.colors.mutedForeground,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],

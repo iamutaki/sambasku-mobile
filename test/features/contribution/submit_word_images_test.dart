@@ -15,6 +15,7 @@ class _FakeRepo implements ContributionRepository {
     required String wordClassId,
     required String definition,
     bool isHaveDefinition = true,
+    bool isHaveTranslation = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],

@@ -16,4 +16,13 @@ abstract interface class DictionaryRepository {
 
   /// Detail kata by id. 404 WORD_NOT_FOUND → Failure.
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id);
+
+  /// Daftar semua kata A-Z (18-api-list-words.md). Cursor komposit
+  /// opaque; [q] = filter server-side (bukan pencarian - tanpa
+  /// search-miss).
+  Future<Either<DictionaryFailure, WordSearchPage>> listWords({
+    required String q,
+    required int limit,
+    String? cursor,
+  });
 }

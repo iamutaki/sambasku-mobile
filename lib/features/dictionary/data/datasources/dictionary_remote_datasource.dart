@@ -22,6 +22,14 @@ abstract interface class DictionaryRemoteDatasource {
     @Queries() Map<String, dynamic> query,
   );
 
+  /// Daftar semua kata A-Z (GET /api/v1/words, 18-api-list-words.md) -
+  /// browsing, BUKAN pencarian. Cursor komposit opaque; q = filter
+  /// server-side. Publik tanpa auth.
+  @GET('/api/v1/words')
+  Future<ApiResponse<List<WordSummaryDto>>> listWords(
+    @Queries() Map<String, dynamic> query,
+  );
+
   /// Detail kata lengkap (makna, terjemahan, relasi, dll). Publik.
   @GET('/api/v1/words/{id}')
   Future<ApiResponse<WordDetailDto>> getWordById(@Path('id') String id);

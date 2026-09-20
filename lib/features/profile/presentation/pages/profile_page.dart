@@ -53,14 +53,15 @@ class ProfilePage extends ConsumerWidget {
                         title: const Text('Kontribusi Saya'),
                         subtitle: const Text('Riwayat & status usulan kata'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        // ponytail: halaman Usulanku belum ada — toast dulu
-                        onPress: () =>
-                            _comingSoon(context, 'Kontribusi Saya'),
+                        // ponytail: halaman Usulanku belum ada - toast dulu
+                        onPress: () => _comingSoon(context, 'Kontribusi Saya'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.bookmark),
                         title: const Text('Bookmark'),
-                        subtitle: const Text('Kata tersimpan untuk dibaca lagi'),
+                        subtitle: const Text(
+                          'Kata tersimpan untuk dibaca lagi',
+                        ),
                         suffix: const Icon(FLucideIcons.chevronRight),
                         onPress: () => context.push('/bookmarks'),
                       ),
@@ -83,8 +84,7 @@ class ProfilePage extends ConsumerWidget {
                         title: const Text('Laporkan Masalah'),
                         subtitle: const Text('Kirim saran atau laporkan bug'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () =>
-                            _comingSoon(context, 'Laporkan Masalah'),
+                        onPress: () => _comingSoon(context, 'Laporkan Masalah'),
                       ),
                     ],
                   ),
@@ -124,10 +124,7 @@ class ProfilePage extends ConsumerWidget {
                 const Gap(14),
                 FTileGroup(
                   label: const Text('Tampilan'),
-                  children: [
-                    themeModeTile(ref),
-                    paletteTile(ref),
-                  ],
+                  children: [themeModeTile(ref), paletteTile(ref)],
                 ),
                 const Gap(14),
                 FTileGroup(

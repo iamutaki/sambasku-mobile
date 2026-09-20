@@ -79,7 +79,7 @@ class ActivityPage extends ConsumerWidget {
                 children: [
                   _BlankContributeTile(theme: theme),
                   const Gap(14),
-                  // Header "sedang dicari" hanya saat ada item — empty state
+                  // Header "sedang dicari" hanya saat ada item - empty state
                   // jangan klaim warga sedang mencari (copy bentrok).
                   if (items.isEmpty)
                     Padding(
@@ -101,7 +101,7 @@ class ActivityPage extends ConsumerWidget {
                     ),
                     const Gap(2),
                     Text(
-                      'Sedang dicari warga — pilih satu untuk mengisi form usulan.',
+                      'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
                       style: theme.typography.sm.copyWith(
                         color: theme.colors.mutedForeground,
                       ),

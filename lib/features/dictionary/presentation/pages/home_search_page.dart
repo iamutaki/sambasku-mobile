@@ -99,6 +99,25 @@ class HomeSearchPage extends HookConsumerWidget {
             ],
           ),
         ),
+        // Entry Daftar Kosakata A-Z (/words) - tile dengan subtitle supaya
+        // fungsinya jelas, bukan ikon kecil di app bar.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          child: FTileGroup(
+            children: [
+              FTile(
+                prefix: const Icon(FLucideIcons.listOrdered),
+                title: const Text('Daftar Kosakata'),
+                subtitle: const Text('Telusuri semua kata dari A sampai Z'),
+                suffix: const Icon(FLucideIcons.chevronRight),
+                onPress: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  context.push(DictionaryRouter.list.path);
+                },
+              ),
+            ],
+          ),
+        ),
         if (state.errorMessage != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),

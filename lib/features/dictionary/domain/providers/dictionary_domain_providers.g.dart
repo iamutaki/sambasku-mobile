@@ -57,6 +57,52 @@ final class SearchWordsUseCaseProvider
 String _$searchWordsUseCaseHash() =>
     r'c9a95b5314fc2b144ac122a9df2c06e3dca937a7';
 
+@ProviderFor(listWordsUseCase)
+final listWordsUseCaseProvider = ListWordsUseCaseProvider._();
+
+final class ListWordsUseCaseProvider
+    extends
+        $FunctionalProvider<
+          ListWordsUseCase,
+          ListWordsUseCase,
+          ListWordsUseCase
+        >
+    with $Provider<ListWordsUseCase> {
+  ListWordsUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'listWordsUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$listWordsUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<ListWordsUseCase> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ListWordsUseCase create(Ref ref) {
+    return listWordsUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ListWordsUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ListWordsUseCase>(value),
+    );
+  }
+}
+
+String _$listWordsUseCaseHash() => r'f122d87e89199a343df38ff474fb03b5923d30bf';
+
 @ProviderFor(getWordByIdUseCase)
 final getWordByIdUseCaseProvider = GetWordByIdUseCaseProvider._();
 
