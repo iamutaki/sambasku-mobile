@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../widgets/word_change_history_section.dart';
 
 /// Halaman penuh riwayat perubahan kata - GET /api/v1/words/:id/change-history.
-/// Dipisah dari detail supaya scroll detail tetap fokus makna/komentar.
+/// Dibuka dari action AppBar di detail kata (bukan section inline).
 class WordChangeHistoryPage extends StatelessWidget {
   const WordChangeHistoryPage({super.key, required this.wordId});
 

@@ -304,6 +304,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 hint: widget.initialSearchIn == 'translation'
                     ? 'Padanan dalam bahasa Sambas'
                     : 'Satu kata/frasa setara di Indonesia',
+                description: widget.initialSearchIn == 'translation'
+                    ? null
+                    : const Text('Tekan icon buku untuk mencari definisi di KBBI'),
                 textInputAction: TextInputAction.next,
                 suffixBuilder: (context, style, _) => Padding(
                   padding: style.clearButtonPadding,

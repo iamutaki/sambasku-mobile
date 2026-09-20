@@ -47,6 +47,7 @@ class WordDetail {
 class WordMeaning {
   const WordMeaning({
     required this.id,
+    this.wordClassId,
     this.wordClassName,
     this.definition,
     required this.orderIndex,
@@ -55,6 +56,7 @@ class WordMeaning {
   });
 
   final String id;
+  final String? wordClassId;
   final String? wordClassName;
   final String? definition;
   final int orderIndex;
@@ -66,10 +68,12 @@ class WordTranslation {
   const WordTranslation({
     required this.text,
     required this.type,
+    this.languageId,
   });
 
   final String text;
   final String type;
+  final String? languageId;
 
   String get typeLabel => switch (type) {
         'descriptive' => 'deskriptif',

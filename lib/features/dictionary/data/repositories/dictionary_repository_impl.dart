@@ -168,6 +168,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             .map(
               (m) => WordMeaning(
                 id: m.id,
+                wordClassId: m.wordClass?.id,
                 // ponytail: format di mapper biar UI cukup pakai wordClassName
                 wordClassName: m.wordClass == null
                     ? null
@@ -181,6 +182,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                       (t) => WordTranslation(
                         text: t.translationText,
                         type: t.translationType,
+                        languageId: t.languageId,
                       ),
                     )
                     .toList(),
