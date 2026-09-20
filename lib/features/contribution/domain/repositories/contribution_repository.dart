@@ -18,6 +18,18 @@ class SubmitWordImage {
   final bool isPrimary;
 }
 
+/// Relasi inline (Form B) - sinonim/antonim lemma baru ikut makna induk.
+class SubmitWordRelation {
+  const SubmitWordRelation({
+    required this.relationType,
+    required this.lemma,
+  });
+
+  /// `synonym` | `antonym`
+  final String relationType;
+  final String lemma;
+}
+
 /// Kontrak repository submit kata.
 ///
 /// Method `submitAnon` = endpoint publik `POST /api/v1/contributions/words`
@@ -30,6 +42,8 @@ abstract interface class ContributionRepository {
     required String languageId,
     required String wordClassId,
     required String definition,
+    // false = placeholder "-" (docs: is_have_definition).
+    bool isHaveDefinition = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],
@@ -37,6 +51,8 @@ abstract interface class ContributionRepository {
     // Ejaan alternatif (variasi penulisan, docs/api/11) - dikirim sebagai
     // variants[] variant_type 'alternative'.
     List<String> spellingVariants = const [],
+    // Sinonim/antonim inline Form B (docs/api/04).
+    List<SubmitWordRelation> relatedWords = const [],
     // Bahasa target terjemahan = Indonesia (IDN), di-resolve dari page.
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],

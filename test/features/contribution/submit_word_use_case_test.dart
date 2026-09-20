@@ -16,11 +16,13 @@ class _FakeRepo implements ContributionRepository {
   String? languageId;
   String? wordClassId;
   String? definition;
+  bool? isHaveDefinition;
   String? dialectId;
   List<String>? translationTexts;
   List<String>? categoryIds;
   String? notes;
   List<String>? spellingVariants;
+  List<SubmitWordRelation>? relatedWords;
   String? translationLanguageId;
   List<SubmitWordImage>? images;
   String? searchMissId;
@@ -31,11 +33,13 @@ class _FakeRepo implements ContributionRepository {
     required String languageId,
     required String wordClassId,
     required String definition,
+    bool isHaveDefinition = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
+    List<SubmitWordRelation> relatedWords = const [],
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],
     String? searchMissId,
@@ -44,11 +48,13 @@ class _FakeRepo implements ContributionRepository {
     this.languageId = languageId;
     this.wordClassId = wordClassId;
     this.definition = definition;
+    this.isHaveDefinition = isHaveDefinition;
     this.dialectId = dialectId;
     this.translationTexts = translationTexts;
     this.categoryIds = categoryIds;
     this.notes = notes;
     this.spellingVariants = spellingVariants;
+    this.relatedWords = relatedWords;
     this.translationLanguageId = translationLanguageId;
     this.images = images;
     this.searchMissId = searchMissId;
@@ -137,5 +143,34 @@ void main() {
     // usecase hanya membersihkan; validasi minimal 1 ada di backend
     // (VALIDATION_ERROR inline field translation_texts).
     expect(repo.translationTexts, isEmpty);
+  });
+
+  test('tanpa definisi - paksa "-" + isHaveDefinition false', () async {
+    final repo = _FakeRepo(Either.right(result));
+    final usecase = SubmitAnonWordUseCase(repo);
+
+    await usecase(
+      const SubmitAnonWordParams(
+        lemma: 'makai',
+        languageId: 'lan-sbs',
+        wordClassId: 'wc-01',
+        definition: 'akan diabaikan',
+        isHaveDefinition: false,
+        translationTexts: ['juga diabaikan'],
+        translationLanguageId: 'lan-idn',
+        relatedWords: [
+          SubmitWordRelation(relationType: 'synonym', lemma: ' make '),
+          SubmitWordRelation(relationType: 'antonym', lemma: 'makai'),
+        ],
+      ),
+    );
+
+    expect(repo.definition, '-');
+    expect(repo.translationTexts, ['-']);
+    expect(repo.isHaveDefinition, false);
+    // lemma induk didrop; synonym tetap
+    expect(repo.relatedWords?.length, 1);
+    expect(repo.relatedWords?.first.lemma, 'make');
+    expect(repo.relatedWords?.first.relationType, 'synonym');
   });
 }

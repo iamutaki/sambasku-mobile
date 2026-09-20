@@ -8,6 +8,7 @@ import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
 import '../models/create_word_image_dto.dart';
 import '../models/create_word_meaning_dto.dart';
+import '../models/create_word_related_word_dto.dart';
 import '../models/create_word_request_dto.dart';
 import '../models/create_word_translation_dto.dart';
 import '../models/create_word_variant_dto.dart';
@@ -23,11 +24,13 @@ class ContributionRepositoryImpl implements ContributionRepository {
     required String languageId,
     required String wordClassId,
     required String definition,
+    bool isHaveDefinition = true,
     String? dialectId,
     required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
+    List<SubmitWordRelation> relatedWords = const [],
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],
     String? searchMissId,
@@ -44,6 +47,18 @@ class ContributionRepositoryImpl implements ContributionRepository {
           )
           .toList(growable: false);
 
+      final variantDtos = spellingVariants
+          .map((form) => CreateWordVariantDto(form: form))
+          .toList(growable: false);
+      final relatedDtos = relatedWords
+          .map(
+            (r) => CreateWordRelatedWordDto(
+              relationType: r.relationType,
+              lemma: r.lemma,
+            ),
+          )
+          .toList(growable: false);
+
       final body = CreateWordRequestDto(
         lemma: lemma,
         languageId: languageId,
@@ -52,6 +67,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
           CreateWordMeaningDto(
             wordClassId: wordClassId,
             definition: definition,
+            isHaveDefinition: isHaveDefinition,
             orderIndex: 1,
             translations: translationTexts
                 .map(
@@ -65,9 +81,8 @@ class ContributionRepositoryImpl implements ContributionRepository {
         ],
         categoryIds: categoryIds,
         notes: notes,
-        variants: spellingVariants
-            .map((form) => CreateWordVariantDto(form: form))
-            .toList(growable: false),
+        variants: variantDtos.isEmpty ? null : variantDtos,
+        relatedWords: relatedDtos.isEmpty ? null : relatedDtos,
         images: imageDtos.isEmpty ? null : imageDtos,
         searchMissId: searchMissId,
       );

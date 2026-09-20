@@ -13,14 +13,19 @@ class SubmitAnonWordUseCase {
     SubmitAnonWordParams params,
   ) {
     final lemma = params.lemma.trim();
-    final definition = params.definition.trim();
     final dialectId = params.dialectId?.trim();
     final notes = params.notes?.trim();
 
-    final translations = params.translationTexts
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
+    // Placeholder: definisi + terjemahan sentinel "-" + flag false
+    // (API create-word.validator + add-meaning e2e).
+    final isHaveDefinition = params.isHaveDefinition;
+    final definition = isHaveDefinition ? params.definition.trim() : '-';
+    final translations = isHaveDefinition
+        ? params.translationTexts
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList(growable: false)
+        : const ['-'];
 
     final categoryIds = params.categoryIds
         .map((e) => e.trim())
@@ -33,6 +38,21 @@ class SubmitAnonWordUseCase {
         .where((e) => e.isNotEmpty && e.toLowerCase() != lemma.toLowerCase())
         .where((e) => seenVariants.add(e.toLowerCase()))
         .toList(growable: false);
+
+    // Max 5 Form B per request (API); dedup lemma case-insensitive
+    // (termasuk lemma induk).
+    final seenRelated = <String>{lemma.toLowerCase()};
+    final relatedWords = <SubmitWordRelation>[];
+    for (final rel in params.relatedWords) {
+      final relLemma = rel.lemma.trim();
+      if (relLemma.isEmpty) continue;
+      final key = relLemma.toLowerCase();
+      if (!seenRelated.add(key)) continue;
+      relatedWords.add(
+        SubmitWordRelation(relationType: rel.relationType, lemma: relLemma),
+      );
+      if (relatedWords.length >= 5) break;
+    }
 
     // Pastikan maksimal satu is_primary (mirror validator API).
     var sawPrimary = false;
@@ -64,11 +84,13 @@ class SubmitAnonWordUseCase {
       languageId: params.languageId.trim(),
       wordClassId: params.wordClassId.trim(),
       definition: definition,
+      isHaveDefinition: isHaveDefinition,
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
       translationTexts: translations,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
+      relatedWords: relatedWords,
       translationLanguageId: params.translationLanguageId.trim(),
       images: images,
       searchMissId: params.searchMissId,
@@ -83,11 +105,13 @@ class SubmitAnonWordParams {
     required this.wordClassId,
     required this.definition,
     required this.translationLanguageId,
+    this.isHaveDefinition = true,
     this.dialectId,
     this.translationTexts = const [],
     this.categoryIds = const [],
     this.notes,
     this.spellingVariants = const [],
+    this.relatedWords = const [],
     this.images = const [],
     this.searchMissId,
   });
@@ -97,11 +121,13 @@ class SubmitAnonWordParams {
   final String wordClassId;
   final String definition;
   final String translationLanguageId;
+  final bool isHaveDefinition;
   final String? dialectId;
   final List<String> translationTexts;
   final List<String> categoryIds;
   final String? notes;
   final List<String> spellingVariants;
+  final List<SubmitWordRelation> relatedWords;
   final List<SubmitWordImage> images;
   final String? searchMissId;
 }

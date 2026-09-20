@@ -8,15 +8,24 @@ part of 'forui_palette_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Palet warna forui pilihan user: default zinc, persist ke SharedPreferences.
+/// Palet warna forui pilihan user: persist ke SharedPreferences.
+///
+/// [preload] di main sebelum runApp — sama seperti ThemeModeController,
+/// supaya frame pertama tidak flash ke [defaultPalette].
 
 @ProviderFor(ForuiPaletteController)
 final foruiPaletteControllerProvider = ForuiPaletteControllerProvider._();
 
-/// Palet warna forui pilihan user: default zinc, persist ke SharedPreferences.
+/// Palet warna forui pilihan user: persist ke SharedPreferences.
+///
+/// [preload] di main sebelum runApp — sama seperti ThemeModeController,
+/// supaya frame pertama tidak flash ke [defaultPalette].
 final class ForuiPaletteControllerProvider
     extends $NotifierProvider<ForuiPaletteController, String> {
-  /// Palet warna forui pilihan user: default zinc, persist ke SharedPreferences.
+  /// Palet warna forui pilihan user: persist ke SharedPreferences.
+  ///
+  /// [preload] di main sebelum runApp — sama seperti ThemeModeController,
+  /// supaya frame pertama tidak flash ke [defaultPalette].
   ForuiPaletteControllerProvider._()
     : super(
         from: null,
@@ -45,9 +54,12 @@ final class ForuiPaletteControllerProvider
 }
 
 String _$foruiPaletteControllerHash() =>
-    r'1df45c1b7d1e937c67c743f6af926a6a500c854b';
+    r'3b1020cc0b0a3a5b98fdf0dac28516e863f72684';
 
-/// Palet warna forui pilihan user: default zinc, persist ke SharedPreferences.
+/// Palet warna forui pilihan user: persist ke SharedPreferences.
+///
+/// [preload] di main sebelum runApp — sama seperti ThemeModeController,
+/// supaya frame pertama tidak flash ke [defaultPalette].
 
 abstract class _$ForuiPaletteController extends $Notifier<String> {
   String build();

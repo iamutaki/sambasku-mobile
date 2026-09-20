@@ -14,6 +14,8 @@ abstract class CreateWordMeaningDto with _$CreateWordMeaningDto {
   const factory CreateWordMeaningDto({
     @JsonKey(name: 'word_class_id') required String wordClassId,
     required String definition,
+    // false = placeholder "-" (kontributor belum tahu definisi Indonesia).
+    @JsonKey(name: 'is_have_definition') @Default(true) bool isHaveDefinition,
     @JsonKey(name: 'order_index') @Default(1) int orderIndex,
     required List<CreateWordTranslationDto> translations,
   }) = _CreateWordMeaningDto;

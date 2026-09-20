@@ -10,19 +10,22 @@ part of 'bookmark_providers.dart';
 // ignore_for_file: type=lint, type=warning
 /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
 /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-/// Toggle memutakhirkan state dari response server (state final).
+/// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+/// state dari response server (state final).
 
 @ProviderFor(BookmarkToggleController)
 final bookmarkToggleControllerProvider = BookmarkToggleControllerFamily._();
 
 /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
 /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-/// Toggle memutakhirkan state dari response server (state final).
+/// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+/// state dari response server (state final).
 final class BookmarkToggleControllerProvider
     extends $AsyncNotifierProvider<BookmarkToggleController, BookmarkStatus> {
   /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
   /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-  /// Toggle memutakhirkan state dari response server (state final).
+  /// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+  /// state dari response server (state final).
   BookmarkToggleControllerProvider._({
     required BookmarkToggleControllerFamily super.from,
     required String super.argument,
@@ -61,11 +64,12 @@ final class BookmarkToggleControllerProvider
 }
 
 String _$bookmarkToggleControllerHash() =>
-    r'7568d02f70e5b447d539161b6984ff82559fe931';
+    r'de5d152786cc405ffe48f607df38fb9df38f2f17';
 
 /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
 /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-/// Toggle memutakhirkan state dari response server (state final).
+/// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+/// state dari response server (state final).
 
 final class BookmarkToggleControllerFamily extends $Family
     with
@@ -87,7 +91,8 @@ final class BookmarkToggleControllerFamily extends $Family
 
   /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
   /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-  /// Toggle memutakhirkan state dari response server (state final).
+  /// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+  /// state dari response server (state final).
 
   BookmarkToggleControllerProvider call(String wordId) =>
       BookmarkToggleControllerProvider._(argument: wordId, from: this);
@@ -98,7 +103,8 @@ final class BookmarkToggleControllerFamily extends $Family
 
 /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
 /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.
-/// Toggle memutakhirkan state dari response server (state final).
+/// Seed gagal → degrade unbookmarked (tombol tetap ada). Toggle memutakhirkan
+/// state dari response server (state final).
 
 abstract class _$BookmarkToggleController
     extends $AsyncNotifier<BookmarkStatus> {
@@ -157,7 +163,7 @@ final class BookmarkListControllerProvider
 }
 
 String _$bookmarkListControllerHash() =>
-    r'18ececc7a69770697d7f45fd3e3f0a8469b3d2c6';
+    r'3e5a0205ddca65be72c31b25387523a4ebb030b1';
 
 /// State halaman Bookmark (list milik user login, cursor pagination).
 /// Guest = state kosong (halaman menampilkan prompt login). Hapus item
