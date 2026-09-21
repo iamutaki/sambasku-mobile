@@ -56,7 +56,11 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final path = err.requestOptions.path;
     final isAuthEndpoint =
-        path.contains('/auth/login') || path.contains('/auth/refresh');
+        path.contains('/auth/login') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/verify-email') ||
+        path.contains('/auth/resend-otp');
     if (err.response?.statusCode != 401 || isAuthEndpoint) {
       return handler.next(err);
     }

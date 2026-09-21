@@ -378,23 +378,11 @@ class _HomeIdleMisses extends ConsumerWidget {
               ),
               error: (_, _) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: MediaQuery.sizeOf(context).height * 0.45,
-                    child: _IdleSearchHint(theme: theme),
-                  ),
-                ],
               ),
               data: (items) {
                 if (items.isEmpty) {
                   return ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.sizeOf(context).height * 0.45,
-                        child: _IdleSearchHint(theme: theme),
-                      ),
-                    ],
                   );
                 }
 
@@ -468,38 +456,5 @@ class _HomeIdleMisses extends ConsumerWidget {
         : 'Sambas → Indonesia';
     final hits = item.hitCount > 99 ? '99×' : '${item.hitCount}×';
     return '$direction · $hits dicari';
-  }
-}
-
-class _IdleSearchHint extends StatelessWidget {
-  const _IdleSearchHint({required this.theme});
-
-  final FThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              FLucideIcons.search,
-              size: 36,
-              color: theme.colors.mutedForeground,
-            ),
-            const Gap(6),
-            Text(
-              'Ketik untuk mencari',
-              textAlign: TextAlign.center,
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

@@ -45,11 +45,18 @@ FTileMixin paletteTile(WidgetRef ref) {
   final name = ref.watch(foruiPaletteControllerProvider);
   final palette = foruiPalettes[name] ?? foruiPalettes[defaultPalette]!;
 
+  // Tanpa maxHeight, popover setinggi 10 palet dan tidak bisa di-scroll.
+  final menuMaxHeight = (MediaQuery.sizeOf(ref.context).height * 0.4).clamp(
+    200.0,
+    320.0,
+  );
+
   return FSelectMenuTile<String>(
     prefix: const Icon(FLucideIcons.palette),
     title: const Text('Warna Tema'),
     subtitle: const Text('Skema warna bawaan forui'),
     details: Text(palette.label),
+    maxHeight: menuMaxHeight,
     selectControl: FMultiValueControl.managedRadio(
       initial: name,
       onChange: (values) {

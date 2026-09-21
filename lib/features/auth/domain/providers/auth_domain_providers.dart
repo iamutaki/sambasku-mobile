@@ -4,6 +4,7 @@ import '../../data/providers/auth_data_providers.dart';
 import '../usecases/login_use_case.dart';
 import '../usecases/logout_use_case.dart';
 import '../usecases/register_use_case.dart';
+import '../usecases/verify_email_use_case.dart';
 
 part 'auth_domain_providers.g.dart';
 
@@ -18,3 +19,11 @@ LoginUseCase authLoginUseCase(Ref ref) =>
 @riverpod
 LogoutUseCase authLogoutUseCase(Ref ref) =>
     LogoutUseCase(ref.watch(authRepositoryProvider));
+
+@riverpod
+VerifyEmailUseCase authVerifyEmailUseCase(Ref ref) =>
+    VerifyEmailUseCase(ref.watch(authRepositoryProvider));
+
+@riverpod
+ResendOtpUseCase authResendOtpUseCase(Ref ref) =>
+    ResendOtpUseCase(ref.watch(authRepositoryProvider));

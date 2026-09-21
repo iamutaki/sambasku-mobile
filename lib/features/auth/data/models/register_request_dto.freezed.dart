@@ -290,7 +290,7 @@ as String,
 /// @nodoc
 mixin _$RegisterResponseDto {
 
-@JsonKey(name: 'user_id') String get userId; String get username; String get email; String? get phone;
+@JsonKey(name: 'user_id') String get userId; String get username; String get email; String? get phone;@JsonKey(name: 'verification_required') bool get verificationRequired;
 /// Create a copy of RegisterResponseDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +303,16 @@ $RegisterResponseDtoCopyWith<RegisterResponseDto> get copyWith => _$RegisterResp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RegisterResponseDto&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RegisterResponseDto&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.verificationRequired, verificationRequired) || other.verificationRequired == verificationRequired));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,username,email,phone);
+int get hashCode => Object.hash(runtimeType,userId,username,email,phone,verificationRequired);
 
 @override
 String toString() {
-  return 'RegisterResponseDto(userId: $userId, username: $username, email: $email, phone: $phone)';
+  return 'RegisterResponseDto(userId: $userId, username: $username, email: $email, phone: $phone, verificationRequired: $verificationRequired)';
 }
 
 
@@ -323,7 +323,7 @@ abstract mixin class $RegisterResponseDtoCopyWith<$Res>  {
   factory $RegisterResponseDtoCopyWith(RegisterResponseDto value, $Res Function(RegisterResponseDto) _then) = _$RegisterResponseDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String username, String email, String? phone
+@JsonKey(name: 'user_id') String userId, String username, String email, String? phone,@JsonKey(name: 'verification_required') bool verificationRequired
 });
 
 
@@ -340,13 +340,14 @@ class _$RegisterResponseDtoCopyWithImpl<$Res>
 
 /// Create a copy of RegisterResponseDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? username = null,Object? email = null,Object? phone = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? username = null,Object? email = null,Object? phone = freezed,Object? verificationRequired = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,verificationRequired: null == verificationRequired ? _self.verificationRequired : verificationRequired // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -431,10 +432,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone, @JsonKey(name: 'verification_required')  bool verificationRequired)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RegisterResponseDto() when $default != null:
-return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
+return $default(_that.userId,_that.username,_that.email,_that.phone,_that.verificationRequired);case _:
   return orElse();
 
 }
@@ -452,10 +453,10 @@ return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone, @JsonKey(name: 'verification_required')  bool verificationRequired)  $default,) {final _that = this;
 switch (_that) {
 case _RegisterResponseDto():
-return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
+return $default(_that.userId,_that.username,_that.email,_that.phone,_that.verificationRequired);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -472,10 +473,10 @@ return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String username,  String email,  String? phone, @JsonKey(name: 'verification_required')  bool verificationRequired)?  $default,) {final _that = this;
 switch (_that) {
 case _RegisterResponseDto() when $default != null:
-return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
+return $default(_that.userId,_that.username,_that.email,_that.phone,_that.verificationRequired);case _:
   return null;
 
 }
@@ -487,13 +488,14 @@ return $default(_that.userId,_that.username,_that.email,_that.phone);case _:
 @JsonSerializable()
 
 class _RegisterResponseDto implements RegisterResponseDto {
-  const _RegisterResponseDto({@JsonKey(name: 'user_id') required this.userId, required this.username, required this.email, this.phone});
+  const _RegisterResponseDto({@JsonKey(name: 'user_id') required this.userId, required this.username, required this.email, this.phone, @JsonKey(name: 'verification_required') this.verificationRequired = true});
   factory _RegisterResponseDto.fromJson(Map<String, dynamic> json) => _$RegisterResponseDtoFromJson(json);
 
 @override@JsonKey(name: 'user_id') final  String userId;
 @override final  String username;
 @override final  String email;
 @override final  String? phone;
+@override@JsonKey(name: 'verification_required') final  bool verificationRequired;
 
 /// Create a copy of RegisterResponseDto
 /// with the given fields replaced by the non-null parameter values.
@@ -508,16 +510,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RegisterResponseDto&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RegisterResponseDto&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.username, username) || other.username == username)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.verificationRequired, verificationRequired) || other.verificationRequired == verificationRequired));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,username,email,phone);
+int get hashCode => Object.hash(runtimeType,userId,username,email,phone,verificationRequired);
 
 @override
 String toString() {
-  return 'RegisterResponseDto(userId: $userId, username: $username, email: $email, phone: $phone)';
+  return 'RegisterResponseDto(userId: $userId, username: $username, email: $email, phone: $phone, verificationRequired: $verificationRequired)';
 }
 
 
@@ -528,7 +530,7 @@ abstract mixin class _$RegisterResponseDtoCopyWith<$Res> implements $RegisterRes
   factory _$RegisterResponseDtoCopyWith(_RegisterResponseDto value, $Res Function(_RegisterResponseDto) _then) = __$RegisterResponseDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String username, String email, String? phone
+@JsonKey(name: 'user_id') String userId, String username, String email, String? phone,@JsonKey(name: 'verification_required') bool verificationRequired
 });
 
 
@@ -545,13 +547,14 @@ class __$RegisterResponseDtoCopyWithImpl<$Res>
 
 /// Create a copy of RegisterResponseDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? username = null,Object? email = null,Object? phone = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? username = null,Object? email = null,Object? phone = freezed,Object? verificationRequired = null,}) {
   return _then(_RegisterResponseDto(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,verificationRequired: null == verificationRequired ? _self.verificationRequired : verificationRequired // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

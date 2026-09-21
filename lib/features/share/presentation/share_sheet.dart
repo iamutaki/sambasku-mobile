@@ -6,6 +6,7 @@ import 'package:gal/gal.dart';
 import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../shared/utils/file_persist_helper.dart';
 import '../../../../shared/utils/permission_helper.dart';
@@ -17,6 +18,7 @@ import 'share_fullscreen.dart';
 import 'share_image_explorer_sheet.dart';
 import 'share_solid_color_sheet.dart';
 import 'widgets/share_card_canvas.dart';
+import 'widgets/share_skeleton.dart';
 
 /// Buka sheet share kartu dari detail kata.
 Future<void> showWordShareSheet(
@@ -629,6 +631,28 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       );
     }
 
+    // FSwitch.leadingLabel memakai Table + IntrinsicColumnWidth di kedua
+    // kolom, jadi switch menempel di samping label. Row + Expanded
+    // mendorong switch ke tepi kanan (pola settings Forui).
+    Widget settingsSwitchRow({
+      required String label,
+      required bool value,
+      required ValueChanged<bool> onChange,
+      bool enabled = true,
+    }) {
+      return Row(
+        children: [
+          Expanded(child: Text(label, style: theme.typography.sm)),
+          FSwitch(
+            semanticsLabel: label,
+            value: value,
+            enabled: enabled,
+            onChange: onChange,
+          ),
+        ],
+      );
+    }
+
     final canExplore = !_template.forcesNoPhoto;
 
     return Padding(
@@ -763,9 +787,23 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                   ),
                   const Gap(8),
                   if (_loadingBg)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(child: CircularProgressIndicator()),
+                    SizedBox(
+                      height: 76,
+                      child: ShareSkeleton(
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            for (var i = 0; i < 6; i++) ...[
+                              Bone(
+                                width: 72,
+                                height: 72,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              if (i < 5) const Gap(8),
+                            ],
+                          ],
+                        ),
+                      ),
                     )
                   else
                     SizedBox(
@@ -1129,66 +1167,44 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                       }),
                     ),
                   ],
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Tampilkan kelas kata',
-                      style: theme.typography.sm,
-                    ),
-                    activeThumbColor: chipSelected,
+                  settingsSwitchRow(
+                    label: 'Tampilkan kelas kata',
                     value: _settings.showWordClass,
-                    onChanged: (v) => setState(() {
+                    onChange: (v) => setState(() {
                       _settings = _settings.copyWith(showWordClass: v);
                     }),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Tampilkan padanan',
-                      style: theme.typography.sm,
-                    ),
-                    activeThumbColor: chipSelected,
+                  const Gap(8),
+                  settingsSwitchRow(
+                    label: 'Tampilkan padanan',
                     value: _settings.showPadanan,
-                    onChanged: (v) => setState(() {
+                    onChange: (v) => setState(() {
                       _settings = _settings.copyWith(showPadanan: v);
                     }),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Tampilkan definisi',
-                      style: theme.typography.sm,
-                    ),
-                    activeThumbColor: chipSelected,
+                  const Gap(8),
+                  settingsSwitchRow(
+                    label: 'Tampilkan definisi',
                     value: _settings.showDefinition,
-                    onChanged: (v) => setState(() {
+                    onChange: (v) => setState(() {
                       _settings = _settings.copyWith(showDefinition: v);
                     }),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Tampilkan contoh kalimat',
-                      style: theme.typography.sm,
-                    ),
-                    activeThumbColor: chipSelected,
+                  const Gap(8),
+                  settingsSwitchRow(
+                    label: 'Tampilkan contoh kalimat',
                     value:
                         _settings.showExample && _meaning.examples.isNotEmpty,
-                    onChanged: _meaning.examples.isEmpty
-                        ? null
-                        : (v) => setState(() {
-                            _settings = _settings.copyWith(showExample: v);
-                          }),
+                    enabled: _meaning.examples.isNotEmpty,
+                    onChange: (v) => setState(() {
+                      _settings = _settings.copyWith(showExample: v);
+                    }),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Tampilkan watermark SambasKu',
-                      style: theme.typography.sm,
-                    ),
-                    activeThumbColor: chipSelected,
+                  const Gap(8),
+                  settingsSwitchRow(
+                    label: 'Tampilkan watermark SambasKu',
                     value: _settings.showWatermark,
-                    onChanged: (v) => setState(() {
+                    onChange: (v) => setState(() {
                       _settings = _settings.copyWith(showWatermark: v);
                     }),
                   ),

@@ -6,4 +6,6 @@ class AuthFailure {
 
   final String message;
   final String? errorCode;
+
+  bool get isEmailNotVerified => errorCode == 'EMAIL_NOT_VERIFIED';
 }

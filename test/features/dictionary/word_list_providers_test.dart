@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sambasku_mobile/features/dictionary/data/providers/dictionary_data_providers.dart';
 import 'package:sambasku_mobile/features/dictionary/domain/entities/word_detail.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/entities/word_of_day.dart';
 import 'package:sambasku_mobile/features/dictionary/domain/entities/word_summary.dart';
 import 'package:sambasku_mobile/features/dictionary/domain/failures/dictionary_failure.dart';
 import 'package:sambasku_mobile/features/dictionary/domain/repositories/dictionary_repository.dart';
@@ -50,6 +51,10 @@ class _FakeDictionaryRepository implements DictionaryRepository {
 
   @override
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async =>
       throw UnimplementedError();
 
   @override

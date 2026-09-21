@@ -17,6 +17,7 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
       isSubmitting: true,
       clearErrorMessage: true,
       clearSession: true,
+      showUnverifiedSheet: false,
     );
 
     final result = await ref
@@ -25,18 +26,36 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
 
     result.match(
       (failure) {
+        if (failure.isEmailNotVerified) {
+          state = state.copyWith(
+            isSubmitting: false,
+            clearErrorMessage: true,
+            clearSession: true,
+            showUnverifiedSheet: true,
+          );
+          return;
+        }
         state = state.copyWith(
           isSubmitting: false,
           errorMessage: failure.message,
           clearSession: true,
+          showUnverifiedSheet: false,
         );
       },
       (session) {
         // Token sudah di storage - set status langsung, jangan invalidate
         // (reload async masih expose previous isAuth:false).
         ref.read(authStatusProvider.notifier).markLoggedIn(session);
-        state = state.copyWith(isSubmitting: false, session: session);
+        state = state.copyWith(
+          isSubmitting: false,
+          session: session,
+          showUnverifiedSheet: false,
+        );
       },
     );
+  }
+
+  void acknowledgeUnverifiedSheet() {
+    state = state.copyWith(showUnverifiedSheet: false);
   }
 }

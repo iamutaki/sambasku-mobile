@@ -1,27 +1,26 @@
-/// State halaman register (pola sama auth_login_state).
+/// State halaman register. Sukses = akun dibuat, lanjut OTP (bukan auto-login).
 class AuthRegisterState {
   const AuthRegisterState({
     this.isSubmitting = false,
     this.errorMessage,
     this.success = false,
-    this.needsManualLogin = false,
+    this.pendingEmail,
   });
 
   final bool isSubmitting;
   final String? errorMessage;
 
-  /// Register + auto-login sukses.
+  /// Register sukses, belum login. UI arahkan ke /verify-email.
   final bool success;
-
-  /// Akun sudah dibuat tapi auto-login gagal → UI arahkan ke /login.
-  final bool needsManualLogin;
+  final String? pendingEmail;
 
   AuthRegisterState copyWith({
     bool? isSubmitting,
     String? errorMessage,
     bool clearErrorMessage = false,
     bool? success,
-    bool? needsManualLogin,
+    String? pendingEmail,
+    bool clearPendingEmail = false,
   }) {
     return AuthRegisterState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -29,7 +28,9 @@ class AuthRegisterState {
           ? null
           : errorMessage ?? this.errorMessage,
       success: success ?? this.success,
-      needsManualLogin: needsManualLogin ?? this.needsManualLogin,
+      pendingEmail: clearPendingEmail
+          ? null
+          : pendingEmail ?? this.pendingEmail,
     );
   }
 }

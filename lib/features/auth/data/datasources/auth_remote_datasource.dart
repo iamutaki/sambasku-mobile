@@ -6,6 +6,8 @@ import '../models/login_request_dto.dart';
 import '../models/login_response_dto.dart';
 import '../models/logout_request_dto.dart';
 import '../models/register_request_dto.dart';
+import '../models/resend_otp_request_dto.dart';
+import '../models/verify_email_request_dto.dart';
 
 part 'auth_remote_datasource.g.dart';
 
@@ -24,6 +26,16 @@ abstract interface class AuthRemoteDatasource {
 
   @POST('/api/v1/auth/login')
   Future<ApiResponse<LoginResponseDto>> login(@Body() LoginRequestDto body);
+
+  @POST('/api/v1/auth/verify-email')
+  Future<ApiResponse<LoginResponseDto>> verifyEmail(
+    @Body() VerifyEmailRequestDto body,
+  );
+
+  @POST('/api/v1/auth/resend-otp')
+  Future<ApiResponse<ResendOtpResponseDto>> resendOtp(
+    @Body() ResendOtpRequestDto body,
+  );
 
   @POST('/api/v1/auth/logout')
   Future<void> logout(@Body() LogoutRequestDto body);

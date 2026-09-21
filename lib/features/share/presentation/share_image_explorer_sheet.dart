@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
+import 'widgets/share_skeleton.dart';
 
 const _photoProviders = ['pexels', 'pixabay', 'openverse', 'wikimedia', 'unsplash'];
 const _videoProviders = ['pexels', 'pixabay', 'wikimedia'];
@@ -321,7 +323,21 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
   Widget _buildGrid(BuildContext context) {
     final theme = context.theme;
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return ShareSkeleton(
+        child: GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+          ),
+          itemCount: 9,
+          itemBuilder: (_, _) => Bone(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
     }
     if (_items.isEmpty) {
       return Center(
@@ -350,11 +366,8 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
       itemCount: _items.length + (_loadingMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i >= _items.length) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(),
-            ),
+          return ShareSkeleton(
+            child: Bone(borderRadius: BorderRadius.circular(10)),
           );
         }
         final item = _items[i];

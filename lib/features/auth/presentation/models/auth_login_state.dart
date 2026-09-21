@@ -7,11 +7,15 @@ class AuthLoginState {
     this.isSubmitting = false,
     this.errorMessage,
     this.session,
+    this.showUnverifiedSheet = false,
   });
 
   final bool isSubmitting;
   final String? errorMessage;
   final AuthSession? session;
+
+  /// Password benar tapi email belum OTP. UI tampilkan sheet, bukan toast.
+  final bool showUnverifiedSheet;
 
   AuthLoginState copyWith({
     bool? isSubmitting,
@@ -19,6 +23,7 @@ class AuthLoginState {
     bool clearErrorMessage = false,
     AuthSession? session,
     bool clearSession = false,
+    bool? showUnverifiedSheet,
   }) {
     return AuthLoginState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -26,6 +31,7 @@ class AuthLoginState {
           ? null
           : errorMessage ?? this.errorMessage,
       session: clearSession ? null : session ?? this.session,
+      showUnverifiedSheet: showUnverifiedSheet ?? this.showUnverifiedSheet,
     );
   }
 }

@@ -133,3 +133,98 @@ final class AuthLogoutUseCaseProvider
 }
 
 String _$authLogoutUseCaseHash() => r'326bc6a4663aa077a2921607faf1102847348208';
+
+@ProviderFor(authVerifyEmailUseCase)
+final authVerifyEmailUseCaseProvider = AuthVerifyEmailUseCaseProvider._();
+
+final class AuthVerifyEmailUseCaseProvider
+    extends
+        $FunctionalProvider<
+          VerifyEmailUseCase,
+          VerifyEmailUseCase,
+          VerifyEmailUseCase
+        >
+    with $Provider<VerifyEmailUseCase> {
+  AuthVerifyEmailUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authVerifyEmailUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authVerifyEmailUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<VerifyEmailUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  VerifyEmailUseCase create(Ref ref) {
+    return authVerifyEmailUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(VerifyEmailUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<VerifyEmailUseCase>(value),
+    );
+  }
+}
+
+String _$authVerifyEmailUseCaseHash() =>
+    r'40bb3478ea2e38ae1990697e9cf0a8c6fc360580';
+
+@ProviderFor(authResendOtpUseCase)
+final authResendOtpUseCaseProvider = AuthResendOtpUseCaseProvider._();
+
+final class AuthResendOtpUseCaseProvider
+    extends
+        $FunctionalProvider<
+          ResendOtpUseCase,
+          ResendOtpUseCase,
+          ResendOtpUseCase
+        >
+    with $Provider<ResendOtpUseCase> {
+  AuthResendOtpUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authResendOtpUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authResendOtpUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<ResendOtpUseCase> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ResendOtpUseCase create(Ref ref) {
+    return authResendOtpUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ResendOtpUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ResendOtpUseCase>(value),
+    );
+  }
+}
+
+String _$authResendOtpUseCaseHash() =>
+    r'025313802944f12d35bc454d788cf4b4d934b501';

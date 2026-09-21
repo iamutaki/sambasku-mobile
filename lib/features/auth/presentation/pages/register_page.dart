@@ -13,8 +13,8 @@ import '../providers/auth_status_providers.dart';
 /// Prefix negara di-lock dulu ke +62; nanti diganti dinamis (locale/config).
 const kPhoneCountryPrefix = '+62';
 
-/// Register sederhana: nama, email, HP opsional (+62 locked), password.
-/// Auto-verify di backend (tanpa OTP) → sukses langsung login + ke home.
+/// Register: nama, email, HP opsional (+62 locked), password.
+/// Sukses → halaman OTP. Belum auto-login.
 class RegisterPage extends HookConsumerWidget {
   const RegisterPage({super.key});
 
@@ -34,22 +34,14 @@ class RegisterPage extends HookConsumerWidget {
     useListenable(password);
     useListenable(confirmPassword);
 
-    // Auto-login sukses → home
-    ref.listen(authStatusProvider, (_, next) {
-      if (next.value?.isAuth == true && context.mounted) context.go('/');
-    });
-
-    // Register ok tapi auto-login gagal → login manual
-    ref.listen(authRegisterProvider.select((s) => s.needsManualLogin), (
-      _,
-      needsManual,
-    ) {
-      if (needsManual != true || !context.mounted) return;
-      showFToast(
-        context: context,
-        title: const Text('Akun dibuat - silakan masuk'),
+    // Register sukses → halaman OTP (belum login)
+    ref.listen(authRegisterProvider.select((s) => s.success), (_, success) {
+      if (success != true || !context.mounted) return;
+      final pending =
+          ref.read(authRegisterProvider).pendingEmail ?? email.text.trim();
+      context.go(
+        '${AuthRouter.verifyEmail.path}?email=${Uri.encodeComponent(pending)}&cooldown=1',
       );
-      context.go(AuthRouter.login.path);
     });
 
     if (alreadyAuth) {
@@ -113,7 +105,7 @@ class RegisterPage extends HookConsumerWidget {
                 ),
                 const Gap(8),
                 Text(
-                  'Langsung aktif tanpa OTP. Setelah daftar kamu otomatis masuk.',
+                  'Kami kirim kode 6 digit ke email. Verifikasi dulu sebelum masuk.',
                   textAlign: .center,
                   style: theme.typography.sm.copyWith(
                     color: theme.colors.mutedForeground,

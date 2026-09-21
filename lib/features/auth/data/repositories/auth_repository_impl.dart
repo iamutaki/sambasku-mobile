@@ -7,8 +7,11 @@ import '../../domain/failures/auth_failure.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/login_request_dto.dart';
+import '../models/login_response_dto.dart';
 import '../models/logout_request_dto.dart';
 import '../models/register_request_dto.dart';
+import '../models/resend_otp_request_dto.dart';
+import '../models/verify_email_request_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remoteDatasource, this._tokenStorage);
@@ -38,15 +41,16 @@ class AuthRepositoryImpl implements AuthRepository {
       if (response.success == true && response.data != null) {
         return Either.right(null);
       }
-      return Either.left(AuthFailure(
-        response.message ?? 'Registrasi gagal',
-        errorCode: response.errorCode,
-      ));
+      return Either.left(
+        AuthFailure(
+          response.message ?? 'Registrasi gagal',
+          errorCode: response.errorCode,
+        ),
+      );
     } on DioException catch (error) {
-      return Either.left(AuthFailure(
-        _mapDioError(error),
-        errorCode: _mapErrorCode(error),
-      ));
+      return Either.left(
+        AuthFailure(_mapDioError(error), errorCode: _mapErrorCode(error)),
+      );
     } catch (error) {
       return Either.left(AuthFailure(error.toString()));
     }
@@ -64,42 +68,97 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final payload = response.data;
       if (payload == null) {
-        return Either.left(AuthFailure(
-          response.message ?? 'Login gagal',
-          errorCode: response.errorCode,
-        ));
+        return Either.left(
+          AuthFailure(
+            response.message ?? 'Login gagal',
+            errorCode: response.errorCode,
+          ),
+        );
       }
 
-      // varian mobile: refresh_token WAJIB di body (00-api-auth.md)
-      final refreshToken = payload.refreshToken;
-      if (refreshToken == null || refreshToken.isEmpty) {
-        return Either.left(const AuthFailure(
-          'Login mobile tanpa refresh_token; cek client_type',
-          errorCode: 'INTERNAL_ERROR',
-        ));
-      }
-
-      await _tokenStorage.saveTokens(
-        accessToken: payload.accessToken,
-        refreshToken: refreshToken,
-      );
-      await _tokenStorage.saveSessionUser(
-        username: payload.user.username,
-        role: payload.user.role,
-        userId: payload.user.id,
-      );
-      await _tokenStorage.setIsAuth(true);
-
-      return Either.right(AuthSession(
-        userId: payload.user.id,
-        username: payload.user.username,
-        role: payload.user.role,
-      ));
+      return _persistSession(payload);
     } on DioException catch (error) {
-      return Either.left(AuthFailure(_mapDioError(error)));
+      return Either.left(
+        AuthFailure(_mapDioError(error), errorCode: _mapErrorCode(error)),
+      );
     } catch (error) {
       return Either.left(AuthFailure(error.toString()));
     }
+  }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      final response = await _remoteDatasource.verifyEmail(
+        VerifyEmailRequestDto(email: email, code: code),
+      );
+      final payload = response.data;
+      if (payload == null) {
+        return Either.left(
+          AuthFailure(
+            response.message ?? 'Verifikasi gagal',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+      return _persistSession(payload);
+    } on DioException catch (error) {
+      return Either.left(
+        AuthFailure(_mapDioError(error), errorCode: _mapErrorCode(error)),
+      );
+    } catch (error) {
+      return Either.left(AuthFailure(error.toString()));
+    }
+  }
+
+  @override
+  Future<Either<AuthFailure, void>> resendOtp({required String email}) async {
+    try {
+      await _remoteDatasource.resendOtp(ResendOtpRequestDto(email: email));
+      return Either.right(null);
+    } on DioException catch (error) {
+      return Either.left(
+        AuthFailure(_mapDioError(error), errorCode: _mapErrorCode(error)),
+      );
+    } catch (error) {
+      return Either.left(AuthFailure(error.toString()));
+    }
+  }
+
+  Future<Either<AuthFailure, AuthSession>> _persistSession(
+    LoginResponseDto payload,
+  ) async {
+    final refreshToken = payload.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return Either.left(
+        const AuthFailure(
+          'Login mobile tanpa refresh_token; cek client_type',
+          errorCode: 'INTERNAL_ERROR',
+        ),
+      );
+    }
+
+    await _tokenStorage.saveTokens(
+      accessToken: payload.accessToken,
+      refreshToken: refreshToken,
+    );
+    await _tokenStorage.saveSessionUser(
+      username: payload.user.username,
+      role: payload.user.role,
+      userId: payload.user.id,
+    );
+    await _tokenStorage.setIsAuth(true);
+
+    return Either.right(
+      AuthSession(
+        userId: payload.user.id,
+        username: payload.user.username,
+        role: payload.user.role,
+      ),
+    );
   }
 
   @override
@@ -131,8 +190,7 @@ class AuthRepositoryImpl implements AuthRepository {
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout =>
-        'Koneksi lambat, coba lagi',
+      DioExceptionType.receiveTimeout => 'Koneksi lambat, coba lagi',
       DioExceptionType.connectionError => 'Tidak ada koneksi internet',
       _ => 'Terjadi kesalahan, coba lagi',
     };

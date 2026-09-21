@@ -30,10 +30,12 @@ class ExplorePage extends StatelessWidget {
                 ),
                 icon: const Icon(FLucideIcons.sparkles),
               ),
-              const Gap(16),
+              const Gap(15),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                // Nested GridView default-nya inset MediaQuery (status bar).
+                padding: EdgeInsets.zero,
                 itemCount: ExploreCategory.all.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -46,10 +48,7 @@ class ExplorePage extends StatelessWidget {
                   return _CategoryCard(
                     category: cat,
                     onTap: () => context.push(
-                      ExploreRouter.category.path.replaceFirst(
-                        ':id',
-                        cat.id,
-                      ),
+                      ExploreRouter.category.path.replaceFirst(':id', cat.id),
                     ),
                   );
                 },
@@ -88,12 +87,16 @@ class _CategoryCard extends StatelessWidget {
                   Icon(category.icon, size: 26, color: theme.colors.primary),
                   if (category.comingSoon) ...[
                     const Gap(8),
-                    const Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: _ComingSoonBadge(),
+                    Expanded(
+                      child: Text(
+                        'Segera hadir',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.sm.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: theme.colors.mutedForeground,
                         ),
                       ),
                     ),
@@ -123,25 +126,6 @@ class _CategoryCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ComingSoonBadge extends StatelessWidget {
-  const _ComingSoonBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return FBadge(
-      variant: FBadgeVariant.outline,
-      style: .delta(
-        contentStyle: .delta(
-          padding: .value(
-            const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          ),
-        ),
-      ),
-      child: const Text('Coming Soon'),
     );
   }
 }

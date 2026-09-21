@@ -26,6 +26,9 @@ abstract class RegisterResponseDto with _$RegisterResponseDto {
     required String username,
     required String email,
     String? phone,
+    @JsonKey(name: 'verification_required')
+    @Default(true)
+    bool verificationRequired,
   }) = _RegisterResponseDto;
 
   factory RegisterResponseDto.fromJson(Map<String, dynamic> json) =>

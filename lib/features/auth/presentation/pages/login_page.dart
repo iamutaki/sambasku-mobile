@@ -8,6 +8,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/widgets/brand_logo.dart';
 import '../../../../flavors.dart';
+import '../../auth_router.dart';
 import '../providers/auth_login_providers.dart';
 import '../providers/auth_status_providers.dart';
 
@@ -38,6 +39,15 @@ class LoginPage extends HookConsumerWidget {
       if (next != null) context.go('/');
     });
 
+    ref.listen(authLoginProvider.select((s) => s.showUnverifiedSheet), (
+      _,
+      showSheet,
+    ) {
+      if (showSheet != true || !context.mounted) return;
+      ref.read(authLoginProvider.notifier).acknowledgeUnverifiedSheet();
+      _showEmailNotVerifiedSheet(context, email.text.trim());
+    });
+
     if (alreadyAuth) {
       return const FScaffold(
         childPad: true,
@@ -45,14 +55,14 @@ class LoginPage extends HookConsumerWidget {
       );
     }
 
-    final canSubmit = email.text.contains('@') &&
+    final canSubmit =
+        email.text.contains('@') &&
         password.text.length >= 8 &&
         !state.isSubmitting;
 
-    void submit() => ref.read(authLoginProvider.notifier).submit(
-          email: email.text,
-          password: password.text,
-        );
+    void submit() => ref
+        .read(authLoginProvider.notifier)
+        .submit(email: email.text, password: password.text);
 
     final theme = context.theme;
 
@@ -73,14 +83,14 @@ class LoginPage extends HookConsumerWidget {
                     child: BrandLogo(
                       frameBuilder:
                           (context, child, frame, wasSynchronouslyLoaded) {
-                        if ((wasSynchronouslyLoaded || frame != null) &&
-                            !logoLoaded.value) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (context.mounted) logoLoaded.value = true;
-                          });
-                        }
-                        return child;
-                      },
+                            if ((wasSynchronouslyLoaded || frame != null) &&
+                                !logoLoaded.value) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (context.mounted) logoLoaded.value = true;
+                              });
+                            }
+                            return child;
+                          },
                     ),
                   ),
                 ),
@@ -117,9 +127,7 @@ class LoginPage extends HookConsumerWidget {
                 const Gap(16),
                 FButton(
                   onPress: canSubmit ? submit : null,
-                  prefix: state.isSubmitting
-                      ? const FCircularProgress()
-                      : null,
+                  prefix: state.isSubmitting ? const FCircularProgress() : null,
                   child: Text(state.isSubmitting ? 'Memproses...' : 'Masuk'),
                 ),
                 const Gap(8),
@@ -145,4 +153,55 @@ class LoginPage extends HookConsumerWidget {
       ),
     );
   }
+}
+
+void _showEmailNotVerifiedSheet(BuildContext context, String email) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      final theme = sheetContext.theme;
+      return Material(
+        color: Theme.of(sheetContext).colorScheme.surface,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Email belum diverifikasi',
+                  style: theme.typography.lg.copyWith(fontWeight: .w600),
+                ),
+                const Gap(8),
+                Text(
+                  'Cek kotak masuk untuk kode OTP 6 digit, lalu verifikasi sebelum masuk.',
+                  style: theme.typography.sm.copyWith(
+                    color: theme.colors.mutedForeground,
+                  ),
+                ),
+                const Gap(16),
+                FButton(
+                  onPress: () {
+                    Navigator.of(sheetContext).pop();
+                    context.go(
+                      '${AuthRouter.verifyEmail.path}?email=${Uri.encodeComponent(email)}',
+                    );
+                  },
+                  child: const Text('Verifikasi sekarang'),
+                ),
+                const Gap(8),
+                FButton(
+                  variant: .ghost,
+                  onPress: () => Navigator.of(sheetContext).pop(),
+                  child: const Text('Nanti saja'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }

@@ -15,7 +15,7 @@ void main() {
         status: 'published',
         isVerified: true,
         isCorrected: false,
-        meanings: const [
+        meanings: [
           WordMeaning(
             id: 'M' * 26,
             orderIndex: 1,
@@ -38,7 +38,7 @@ void main() {
         status: 'published',
         isVerified: true,
         isCorrected: false,
-        meanings: const [
+        meanings: [
           WordMeaning(
             id: 'M' * 26,
             orderIndex: 1,
