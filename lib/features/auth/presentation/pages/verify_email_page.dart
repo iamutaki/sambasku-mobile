@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
@@ -9,7 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth_router.dart';
-import '../providers/auth_status_providers.dart';
+import '../../otp_code.dart';
+import '../otp_code_formatter.dart';
 import '../providers/auth_verify_providers.dart';
 
 const _resendCooldown = Duration(minutes: 2);
@@ -18,25 +18,6 @@ String _formatCooldown(int seconds) {
   final m = seconds ~/ 60;
   final s = (seconds % 60).toString().padLeft(2, '0');
   return '$m:$s';
-}
-
-/// Input OTP 6 digit, tampilan XXX-XYZ.
-class _OtpDashFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final clipped = digits.length > 6 ? digits.substring(0, 6) : digits;
-    final display = clipped.length <= 3
-        ? clipped
-        : '${clipped.substring(0, 3)}-${clipped.substring(3)}';
-    return TextEditingValue(
-      text: display,
-      selection: TextSelection.collapsed(offset: display.length),
-    );
-  }
 }
 
 class VerifyEmailPage extends HookConsumerWidget {
@@ -57,6 +38,11 @@ class VerifyEmailPage extends HookConsumerWidget {
     final remaining = useState(startCooldown ? _resendCooldown.inSeconds : 0);
 
     useEffect(() {
+      ref.invalidate(authVerifyProvider);
+      return null;
+    }, [email]);
+
+    useEffect(() {
       if (remaining.value <= 0) return null;
       final timer = Timer(const Duration(seconds: 1), () {
         remaining.value = remaining.value - 1;
@@ -64,10 +50,8 @@ class VerifyEmailPage extends HookConsumerWidget {
       return timer.cancel;
     }, [remaining.value]);
 
-    ref.listen(authStatusProvider, (_, next) {
-      if (next.value?.isAuth == true && context.mounted) context.go('/');
-    });
-
+    // Jangan tendang ke home hanya karena sesi user lama masih isAuth.
+    // Hanya OTP email ini yang sukses yang boleh masuk.
     ref.listen(authVerifyProvider.select((s) => s.session), (_, next) {
       if (next != null) context.go('/');
     });
@@ -89,9 +73,11 @@ class VerifyEmailPage extends HookConsumerWidget {
       );
     });
 
-    final digits = code.text.replaceAll(RegExp(r'\D'), '');
+    final digits = normalizeOtpInput(code.text);
     final canSubmit =
-        email.contains('@') && digits.length == 6 && !state.isSubmitting;
+        email.contains('@') &&
+        digits.length == otpCodeLength &&
+        !state.isSubmitting;
     final canResend =
         remaining.value == 0 &&
         !state.isSubmitting &&
@@ -123,7 +109,7 @@ class VerifyEmailPage extends HookConsumerWidget {
               crossAxisAlignment: .stretch,
               children: [
                 Text(
-                  'Masukkan kode 6 digit',
+                  'Masukkan kode 8 karakter',
                   textAlign: .center,
                   style: theme.typography.xl.copyWith(
                     fontWeight: .w600,
@@ -134,7 +120,7 @@ class VerifyEmailPage extends HookConsumerWidget {
                 Text(
                   email.isEmpty
                       ? 'Email tidak ada. Kembali ke daftar atau masuk.'
-                      : 'Kode dikirim ke $email (berlaku 10 menit). Format XXX-XYZ.',
+                      : 'Kode dikirim ke $email (berlaku 10 menit). Format XXXX-XXXX.',
                   textAlign: .center,
                   style: theme.typography.sm.copyWith(
                     color: theme.colors.mutedForeground,
@@ -145,10 +131,13 @@ class VerifyEmailPage extends HookConsumerWidget {
                   control: .managed(controller: code),
                   enabled: !state.isSubmitting && email.isNotEmpty,
                   label: const Text('Kode OTP'),
-                  hint: '123-456',
-                  keyboardType: .number,
+                  hint: 'A4K9-M2XP',
+                  keyboardType: .text,
+                  textCapitalization: .characters,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   textInputAction: .done,
-                  inputFormatters: [_OtpDashFormatter()],
+                  inputFormatters: [const OtpCodeDashFormatter()],
                   onSubmit: canSubmit ? (_) => submit() : null,
                 ),
                 if (state.errorMessage != null &&

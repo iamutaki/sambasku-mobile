@@ -7,14 +7,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/widgets/brand_logo.dart';
-import '../../../../flavors.dart';
 import '../../auth_router.dart';
 import '../providers/auth_login_providers.dart';
 import '../providers/auth_status_providers.dart';
+import '../widgets/facebook_auth_button.dart';
+import '../widgets/google_auth_button.dart';
 
-/// Halaman login (email + password). Google sign-in menyusul - backend
-/// Section 23 belum diimplement. Sukses login -> router redirect ke
-/// splash (isAuth sudah true).
+/// Halaman login (email + password). Google/Facebook: tombol di bawah Masuk.
 class LoginPage extends HookConsumerWidget {
   const LoginPage({super.key});
 
@@ -37,6 +36,14 @@ class LoginPage extends HookConsumerWidget {
     // pindah ke HOME begitu sesi tersimpan
     ref.listen(authLoginProvider.select((s) => s.session), (_, next) {
       if (next != null) context.go('/');
+    });
+
+    ref.listen(authLoginProvider.select((s) => s.errorCode), (_, code) {
+      if (code != 'RATE_LIMITED' || !context.mounted) return;
+      showFToast(
+        context: context,
+        title: Text(state.errorMessage ?? 'Coba lagi nanti'),
+      );
     });
 
     ref.listen(authLoginProvider.select((s) => s.showUnverifiedSheet), (
@@ -64,8 +71,6 @@ class LoginPage extends HookConsumerWidget {
         .read(authLoginProvider.notifier)
         .submit(email: email.text, password: password.text);
 
-    final theme = context.theme;
-
     return FScaffold(
       childPad: true,
       child: SafeArea(
@@ -78,9 +83,9 @@ class LoginPage extends HookConsumerWidget {
               children: [
                 Skeletonizer(
                   enabled: !logoLoaded.value,
-                  child: FractionallySizedBox(
-                    widthFactor: 0.55,
+                  child: Center(
                     child: BrandLogo(
+                      size: 148,
                       frameBuilder:
                           (context, child, frame, wasSynchronouslyLoaded) {
                             if ((wasSynchronouslyLoaded || frame != null) &&
@@ -94,16 +99,7 @@ class LoginPage extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                const Gap(12),
-                Text(
-                  F.title,
-                  textAlign: .center,
-                  style: theme.typography.xl2.copyWith(
-                    fontWeight: .w600,
-                    color: theme.colors.foreground,
-                  ),
-                ),
-                const Gap(32),
+                const Gap(24),
                 FTextField.email(
                   control: .managed(controller: email),
                   enabled: !state.isSubmitting,
@@ -117,7 +113,19 @@ class LoginPage extends HookConsumerWidget {
                   textInputAction: .done,
                   onSubmit: canSubmit ? (_) => submit() : null,
                 ),
-                if (state.errorMessage != null) ...[
+                const Gap(4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FButton(
+                    variant: .ghost,
+                    onPress: state.isSubmitting
+                        ? null
+                        : () => context.go(AuthRouter.forgotPassword.path),
+                    child: const Text('Lupa password?'),
+                  ),
+                ),
+                if (state.errorMessage != null &&
+                    state.errorCode != 'RATE_LIMITED') ...[
                   const Gap(12),
                   FAlert(
                     variant: .destructive,
@@ -130,6 +138,39 @@ class LoginPage extends HookConsumerWidget {
                   prefix: state.isSubmitting ? const FCircularProgress() : null,
                   child: Text(state.isSubmitting ? 'Memproses...' : 'Masuk'),
                 ),
+                if ((ref.watch(googleAuthEnabledProvider) &&
+                        !state.googleUnavailable) ||
+                    (ref.watch(facebookAuthEnabledProvider) &&
+                        !state.facebookUnavailable)) ...[
+                  const Gap(16),
+                  const GoogleAuthDivider(),
+                  if (ref.watch(googleAuthEnabledProvider) &&
+                      !state.googleUnavailable) ...[
+                    const Gap(16),
+                    GoogleAuthButton(
+                      label: 'Masuk dengan Google',
+                      isLoading: state.isSubmitting,
+                      onPress: state.isSubmitting
+                          ? null
+                          : () => ref
+                                .read(authLoginProvider.notifier)
+                                .submitGoogle(),
+                    ),
+                  ],
+                  if (ref.watch(facebookAuthEnabledProvider) &&
+                      !state.facebookUnavailable) ...[
+                    const Gap(16),
+                    FacebookAuthButton(
+                      label: 'Masuk dengan Facebook',
+                      isLoading: state.isSubmitting,
+                      onPress: state.isSubmitting
+                          ? null
+                          : () => ref
+                                .read(authLoginProvider.notifier)
+                                .submitFacebook(),
+                    ),
+                  ],
+                ],
                 const Gap(8),
                 FButton(
                   variant: .ghost,
@@ -176,7 +217,7 @@ void _showEmailNotVerifiedSheet(BuildContext context, String email) {
                 ),
                 const Gap(8),
                 Text(
-                  'Cek kotak masuk untuk kode OTP 6 digit, lalu verifikasi sebelum masuk.',
+                  'Cek kotak masuk untuk kode OTP 8 karakter 0-9A-Z, lalu verifikasi sebelum masuk.',
                   style: theme.typography.sm.copyWith(
                     color: theme.colors.mutedForeground,
                   ),

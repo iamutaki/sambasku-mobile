@@ -17,8 +17,17 @@ class _FakeRepo implements AuthRepository {
   Future<Either<AuthFailure, AuthSession>> login({
     required String email,
     required String password,
-  }) async =>
-      Either.left(const AuthFailure('tidak dipakai pada test ini'));
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> loginWithGoogle({
+    required String idToken,
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> loginWithFacebook({
+    required String accessToken,
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
 
   @override
   Future<Either<AuthFailure, void>> register({
@@ -27,31 +36,60 @@ class _FakeRepo implements AuthRepository {
     String? phone,
     required String password,
     required String confirmPassword,
-  }) async =>
-      Either.left(const AuthFailure('tidak dipakai pada test ini'));
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
 
   @override
   Future<Either<AuthFailure, void>> logout() async {
     calls++;
     return result;
   }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> verifyEmail({
+    required String email,
+    required String code,
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
+  Future<Either<AuthFailure, void>> resendOtp({required String email}) async =>
+      Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
+  Future<Either<AuthFailure, String>> forgotPassword({
+    required String email,
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
+
+  @override
+  Future<Either<AuthFailure, String>> resetPassword({
+    String? token,
+    String? email,
+    String? code,
+    required String newPassword,
+  }) async => Either.left(const AuthFailure('tidak dipakai pada test ini'));
 }
 
 void main() {
-  test('sukses - right(null) diteruskan dan repository dipanggil sekali', () async {
-    final repo = _FakeRepo(Either.right(null));
-    final usecase = LogoutUseCase(repo);
+  test(
+    'sukses - right(null) diteruskan dan repository dipanggil sekali',
+    () async {
+      final repo = _FakeRepo(Either.right(null));
+      final usecase = LogoutUseCase(repo);
 
-    final result = await usecase();
+      final result = await usecase();
 
-    expect(repo.calls, 1);
-    expect(result.isRight(), true);
-  });
+      expect(repo.calls, 1);
+      expect(result.isRight(), true);
+    },
+  );
 
   test('gagal - failure diteruskan tanpa diubah', () async {
     final repo = _FakeRepo(
-      Either.left(const AuthFailure('Token tidak valid',
-          errorCode: 'REFRESH_TOKEN_INVALID')),
+      Either.left(
+        const AuthFailure(
+          'Token tidak valid',
+          errorCode: 'REFRESH_TOKEN_INVALID',
+        ),
+      ),
     );
     final usecase = LogoutUseCase(repo);
 

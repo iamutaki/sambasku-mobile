@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../flavors.dart';
 
-/// Logo brand per flavor. Staging memakai pita STG, production bersih.
+/// Wordmark horizontal (perisai + SambasKu). Email OTP, bukan login.
+const kBrandWordmarkAsset = 'assets/icons/logo_horizontal.webp';
+
+/// Logo persegi per flavor (`logo.png` / `logo.staging.png`), radius 15.
+/// Login, onboarding, about. Staging: pita STG di aset.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({
     super.key,
@@ -39,6 +43,27 @@ class BrandLogo extends StatelessWidget {
             color: Colors.grey,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Wordmark landscape. Tanpa ClipRRect persegi — rasio 734×212.
+class BrandWordmark extends StatelessWidget {
+  const BrandWordmark({super.key, this.frameBuilder});
+
+  final ImageFrameBuilder? frameBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      kBrandWordmarkAsset,
+      fit: BoxFit.contain,
+      frameBuilder: frameBuilder,
+      errorBuilder: (context, error, stackTrace) => Icon(
+        Icons.menu_book_rounded,
+        size: 48,
+        color: Colors.grey.shade400,
       ),
     );
   }

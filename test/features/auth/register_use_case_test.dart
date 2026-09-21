@@ -36,7 +36,51 @@ class _FakeRepo implements AuthRepository {
   }
 
   @override
+  Future<Either<AuthFailure, AuthSession>> loginWithGoogle({
+    required String idToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> loginWithFacebook({
+    required String accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Either<AuthFailure, void>> logout() async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, void>> resendOtp({required String email}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, String>> forgotPassword({
+    required String email,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, String>> resetPassword({
+    String? token,
+    String? email,
+    String? code,
+    required String newPassword,
+  }) async {
     throw UnimplementedError();
   }
 }
@@ -64,10 +108,12 @@ void main() {
 
   test('gagal - failure diteruskan', () async {
     final repo = _FakeRepo(
-      Either.left(const AuthFailure(
-        'Email sudah terdaftar',
-        errorCode: 'EMAIL_ALREADY_EXISTS',
-      )),
+      Either.left(
+        const AuthFailure(
+          'Email sudah terdaftar',
+          errorCode: 'EMAIL_ALREADY_EXISTS',
+        ),
+      ),
     );
     final usecase = RegisterUseCase(repo);
 

@@ -47,6 +47,13 @@ android {
     }
 
     buildTypes {
+        // Pakai upload JKS juga di debug supaya SHA-1 Google Sign-In sama
+        // dengan release (flutter run ≠ ~/.android/debug.keystore).
+        debug {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")

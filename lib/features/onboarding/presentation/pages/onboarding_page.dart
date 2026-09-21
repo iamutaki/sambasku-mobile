@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/widgets/brand_logo.dart';
-import '../../../../flavors.dart';
 import '../../data/onboarding_prefs.dart';
 
 /// Onboarding first-install: welcome → fitur → izin notifikasi.
@@ -97,18 +96,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: BrandLogo(size: 96)),
-                const Gap(12),
-                Text(
-                  F.title,
-                  textAlign: TextAlign.center,
-                  style: theme.typography.sm.copyWith(
-                    color: theme.colors.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const Gap(12),
+                const Gap(50),
+                const Center(child: BrandLogo(size: 168)),
+                const Gap(16),
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,

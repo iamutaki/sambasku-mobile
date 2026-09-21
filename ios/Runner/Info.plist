@@ -18,6 +18,39 @@
 	<string>SambasKu</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.iamutaki.sambasku.reset</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sambasku</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Google Sign-In: tambah GIDClientID + URL scheme reversed iOS client ID.
+	     Jangan timpa scheme sambasku di atas (reset password).
+	     Lihat docs/mobile/13-mobile-auth-google.md -->
+	<!-- Facebook Login: isi FacebookAppID + FacebookClientToken + URL scheme
+	     fb{APP_ID} (array terpisah, jangan timpa sambasku).
+	     LSApplicationQueriesSchemes: fbapi, fb-messenger-share-api.
+	     Lihat docs/mobile/19-mobile-auth-facebook.md -->
+	<key>FacebookAppID</key>
+	<string>0</string>
+	<key>FacebookClientToken</key>
+	<string>0</string>
+	<key>FacebookDisplayName</key>
+	<string>SambasKu</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

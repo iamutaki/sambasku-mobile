@@ -1,4 +1,6 @@
-# Copy ke android/key.properties (gitignored) untuk build release lokal.
+# Copy ke android/key.properties (gitignored) untuk sign debug + release
+# dengan upload-keystore.jks. Tanpa file ini, debug tetap pakai
+# ~/.android/debug.keystore (SHA-1 beda → Google Sign-In gagal).
 # Di CI, file ini digenerate dari GitHub Secrets (lihat deploy-staging.yml).
 #
 # storeFile relatif ke android/app/ (tempat build.gradle.kts).

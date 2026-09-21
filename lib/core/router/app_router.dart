@@ -109,7 +109,10 @@ class AppRouter {
   /// Tamu BOLEH pakai app (pencarian publik). Redirect:
   /// - onboarding belum selesai → /onboarding
   /// - onboarding selesai tapi masih di /onboarding → HOME
-  /// - user sudah login tapi masih di /login, /register, /verify-email → HOME
+  /// - user sudah login tapi masih di /login → HOME
+  /// Register, verify-email, forgot/reset tidak di-redirect: daftar akun
+  /// baru boleh terjadi meski sesi lama ada, dan tautan reset dari email
+  /// harus tetap bisa dibuka.
   static Future<String?> _redirect(
     BuildContext context,
     GoRouterState state,
@@ -126,12 +129,7 @@ class AppRouter {
     }
 
     final isAuth = await _tokenStorage.getIsAuth();
-    final isOnAuth =
-        loc == AuthRouter.login.path ||
-        loc == AuthRouter.register.path ||
-        loc == AuthRouter.verifyEmail.path;
-
-    if (isAuth && isOnAuth) return '/';
+    if (isAuth && loc == AuthRouter.login.path) return '/';
 
     return null;
   }

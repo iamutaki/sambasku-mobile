@@ -23,6 +23,16 @@ class _FakeAuthRepository implements AuthRepository {
   }) async => Either.left(const AuthFailure('tidak dipakai'));
 
   @override
+  Future<Either<AuthFailure, AuthSession>> loginWithGoogle({
+    required String idToken,
+  }) async => Either.left(const AuthFailure('tidak dipakai'));
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> loginWithFacebook({
+    required String accessToken,
+  }) async => Either.left(const AuthFailure('tidak dipakai'));
+
+  @override
   Future<Either<AuthFailure, void>> register({
     required String name,
     required String email,
@@ -33,6 +43,32 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Either<AuthFailure, void>> logout() async => Either.right(null);
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> verifyEmail({
+    required String email,
+    required String code,
+  }) async =>
+      Either.left(const AuthFailure('tidak dipakai'));
+
+  @override
+  Future<Either<AuthFailure, void>> resendOtp({required String email}) async =>
+      Either.left(const AuthFailure('tidak dipakai'));
+
+  @override
+  Future<Either<AuthFailure, String>> forgotPassword({
+    required String email,
+  }) async =>
+      Either.left(const AuthFailure('tidak dipakai'));
+
+  @override
+  Future<Either<AuthFailure, String>> resetPassword({
+    String? token,
+    String? email,
+    String? code,
+    required String newPassword,
+  }) async =>
+      Either.left(const AuthFailure('tidak dipakai'));
 }
 
 /// Harness meniru struktur App asli: watch provider → MaterialApp.theme
