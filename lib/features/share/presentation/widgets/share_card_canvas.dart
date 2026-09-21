@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../domain/share_models.dart';
 import 'share_video_layer.dart';
 
-/// Empat template kartu share (preview + PNG).
+/// Template kartu share (preview + PNG overlay).
 class ShareCardCanvas extends StatelessWidget {
   const ShareCardCanvas({
     super.key,
@@ -74,6 +74,43 @@ class ShareCardCanvas extends StatelessWidget {
           layout: layout,
         ),
         ShareTemplateId.polaroid => _PolaroidCard(
+          data: data,
+          settings: settings,
+          imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+          layout: layout,
+        ),
+        ShareTemplateId.sisi => _SisiCard(
+          data: data,
+          settings: settings,
+          ratio: ratio,
+          imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+          layout: layout,
+        ),
+        ShareTemplateId.kaca => _KacaCard(
+          data: data,
+          settings: settings,
+          imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+          layout: layout,
+        ),
+        ShareTemplateId.kutipan => _KutipanCard(
+          data: data,
+          settings: settings,
+          imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+          layout: layout,
+        ),
+        ShareTemplateId.kartu => _KartuCard(
           data: data,
           settings: settings,
           imageProvider: imageProvider,
@@ -937,3 +974,580 @@ class _PolaroidCard extends StatelessWidget {
     );
   }
 }
+
+class _SisiCard extends StatelessWidget {
+  const _SisiCard({
+    required this.data,
+    required this.settings,
+    required this.ratio,
+    required this.layout,
+    this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
+  });
+
+  final ShareCardData data;
+  final ShareEditorSettings settings;
+  final ShareRatioId ratio;
+  final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
+  final _LayoutCallbacks layout;
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = settings.fontPair;
+    final dark = settings.textColorId.prefersDarkSurface;
+    final panel = dark ? const Color(0xFF1C1917) : const Color(0xFFF5F0E8);
+    final lemmaColor = settings.textColorId.lemma;
+    final bodyColor = settings.textColorId.body;
+    final gradient = settings.gradientId.colors;
+    final media = ClipRect(
+      child: _photoOrGradient(
+        imageProvider: imageProvider,
+        gradient: gradient,
+        videoUrl: videoUrl,
+        videoIsFile: videoIsFile,
+        transparentBackdrop: transparentBackdrop,
+      ),
+    );
+    final text = ColoredBox(
+      color: panel,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(56, 64, 56, 120),
+        child: _stackedCopy(
+          data: data,
+          settings: settings,
+          layout: layout,
+          pair: pair,
+          lemmaColor: lemmaColor,
+          bodyColor: bodyColor,
+          lemmaSize: 88 * settings.lemmaFontScale,
+          align: CrossAxisAlignment.start,
+        ),
+      ),
+    );
+    final split = ratio == ShareRatioId.post
+        ? Row(
+            children: [
+              Expanded(flex: 5, child: media),
+              Expanded(flex: 5, child: text),
+            ],
+          )
+        : Column(
+            children: [
+              Expanded(flex: 11, child: media),
+              Expanded(flex: 9, child: text),
+            ],
+          );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        split,
+        if (settings.showWatermark)
+          Positioned(
+            right: 40,
+            bottom: 40,
+            child: _watermark(data: data, pair: pair),
+          ),
+      ],
+    );
+  }
+}
+
+class _KacaCard extends StatelessWidget {
+  const _KacaCard({
+    required this.data,
+    required this.settings,
+    required this.layout,
+    this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
+  });
+
+  final ShareCardData data;
+  final ShareEditorSettings settings;
+  final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
+  final _LayoutCallbacks layout;
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = settings.fontPair;
+    final lemmaColor = settings.textColorId.lemma;
+    final bodyColor = settings.textColorId.body;
+    final overlay = settings.overlayStrength.clamp(0.0, 1.0);
+    final gradient = settings.gradientId.colors;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _photoOrGradient(
+          imageProvider: imageProvider,
+          gradient: gradient,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Color.fromRGBO(0, 0, 0, 0.55 * overlay + 0.12),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(56, 80, 56, 120),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(36),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.22 + 0.28 * overlay),
+                    borderRadius: BorderRadius.circular(36),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  child: _stackedCopy(
+                    data: data,
+                    settings: settings,
+                    layout: layout,
+                    pair: pair,
+                    lemmaColor: lemmaColor,
+                    bodyColor: bodyColor,
+                    lemmaSize: 96 * settings.lemmaFontScale,
+                    align: CrossAxisAlignment.start,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (settings.showWatermark)
+          Positioned(
+            right: 48,
+            bottom: 48,
+            child: _watermark(data: data, pair: pair),
+          ),
+      ],
+    );
+  }
+}
+
+class _KutipanCard extends StatelessWidget {
+  const _KutipanCard({
+    required this.data,
+    required this.settings,
+    required this.layout,
+    this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
+  });
+
+  final ShareCardData data;
+  final ShareEditorSettings settings;
+  final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
+  final _LayoutCallbacks layout;
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = settings.fontPair;
+    final lemmaColor = settings.textColorId.lemma;
+    final bodyColor = settings.textColorId.body;
+    final overlay = settings.overlayStrength.clamp(0.0, 1.0);
+    final gradient = settings.gradientId.colors;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _photoOrGradient(
+          imageProvider: imageProvider,
+          gradient: gradient,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+        ),
+        ColoredBox(
+          color: Color.fromRGBO(0, 0, 0, 0.35 * overlay + 0.28),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(72, 160, 72, 160),
+          child: Column(
+            children: [
+              Text(
+                '"',
+                style: _lemmaStyle(
+                  pair: pair,
+                  size: 160,
+                  color: lemmaColor.withValues(alpha: 0.55),
+                ).copyWith(height: 0.7),
+              ),
+              const Spacer(),
+              _laidOut(
+                id: ShareTextElementId.lemma,
+                settings: settings,
+                layout: layout,
+                child: Text(
+                  data.lemma,
+                  textAlign: TextAlign.center,
+                  style: _lemmaStyle(
+                    pair: pair,
+                    size: 108 * settings.lemmaFontScale,
+                    color: lemmaColor,
+                  ),
+                ),
+              ),
+              if (settings.showPadanan &&
+                  data.padanan != null &&
+                  data.padanan!.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _laidOut(
+                  id: ShareTextElementId.padanan,
+                  settings: settings,
+                  layout: layout,
+                  child: Text(
+                    data.padanan!,
+                    textAlign: TextAlign.center,
+                    style: _bodyStyle(
+                      pair: pair,
+                      size: 42 * settings.bodyFontScale,
+                      color: lemmaColor,
+                    ).copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+              if (settings.showDefinition &&
+                  data.definition != null &&
+                  data.definition!.isNotEmpty) ...[
+                const SizedBox(height: 28),
+                _laidOut(
+                  id: ShareTextElementId.definition,
+                  settings: settings,
+                  layout: layout,
+                  child: Text(
+                    data.definition!,
+                    textAlign: TextAlign.center,
+                    maxLines: 5,
+                    style: _bodyStyle(
+                      pair: pair,
+                      size: 34 * settings.bodyFontScale,
+                      color: bodyColor,
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (settings.showWordClass)
+                _laidOut(
+                  id: ShareTextElementId.wordClass,
+                  settings: settings,
+                  layout: layout,
+                  child: _classPill(
+                    data.wordClassName,
+                    lemmaColor,
+                    pair: pair,
+                  ),
+                ),
+              if (settings.showExample &&
+                  data.exampleSentence != null &&
+                  data.exampleSentence!.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _laidOut(
+                  id: ShareTextElementId.example,
+                  settings: settings,
+                  layout: layout,
+                  child: Text(
+                    '"${data.exampleSentence}"',
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    style: _bodyStyle(
+                      pair: pair,
+                      size: 28 * settings.bodyFontScale,
+                      color: bodyColor.withValues(alpha: 0.9),
+                    ).copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (settings.showWatermark)
+          Positioned(
+            right: 48,
+            bottom: 48,
+            child: _watermark(data: data, pair: pair),
+          ),
+      ],
+    );
+  }
+}
+
+class _KartuCard extends StatelessWidget {
+  const _KartuCard({
+    required this.data,
+    required this.settings,
+    required this.layout,
+    this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
+  });
+
+  final ShareCardData data;
+  final ShareEditorSettings settings;
+  final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
+  final _LayoutCallbacks layout;
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = settings.fontPair;
+    final dark = settings.textColorId.prefersDarkSurface;
+    final paper = dark ? const Color(0xFF1C1917) : const Color(0xFFFFFBF5);
+    final lemmaColor = settings.textColorId.lemma;
+    final bodyColor = settings.textColorId.body;
+    final gradient = settings.gradientId.colors;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(
+          color: paper,
+          child: Column(
+            children: [
+              Expanded(
+                flex: 9,
+                child: ClipRect(
+                  child: _photoOrGradient(
+                    imageProvider: imageProvider,
+                    gradient: gradient,
+                    videoUrl: videoUrl,
+                    videoIsFile: videoIsFile,
+                    transparentBackdrop: transparentBackdrop,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 11,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(64, 48, 64, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (settings.showWordClass)
+                        _laidOut(
+                          id: ShareTextElementId.wordClass,
+                          settings: settings,
+                          layout: layout,
+                          child: _classPill(
+                            data.wordClassName,
+                            lemmaColor,
+                            pair: pair,
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      _laidOut(
+                        id: ShareTextElementId.lemma,
+                        settings: settings,
+                        layout: layout,
+                        child: Text(
+                          data.lemma,
+                          style: _lemmaStyle(
+                            pair: pair,
+                            size: 92 * settings.lemmaFontScale,
+                            color: lemmaColor,
+                          ),
+                        ),
+                      ),
+                      if (settings.showPadanan &&
+                          data.padanan != null &&
+                          data.padanan!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _laidOut(
+                          id: ShareTextElementId.padanan,
+                          settings: settings,
+                          layout: layout,
+                          child: Text(
+                            data.padanan!,
+                            style: _bodyStyle(
+                              pair: pair,
+                              size: 36 * settings.bodyFontScale,
+                              color: lemmaColor,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Container(
+                        height: 2,
+                        color: bodyColor.withValues(alpha: 0.22),
+                      ),
+                      const SizedBox(height: 24),
+                      if (settings.showDefinition &&
+                          data.definition != null &&
+                          data.definition!.isNotEmpty)
+                        _laidOut(
+                          id: ShareTextElementId.definition,
+                          settings: settings,
+                          layout: layout,
+                          child: Text(
+                            data.definition!,
+                            maxLines: 6,
+                            style: _bodyStyle(
+                              pair: pair,
+                              size: 36 * settings.bodyFontScale,
+                              color: bodyColor,
+                            ),
+                          ),
+                        ),
+                      if (settings.showExample &&
+                          data.exampleSentence != null &&
+                          data.exampleSentence!.isNotEmpty) ...[
+                        const Spacer(),
+                        _laidOut(
+                          id: ShareTextElementId.example,
+                          settings: settings,
+                          layout: layout,
+                          child: Text(
+                            data.exampleSentence!,
+                            maxLines: 3,
+                            style: _bodyStyle(
+                              pair: pair,
+                              size: 28 * settings.bodyFontScale,
+                              color: bodyColor.withValues(alpha: 0.85),
+                            ).copyWith(fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (settings.showWatermark)
+          Positioned(
+            right: 48,
+            bottom: 48,
+            child: _watermark(data: data, pair: pair),
+          ),
+      ],
+    );
+  }
+}
+
+Widget _stackedCopy({
+  required ShareCardData data,
+  required ShareEditorSettings settings,
+  required _LayoutCallbacks layout,
+  required ShareFontPair pair,
+  required Color lemmaColor,
+  required Color bodyColor,
+  required double lemmaSize,
+  required CrossAxisAlignment align,
+}) {
+  return Column(
+    crossAxisAlignment: align,
+    children: [
+      if (settings.showWordClass)
+        _laidOut(
+          id: ShareTextElementId.wordClass,
+          settings: settings,
+          layout: layout,
+          child: _classPill(data.wordClassName, lemmaColor, pair: pair),
+        ),
+      const Spacer(),
+      _laidOut(
+        id: ShareTextElementId.lemma,
+        settings: settings,
+        layout: layout,
+        child: Text(
+          data.lemma,
+          style: _lemmaStyle(pair: pair, size: lemmaSize, color: lemmaColor),
+        ),
+      ),
+      if (settings.showPadanan &&
+          data.padanan != null &&
+          data.padanan!.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        _laidOut(
+          id: ShareTextElementId.padanan,
+          settings: settings,
+          layout: layout,
+          child: Text(
+            data.padanan!,
+            style: _bodyStyle(
+              pair: pair,
+              size: 38 * settings.bodyFontScale,
+              color: lemmaColor,
+            ),
+          ),
+        ),
+      ],
+      if (settings.showDefinition &&
+          data.definition != null &&
+          data.definition!.isNotEmpty) ...[
+        const SizedBox(height: 20),
+        _laidOut(
+          id: ShareTextElementId.definition,
+          settings: settings,
+          layout: layout,
+          child: Text(
+            data.definition!,
+            maxLines: 5,
+            style: _bodyStyle(
+              pair: pair,
+              size: 32 * settings.bodyFontScale,
+              color: bodyColor,
+            ),
+          ),
+        ),
+      ],
+      if (settings.showExample &&
+          data.exampleSentence != null &&
+          data.exampleSentence!.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        _laidOut(
+          id: ShareTextElementId.example,
+          settings: settings,
+          layout: layout,
+          child: Text(
+            data.exampleSentence!,
+            maxLines: 3,
+            style: _bodyStyle(
+              pair: pair,
+              size: 26 * settings.bodyFontScale,
+              color: bodyColor.withValues(alpha: 0.85),
+            ).copyWith(fontStyle: FontStyle.italic),
+          ),
+        ),
+      ],
+      const Spacer(),
+    ],
+  );
+}
+

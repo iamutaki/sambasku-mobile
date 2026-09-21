@@ -326,6 +326,10 @@ enum ShareTemplateId {
   kamusEditorial,
   posterHuruf,
   polaroid,
+  sisi,
+  kaca,
+  kutipan,
+  kartu,
 }
 
 enum ShareRatioId {
@@ -353,7 +357,18 @@ extension ShareTemplateIdX on ShareTemplateId {
     ShareTemplateId.kamusEditorial => 'Editorial',
     ShareTemplateId.posterHuruf => 'Poster',
     ShareTemplateId.polaroid => 'Bingkai',
+    ShareTemplateId.sisi => 'Sisi',
+    ShareTemplateId.kaca => 'Kaca',
+    ShareTemplateId.kutipan => 'Kutipan',
+    ShareTemplateId.kartu => 'Kartu',
   };
 
   bool get forcesNoPhoto => this == ShareTemplateId.posterHuruf;
+
+  bool get usesOverlay => switch (this) {
+    ShareTemplateId.unsplash ||
+    ShareTemplateId.kaca ||
+    ShareTemplateId.kutipan => true,
+    _ => false,
+  };
 }

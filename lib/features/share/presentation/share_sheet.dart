@@ -268,9 +268,10 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
 
   Future<void> _openImageExplorer() async {
     if (_template.forcesNoPhoto) return;
-    final selected = await showShareImageExplorer(
+    final selected = await showShareMediaExplorer(
       context,
       backgrounds: widget.backgrounds,
+      initialVideo: _isVideoBackground,
     );
     if (!mounted || selected == null) return;
     setState(() {
@@ -765,6 +766,14 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                           ),
                           const Gap(8),
                           _SourceChip(
+                            label: 'Explorer',
+                            selected: false,
+                            selectedBorder: chipSelected,
+                            icon: Icons.travel_explore,
+                            onTap: canExplore ? _openImageExplorer : null,
+                          ),
+                          const Gap(8),
+                          _SourceChip(
                             label: 'Galeri',
                             selected: _bgSource == ShareBgSource.device &&
                                 (_localImageFile != null ||
@@ -845,13 +854,6 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                             ),
                             const Gap(8),
                           ],
-                          _SourceChip(
-                            label: 'Explorer',
-                            selected: false,
-                            selectedBorder: chipSelected,
-                            icon: Icons.travel_explore,
-                            onTap: canExplore ? _openImageExplorer : null,
-                          ),
                         ],
                       ),
                     ),
@@ -866,7 +868,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      'Tahan thumb untuk preview fullscreen · Explorer untuk cari latar',
+                      'Tahan thumb untuk preview fullscreen · Explorer untuk cari gambar atau video',
                       style: theme.typography.sm.copyWith(
                         color: chipMuted,
                         fontSize: 11,
@@ -1068,7 +1070,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                       _settings = _settings.copyWith(bodyFontScale: v);
                     }),
                   ),
-                  if (_template == ShareTemplateId.unsplash) ...[
+                  if (_template.usesOverlay) ...[
                     Text('Ketebalan overlay', style: theme.typography.sm),
                     Slider(
                       value: _settings.overlayStrength,

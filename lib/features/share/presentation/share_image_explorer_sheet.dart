@@ -5,35 +5,55 @@ import 'package:gap/gap.dart';
 import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
 
-/// Jelajah / cari latar (Unsplash, Pexels foto, Pexels video).
-Future<ShareBackground?> showShareImageExplorer(
+const _photoProviders = ['unsplash', 'pexels'];
+const _videoProviders = ['pexels'];
+
+String _providerLabel(String id) => switch (id) {
+      'pexels' => 'Pexels',
+      _ => 'Unsplash',
+    };
+
+/// Jelajah latar: tab Gambar | Video, provider sebagai chip di dalam tab.
+Future<ShareBackground?> showShareMediaExplorer(
   BuildContext context, {
   required ShareBackgroundRepository backgrounds,
+  bool initialVideo = false,
 }) {
   return showModalBottomSheet<ShareBackground>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => _ImageExplorerBody(backgrounds: backgrounds),
+    builder: (_) => _MediaExplorerBody(
+      backgrounds: backgrounds,
+      initialVideo: initialVideo,
+    ),
   );
 }
 
-class _ImageExplorerBody extends StatefulWidget {
-  const _ImageExplorerBody({required this.backgrounds});
+class _MediaExplorerBody extends StatefulWidget {
+  const _MediaExplorerBody({
+    required this.backgrounds,
+    required this.initialVideo,
+  });
 
   final ShareBackgroundRepository backgrounds;
+  final bool initialVideo;
 
   @override
-  State<_ImageExplorerBody> createState() => _ImageExplorerBodyState();
+  State<_MediaExplorerBody> createState() => _MediaExplorerBodyState();
 }
 
-class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
+class _MediaExplorerBodyState extends State<_MediaExplorerBody>
+    with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  late final TabController _tabs;
 
-  String _provider = 'unsplash';
-  String _media = 'photo';
-  String _mode = 'popular'; // popular | relevant
+  String _photoProvider = 'unsplash';
+  String _videoProvider = 'pexels';
+  late String _media;
+  late String _provider;
+  String _mode = 'popular';
   String _activeQuery = '';
   int _page = 1;
   bool _loading = true;
@@ -45,15 +65,36 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
   @override
   void initState() {
     super.initState();
+    _media = widget.initialVideo ? 'video' : 'photo';
+    _provider = _media == 'video' ? _videoProvider : _photoProvider;
+    _tabs = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialVideo ? 1 : 0,
+    );
+    _tabs.addListener(_onTab);
     _scrollCtrl.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitial());
   }
 
   @override
   void dispose() {
+    _tabs.removeListener(_onTab);
+    _tabs.dispose();
     _searchCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _onTab() {
+    if (_tabs.indexIsChanging) return;
+    final nextMedia = _tabs.index == 1 ? 'video' : 'photo';
+    if (nextMedia == _media) return;
+    setState(() {
+      _media = nextMedia;
+      _provider = nextMedia == 'video' ? _videoProvider : _photoProvider;
+    });
+    _loadInitial();
   }
 
   void _onScroll() {
@@ -63,6 +104,9 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
       _loadMore();
     }
   }
+
+  List<String> get _providersForTab =>
+      _media == 'video' ? _videoProviders : _photoProviders;
 
   Future<void> _loadInitial() async {
     setState(() {
@@ -129,10 +173,25 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
     _loadInitial();
   }
 
+  void _selectProvider(String id) {
+    setState(() {
+      if (_media == 'video') {
+        _videoProvider = id;
+      } else {
+        _photoProvider = id;
+      }
+      _provider = id;
+    });
+    _loadInitial();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     final media = MediaQuery.of(context);
+    final badge = _media == 'video'
+        ? '${_providerLabel(_provider)} video'
+        : _providerLabel(_provider);
 
     return SizedBox(
       height: media.size.height * 0.92,
@@ -148,7 +207,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Image Explorer',
+                        'Media Explorer',
                         style: theme.typography.lg.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -165,9 +224,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                           border: Border.all(color: theme.colors.border),
                         ),
                         child: Text(
-                          _media == 'video'
-                              ? 'Pexels video'
-                              : (_provider == 'pexels' ? 'Pexels' : 'Unsplash'),
+                          badge,
                           style: theme.typography.sm.copyWith(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -185,44 +242,27 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
               ],
             ),
           ),
+          TabBar(
+            controller: _tabs,
+            labelColor: theme.colors.foreground,
+            unselectedLabelColor: theme.colors.mutedForeground,
+            indicatorColor: theme.colors.primary,
+            tabs: const [
+              Tab(text: 'Gambar'),
+              Tab(text: 'Video'),
+            ],
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: Wrap(
               spacing: 8,
               children: [
-                FilterChip(
-                  label: const Text('Unsplash'),
-                  selected: _provider == 'unsplash' && _media == 'photo',
-                  onSelected: (_) {
-                    setState(() {
-                      _provider = 'unsplash';
-                      _media = 'photo';
-                    });
-                    _loadInitial();
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Pexels'),
-                  selected: _provider == 'pexels' && _media == 'photo',
-                  onSelected: (_) {
-                    setState(() {
-                      _provider = 'pexels';
-                      _media = 'photo';
-                    });
-                    _loadInitial();
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Video'),
-                  selected: _media == 'video',
-                  onSelected: (_) {
-                    setState(() {
-                      _provider = 'pexels';
-                      _media = 'video';
-                    });
-                    _loadInitial();
-                  },
-                ),
+                for (final id in _providersForTab)
+                  FilterChip(
+                    label: Text(_providerLabel(id)),
+                    selected: _provider == id,
+                    onSelected: (_) => _selectProvider(id),
+                  ),
               ],
             ),
           ),
@@ -236,7 +276,9 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => _onSearch(),
                     decoration: InputDecoration(
-                      hintText: 'Cari latar…',
+                      hintText: _media == 'video'
+                          ? 'Cari video…'
+                          : 'Cari gambar…',
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -270,80 +312,84 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
             ),
           ),
           const Gap(8),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            _degraded
-                                ? 'Latar tidak tersedia. Coba lagi nanti.'
-                                : 'Tidak ada hasil.',
-                            textAlign: TextAlign.center,
-                            style: theme.typography.sm.copyWith(
-                              color: theme.colors.mutedForeground,
-                            ),
-                          ),
-                        ),
-                      )
-                    : GridView.builder(
-                        controller: _scrollCtrl,
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                        ),
-                        itemCount: _items.length + (_loadingMore ? 1 : 0),
-                        itemBuilder: (context, i) {
-                          if (i >= _items.length) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          }
-                          final item = _items[i];
-                          return GestureDetector(
-                            onTap: () => Navigator.of(context).pop(item),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.network(
-                                    item.thumbUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => ColoredBox(
-                                      color: theme.colors.secondary,
-                                      child: Icon(
-                                        Icons.broken_image_outlined,
-                                        color: theme.colors.mutedForeground,
-                                      ),
-                                    ),
-                                  ),
-                                  if (item.isVideo)
-                                    const Align(
-                                      alignment: Alignment.center,
-                                      child: Icon(
-                                        Icons.play_circle_fill,
-                                        color: Colors.white,
-                                        size: 28,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-          ),
+          Expanded(child: _buildGrid(context)),
         ],
       ),
+    );
+  }
+
+  Widget _buildGrid(BuildContext context) {
+    final theme = context.theme;
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _degraded
+                ? 'Latar tidak tersedia. Coba lagi nanti.'
+                : 'Tidak ada hasil.',
+            textAlign: TextAlign.center,
+            style: theme.typography.sm.copyWith(
+              color: theme.colors.mutedForeground,
+            ),
+          ),
+        ),
+      );
+    }
+    return GridView.builder(
+      controller: _scrollCtrl,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: _items.length + (_loadingMore ? 1 : 0),
+      itemBuilder: (context, i) {
+        if (i >= _items.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        final item = _items[i];
+        return GestureDetector(
+          onTap: () => Navigator.of(context).pop(item),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  item.thumbUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => ColoredBox(
+                    color: theme.colors.secondary,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                ),
+                if (item.isVideo)
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.play_circle_fill,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
