@@ -9,6 +9,7 @@ import 'package:sambasku_mobile/core/theme/theme_mode_controller.dart';
 import 'package:sambasku_mobile/features/onboarding/data/onboarding_prefs.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/entities/search_miss.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/failures/search_miss_failure.dart';
+import 'package:sambasku_mobile/features/dictionary/presentation/providers/word_of_day_providers.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/providers/search_miss_domain_providers.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/usecases/list_search_misses_use_case.dart';
 import 'package:sambasku_mobile/flavors.dart';
@@ -44,6 +45,9 @@ void main() {
         overrides: [
           listSearchMissesUseCaseProvider
               .overrideWithValue(const _FakeListSearchMissesUseCase()),
+          // Kata hari ini juga hit Dio; tanpa stub, connectTimeout
+          // menyisakan pending Timer di fake-async.
+          wordOfDayProvider.overrideWith((ref) async => null),
         ],
         child: const App(),
       ),

@@ -8,6 +8,13 @@ void main() {
   setUpAll(() => F.appFlavor = Flavor.production);
 
   testWidgets('menampilkan fitur tanpa seksi pengembang', (tester) async {
+    // Logo + blok fitur lebih tinggi dari viewport default 800×600;
+    // ListView tidak membangun "Usulkan" / "Bagikan kartu" di bawah fold.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MaterialApp(
         theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
@@ -27,7 +34,18 @@ void main() {
     expect(find.text('Apa itu SambasKu?'), findsOneWidget);
     expect(find.text('Cari kosakata'), findsOneWidget);
     expect(find.text('Simpan'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Usulkan'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Usulkan'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Bagikan kartu'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Bagikan kartu'), findsOneWidget);
   });
 }

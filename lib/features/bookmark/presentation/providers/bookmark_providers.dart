@@ -51,7 +51,8 @@ class BookmarkToggleController extends _$BookmarkToggleController {
 /// optimistik + restore saat gagal.
 ///
 /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
-/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+/// Watch authStatus: login/logout otomatis rebuild (jangan invalidate dari
+/// AuthStatusNotifier — circular di Riverpod 3).
 @Riverpod(keepAlive: true)
 class BookmarkListController extends _$BookmarkListController {
   static const _pageSize = 20;

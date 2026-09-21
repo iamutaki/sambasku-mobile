@@ -127,9 +127,10 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('Warna Tema'));
-    await tester.pumpAndSettle();
+    // Jangan pumpAndSettle: FTappable/popover bisa menyisakan ticker.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
-    // Menu popover terbuka → pilih Merah
     expect(find.text('Merah'), findsOneWidget);
     await tester.tap(find.text('Merah'));
     await tester.pump();

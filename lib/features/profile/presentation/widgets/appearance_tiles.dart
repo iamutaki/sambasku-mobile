@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -45,10 +47,11 @@ FTileMixin paletteTile(WidgetRef ref) {
   final name = ref.watch(foruiPaletteControllerProvider);
   final palette = foruiPalettes[name] ?? foruiPalettes[defaultPalette]!;
 
-  // Tanpa maxHeight, popover setinggi 10 palet dan tidak bisa di-scroll.
-  final menuMaxHeight = (MediaQuery.sizeOf(ref.context).height * 0.4).clamp(
-    200.0,
-    320.0,
+  // 10 palet × ~56 px ≈ 560. Cap 320 (viewport tes 800×600 → 0.4×600=240)
+  // hanya memuat Netral…Hijau; "Merah" tidak ter-layout.
+  final menuMaxHeight = math.max(
+    560.0,
+    MediaQuery.sizeOf(ref.context).height * 0.4,
   );
 
   return FSelectMenuTile<String>(
