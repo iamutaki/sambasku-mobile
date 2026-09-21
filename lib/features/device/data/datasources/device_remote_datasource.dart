@@ -16,12 +16,12 @@ abstract interface class DeviceRemoteDatasource {
   }) = _DeviceRemoteDatasource;
 
   @POST('/api/v1/device/register')
-  Future<ApiResponse<Object?>> registerDevice(
+  Future<ApiResponse<Map<String, dynamic>>> registerDevice(
     @Body() RegisterDeviceRequestDto body,
   );
 
   @PATCH('/api/v1/device/revoke')
-  Future<ApiResponse<Object?>> revokeDevice(
+  Future<ApiResponse<Map<String, dynamic>>> revokeDevice(
     @Body() RevokeDeviceRequestDto body,
   );
 }
