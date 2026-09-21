@@ -4,6 +4,7 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/device_registration_holder.dart';
 import '../../../bookmark/presentation/providers/bookmark_providers.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
+import '../../../notification/presentation/providers/notification_providers.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
 import '../models/auth_status_state.dart';
@@ -64,5 +65,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
     ref.invalidate(bookmarkListControllerProvider);
     ref.invalidate(bookmarkToggleControllerProvider);
     ref.invalidate(myContributionsListControllerProvider);
+    ref.invalidate(notificationInboxListControllerProvider);
+    ref.invalidate(unreadNotificationCountControllerProvider);
   }
 }

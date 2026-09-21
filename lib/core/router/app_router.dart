@@ -10,6 +10,7 @@ import '../../features/change_password/change_password_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
 import '../../features/my_contributions/my_contributions_router.dart';
+import '../../features/notification/notification_router.dart';
 import '../../features/explore/explore_router.dart';
 import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/dictionary/presentation/pages/home_search_page.dart';
@@ -45,6 +46,7 @@ class AppRouter {
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
       ...MyContributionsRouter.routes,
+      ...NotificationRouter.routes,
       ...BookmarkRouter.routes,
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,

@@ -7,7 +7,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../auth/presentation/models/auth_status_state.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../notification/notification_router.dart';
+import '../../../notification/presentation/providers/notification_providers.dart';
 import '../widgets/appearance_tiles.dart';
+import '../widgets/notification_header_action.dart';
 
 /// Tab PROFILE - identity + menu via FTileGroup.
 class ProfilePage extends ConsumerWidget {
@@ -31,9 +34,13 @@ class ProfilePage extends ConsumerWidget {
 
     return Column(
       children: [
-        const FHeader(
-          title: Text('Profil'),
-          suffixes: [ThemeToggleHeaderAction()],
+        FHeader(
+          title: const Text('Profil'),
+          suffixes: [
+            if (authStatus.value?.isAuth ?? false)
+              const NotificationHeaderAction(),
+            const ThemeToggleHeaderAction(),
+          ],
         ),
         Expanded(
           child: authStatus.when(
@@ -48,6 +55,7 @@ class ProfilePage extends ConsumerWidget {
                   FTileGroup(
                     label: const Text('Saya'),
                     children: [
+                      const _NotificationTile(),
                       FTile(
                         prefix: const Icon(FLucideIcons.filePenLine),
                         title: const Text('Kontribusi Saya'),
@@ -175,6 +183,25 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _NotificationTile extends ConsumerWidget with FTileMixin {
+  const _NotificationTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread =
+        ref.watch(unreadNotificationCountControllerProvider).value ?? 0;
+    return FTile(
+      prefix: const Icon(FLucideIcons.bell),
+      title: const Text('Notifikasi'),
+      subtitle: Text(
+        unread > 0 ? '$unread belum dibaca' : 'Status usulan yang sudah direview',
+      ),
+      suffix: const Icon(FLucideIcons.chevronRight),
+      onPress: () => context.push(NotificationRouter.list.path),
     );
   }
 }
