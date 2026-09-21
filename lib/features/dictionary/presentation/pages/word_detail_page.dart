@@ -503,9 +503,9 @@ class _WordActionTileGroup extends ConsumerWidget {
       children: [
         FTile(
           prefix: const Icon(FLucideIcons.image),
-          title: const Text('Bagikan kartu gambar'),
+          title: const Text('Bagikan kartu'),
           subtitle: const Text(
-            'Buat gambar untuk cerita IG, WhatsApp, dan lainnya',
+            'Buat kartu untuk cerita IG, WhatsApp, dan lainnya',
           ),
           suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
           onPress: () => openWordShareSheet(context, ref, detail),

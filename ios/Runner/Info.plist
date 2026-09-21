@@ -67,9 +67,9 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Akses galeri digunakan untuk memilih foto yang sudah ada di perangkat.</string>
+	<string>Akses galeri digunakan untuk memilih foto atau video latar kartu share.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Akses galeri digunakan untuk menyimpan kartu share SambasKu.</string>
+	<string>Akses galeri digunakan untuk menyimpan kartu share SambasKu (foto atau video).</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Akses kamera digunakan untuk mengambil foto yang diperlukan di dalam aplikasi.</string>
 	<key>UIBackgroundModes</key>

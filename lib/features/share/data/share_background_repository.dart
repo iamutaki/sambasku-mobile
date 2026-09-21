@@ -14,6 +14,8 @@ class ShareBackgroundRepository {
     String sort = 'relevant',
     String provider = 'unsplash',
     int limit = 3,
+    String media = 'photo',
+    String? orientation,
   }) async {
     final q = query.trim();
     final safePage = page < 1 ? 1 : page;
@@ -35,6 +37,8 @@ class ShareBackgroundRepository {
           'sort': sort,
           'provider': provider,
           'limit': safeLimit,
+          'media': media,
+          'orientation': ?orientation,
         },
       );
       final data = res.data?['data'];
@@ -64,6 +68,13 @@ class ShareBackgroundRepository {
               username: m['username']?.toString() ?? '',
               attributionUrl: attribution,
               provider: m['provider']?.toString() ?? provider,
+              kind: m['kind']?.toString() == 'video'
+                  ? ShareMediaKind.video
+                  : ShareMediaKind.photo,
+              previewUrl: m['preview_url']?.toString(),
+              width: (m['width'] as num?)?.toInt() ?? 0,
+              height: (m['height'] as num?)?.toInt() ?? 0,
+              durationSeconds: (m['duration_seconds'] as num?)?.toInt() ?? 0,
             ),
           );
         }

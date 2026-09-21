@@ -8,6 +8,8 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/share_video_composer.dart';
+
 /// Capture [RepaintBoundary] → PNG bytes.
 Future<Uint8List> captureShareCardPngBytes(GlobalKey repaintKey) async {
   final boundary =
@@ -58,5 +60,77 @@ Future<bool> saveCardToGallery({required GlobalKey repaintKey}) async {
   final bytes = await captureShareCardPngBytes(repaintKey);
   final name = 'sambasku-share-${DateTime.now().millisecondsSinceEpoch}';
   await Gal.putImageBytes(bytes, name: name);
+  return true;
+}
+
+Future<String> _downloadToTemp(String url) async {
+  final dir = await getTemporaryDirectory();
+  final file = File(
+    '${dir.path}/sambasku-src-${DateTime.now().millisecondsSinceEpoch}.mp4',
+  );
+  final client = HttpClient();
+  try {
+    final req = await client.getUrl(Uri.parse(url));
+    final res = await req.close();
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw StateError('Gagal unduh video (${res.statusCode})');
+    }
+    final sink = file.openWrite();
+    await res.pipe(sink);
+  } finally {
+    client.close();
+  }
+  return file.path;
+}
+
+Future<void> shareCardAsVideo({
+  required GlobalKey overlayKey,
+  required String videoUrl,
+  required bool videoIsFile,
+  required String caption,
+  required Rect sharePositionOrigin,
+}) async {
+  final overlayBytes = await captureShareCardPngBytes(overlayKey);
+  final dir = await getTemporaryDirectory();
+  final overlay = File(
+    '${dir.path}/sambasku-overlay-${DateTime.now().millisecondsSinceEpoch}.png',
+  );
+  await overlay.writeAsBytes(overlayBytes, flush: true);
+
+  final videoPath = videoIsFile ? videoUrl : await _downloadToTemp(videoUrl);
+  final outPath = await ShareVideoComposer.compose(
+    videoPath: videoPath,
+    overlayPngPath: overlay.path,
+  );
+
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(outPath, mimeType: 'video/mp4')],
+      text: caption,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
+  );
+}
+
+Future<bool> saveCardVideoToGallery({
+  required GlobalKey overlayKey,
+  required String videoUrl,
+  required bool videoIsFile,
+}) async {
+  final granted = await Gal.requestAccess();
+  if (!granted) return false;
+
+  final overlayBytes = await captureShareCardPngBytes(overlayKey);
+  final dir = await getTemporaryDirectory();
+  final overlay = File(
+    '${dir.path}/sambasku-overlay-${DateTime.now().millisecondsSinceEpoch}.png',
+  );
+  await overlay.writeAsBytes(overlayBytes, flush: true);
+  final videoPath = videoIsFile ? videoUrl : await _downloadToTemp(videoUrl);
+  final outPath = await ShareVideoComposer.compose(
+    videoPath: videoPath,
+    overlayPngPath: overlay.path,
+  );
+  await Gal.putVideo(outPath);
   return true;
 }

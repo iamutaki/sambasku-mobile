@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Kandidat foto latar dari GET /api/v1/share/backgrounds.
+/// Kandidat latar dari GET /api/v1/share/backgrounds.
 class ShareBackground {
   const ShareBackground({
     required this.id,
@@ -9,6 +9,11 @@ class ShareBackground {
     required this.username,
     required this.attributionUrl,
     this.provider = 'unsplash',
+    this.kind = ShareMediaKind.photo,
+    this.previewUrl,
+    this.width = 0,
+    this.height = 0,
+    this.durationSeconds = 0,
   });
 
   final String id;
@@ -17,9 +22,24 @@ class ShareBackground {
   final String username;
   final String attributionUrl;
   final String provider;
+  final ShareMediaKind kind;
+  final String? previewUrl;
+  final int width;
+  final int height;
+  final int durationSeconds;
 
   /// Alias lama.
   String get unsplashUrl => attributionUrl;
+
+  String get thumbUrl {
+    final preview = previewUrl;
+    if (kind == ShareMediaKind.video && preview != null && preview.isNotEmpty) {
+      return preview;
+    }
+    return url;
+  }
+
+  bool get isVideo => kind == ShareMediaKind.video;
 }
 
 class ShareBackgroundsResult {
@@ -37,7 +57,9 @@ class ShareBackgroundsResult {
 }
 
 /// Sumber latar kartu (terpisah dari gaya template).
-enum ShareBgSource { unsplash, device, wordImage, none }
+enum ShareBgSource { stock, device, wordImage, none }
+
+enum ShareMediaKind { photo, video }
 
 /// Data teks yang digambar ke kartu share.
 class ShareCardData {
@@ -327,7 +349,7 @@ extension ShareRatioIdX on ShareRatioId {
 
 extension ShareTemplateIdX on ShareTemplateId {
   String get label => switch (this) {
-    ShareTemplateId.unsplash => 'Foto',
+    ShareTemplateId.unsplash => 'Penuh',
     ShareTemplateId.kamusEditorial => 'Editorial',
     ShareTemplateId.posterHuruf => 'Poster',
     ShareTemplateId.polaroid => 'Bingkai',

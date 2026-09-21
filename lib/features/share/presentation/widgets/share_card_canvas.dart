@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/share_models.dart';
+import 'share_video_layer.dart';
 
 /// Empat template kartu share (preview + PNG).
 class ShareCardCanvas extends StatelessWidget {
@@ -15,6 +16,9 @@ class ShareCardCanvas extends StatelessWidget {
     required this.ratio,
     required this.settings,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
     this.layoutEditMode = false,
     this.selectedElement,
     this.onSelectElement,
@@ -26,6 +30,9 @@ class ShareCardCanvas extends StatelessWidget {
   final ShareRatioId ratio;
   final ShareEditorSettings settings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
   final bool layoutEditMode;
   final ShareTextElementId? selectedElement;
   final ValueChanged<ShareTextElementId>? onSelectElement;
@@ -47,12 +54,18 @@ class ShareCardCanvas extends StatelessWidget {
           data: data,
           settings: settings,
           imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
           layout: layout,
         ),
         ShareTemplateId.kamusEditorial => _KamusEditorialCard(
           data: data,
           settings: settings,
           imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
           layout: layout,
         ),
         ShareTemplateId.posterHuruf => _PosterHurufCard(
@@ -64,6 +77,9 @@ class ShareCardCanvas extends StatelessWidget {
           data: data,
           settings: settings,
           imageProvider: imageProvider,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
           layout: layout,
         ),
       },
@@ -141,7 +157,21 @@ TextStyle _bodyStyle({
 Widget _photoOrGradient({
   required ImageProvider? imageProvider,
   required List<Color> gradient,
+  String? videoUrl,
+  bool videoIsFile = false,
+  bool transparentBackdrop = false,
 }) {
+  if (transparentBackdrop) {
+    return const ColoredBox(color: Color(0x00000000));
+  }
+  if (videoUrl != null && videoUrl.isNotEmpty) {
+    return ShareVideoLayer(
+      url: videoUrl,
+      isFile: videoIsFile,
+      fallback: imageProvider,
+      gradient: gradient,
+    );
+  }
   if (imageProvider == null) {
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -298,11 +328,17 @@ class _UnsplashCard extends StatelessWidget {
     required this.settings,
     required this.layout,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
   });
 
   final ShareCardData data;
   final ShareEditorSettings settings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
   final _LayoutCallbacks layout;
 
   @override
@@ -318,7 +354,13 @@ class _UnsplashCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _photoOrGradient(imageProvider: imageProvider, gradient: gradient),
+        _photoOrGradient(
+          imageProvider: imageProvider,
+          gradient: gradient,
+          videoUrl: videoUrl,
+          videoIsFile: videoIsFile,
+          transparentBackdrop: transparentBackdrop,
+        ),
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -441,11 +483,17 @@ class _KamusEditorialCard extends StatelessWidget {
     required this.settings,
     required this.layout,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
   });
 
   final ShareCardData data;
   final ShareEditorSettings settings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
   final _LayoutCallbacks layout;
 
   static const _paper = Color(0xFFF3EDE2);
@@ -524,18 +572,20 @@ class _KamusEditorialCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (imageProvider != null)
+                    if (imageProvider != null ||
+                        (videoUrl != null && videoUrl!.isNotEmpty) ||
+                        transparentBackdrop)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: SizedBox(
                           width: 220,
                           height: 220,
-                          child: Image(
-                            image: imageProvider!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => ColoredBox(
-                              color: lemmaColor.withValues(alpha: 0.12),
-                            ),
+                          child: _photoOrGradient(
+                            imageProvider: imageProvider,
+                            gradient: const [Color(0x22000000), Color(0x22000000)],
+                            videoUrl: videoUrl,
+                            videoIsFile: videoIsFile,
+                            transparentBackdrop: transparentBackdrop,
                           ),
                         ),
                       ),
@@ -737,11 +787,17 @@ class _PolaroidCard extends StatelessWidget {
     required this.settings,
     required this.layout,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
+    this.transparentBackdrop = false,
   });
 
   final ShareCardData data;
   final ShareEditorSettings settings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
+  final bool transparentBackdrop;
   final _LayoutCallbacks layout;
 
   @override
@@ -784,6 +840,9 @@ class _PolaroidCard extends StatelessWidget {
                             child: _photoOrGradient(
                               imageProvider: imageProvider,
                               gradient: gradient,
+                              videoUrl: videoUrl,
+                              videoIsFile: videoIsFile,
+                              transparentBackdrop: transparentBackdrop,
                             ),
                           ),
                         ),

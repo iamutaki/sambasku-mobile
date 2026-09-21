@@ -33,7 +33,7 @@ Future<void> showWordShareSheet(
   );
 }
 
-String buildUnsplashQuery(WordDetail detail, WordMeaning meaning) {
+String buildShareQuery(WordDetail detail, WordMeaning meaning) {
   final padanan = pickPadanan(meaning) ?? '';
   final category = detail.categories.isNotEmpty
       ? detail.categories.first.name
@@ -86,12 +86,14 @@ class _WordShareSheetBody extends StatefulWidget {
 
 class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
   final GlobalKey _repaintKey = GlobalKey();
+  final GlobalKey _overlayKey = GlobalKey();
+  final GlobalKey _pngFallbackKey = GlobalKey();
 
   late int _meaningIndex;
   ShareTemplateId _template = ShareTemplateId.unsplash;
   ShareRatioId _ratio = ShareRatioId.story;
   ShareEditorSettings _settings = const ShareEditorSettings();
-  ShareBgSource _bgSource = ShareBgSource.unsplash;
+  ShareBgSource _bgSource = ShareBgSource.stock;
 
   bool _loadingBg = true;
   bool _sharing = false;
@@ -100,6 +102,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
   List<ShareBackground> _bgItems = const [];
   int? _selectedBgIndex;
   File? _localImageFile;
+  File? _localVideoFile;
   String? _wordImageUrl;
 
   WordMeaning get _meaning {
@@ -131,17 +134,40 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       case ShareBgSource.wordImage:
         final u = _wordImageUrl;
         return u != null && u.isNotEmpty ? NetworkImage(u) : null;
-      case ShareBgSource.unsplash:
-        final i = _selectedBgIndex;
-        if (i == null || i < 0 || i >= _bgItems.length) return null;
-        return NetworkImage(_bgItems[i].url);
+      case ShareBgSource.stock:
+        final item = _selectedStock;
+        if (item == null) return null;
+        return NetworkImage(item.thumbUrl);
       case ShareBgSource.none:
         return null;
     }
   }
 
+  ShareBackground? get _selectedStock {
+    final i = _selectedBgIndex;
+    if (i == null || i < 0 || i >= _bgItems.length) return null;
+    return _bgItems[i];
+  }
+
+  bool get _isVideoBackground {
+    if (_template.forcesNoPhoto || _bgSource == ShareBgSource.none) {
+      return false;
+    }
+    if (_bgSource == ShareBgSource.device) return _localVideoFile != null;
+    return _selectedStock?.isVideo == true;
+  }
+
+  String? get _videoUrl {
+    if (!_isVideoBackground) return null;
+    if (_bgSource == ShareBgSource.device) return _localVideoFile?.path;
+    return _selectedStock?.url;
+  }
+
+  bool get _videoIsFile =>
+      _bgSource == ShareBgSource.device && _localVideoFile != null;
+
   String? get _photographer {
-    if (_bgSource != ShareBgSource.unsplash) return null;
+    if (_bgSource != ShareBgSource.stock) return null;
     final i = _selectedBgIndex;
     if (i == null || i < 0 || i >= _bgItems.length) return null;
     final name = _bgItems[i].photographer;
@@ -173,37 +199,69 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
 
   Future<void> _loadBackgrounds(int page) async {
     setState(() => _loadingBg = true);
-    final q = buildUnsplashQuery(widget.detail, _meaning);
-    final result = await widget.backgrounds.listBackgrounds(
-      q,
-      page: page,
-      sort: 'relevant',
-      limit: 3,
-    );
+    final q = buildShareQuery(widget.detail, _meaning);
+    final orientation = _ratio == ShareRatioId.story ? 'portrait' : 'square';
+    final results = await Future.wait([
+      widget.backgrounds.listBackgrounds(
+        q,
+        page: page,
+        sort: 'relevant',
+        provider: 'unsplash',
+        media: 'photo',
+        orientation: orientation,
+        limit: 3,
+      ),
+      widget.backgrounds.listBackgrounds(
+        q,
+        page: page,
+        sort: 'relevant',
+        provider: 'pexels',
+        media: 'photo',
+        orientation: orientation,
+        limit: 3,
+      ),
+      widget.backgrounds.listBackgrounds(
+        q,
+        page: page,
+        sort: 'relevant',
+        provider: 'pexels',
+        media: 'video',
+        orientation: orientation,
+        limit: 3,
+      ),
+    ]);
     if (!mounted) return;
+
+    final items = [
+      for (final r in results) ...r.items,
+    ];
+    final degraded = results.every((r) => r.degraded || r.items.isEmpty) &&
+        items.isEmpty;
 
     setState(() {
       _loadingBg = false;
-      _degraded = result.degraded;
-      if (result.items.isEmpty) {
+      _degraded = degraded;
+      if (items.isEmpty) {
         _bgItems = const [];
         _selectedBgIndex = null;
-        if (_bgSource == ShareBgSource.unsplash) {
+        if (_bgSource == ShareBgSource.stock) {
           _bgSource = ShareBgSource.none;
         }
       } else {
-        _bgItems = result.items;
+        _bgItems = items;
         _selectedBgIndex = 0;
         if (!_template.forcesNoPhoto && _bgSource == ShareBgSource.none) {
-          _bgSource = ShareBgSource.unsplash;
+          _bgSource = ShareBgSource.stock;
         }
       }
     });
 
-    if (result.degraded && mounted) {
+    if (degraded && mounted) {
       showFToast(
         context: context,
-        title: const Text('Foto Unsplash tidak tersedia — pakai tanpa foto'),
+        title: const Text(
+          'Latar stok tidak tersedia. Pakai tanpa latar, galeri, kamera, atau gambar kata.',
+        ),
       );
     }
   }
@@ -223,8 +281,9 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         _bgItems = [selected, ..._bgItems];
         _selectedBgIndex = 0;
       }
-      _bgSource = ShareBgSource.unsplash;
+      _bgSource = ShareBgSource.stock;
       _localImageFile = null;
+      _localVideoFile = null;
       _wordImageUrl = null;
     });
   }
@@ -239,13 +298,62 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
           if (mounted) showPermissionDeniedDialog(context);
           return;
         }
+        final picked = await picker.pickImage(source: source);
+        if (picked == null || !mounted) return;
+        final persisted = await copyToUniqueTempPath(File(picked.path));
+        if (!mounted) return;
+        setState(() {
+          _localImageFile = persisted;
+          _localVideoFile = null;
+          _bgSource = ShareBgSource.device;
+          _wordImageUrl = null;
+        });
+        return;
       }
-      final picked = await picker.pickImage(source: source);
+
+      final choice = await showModalBottomSheet<String>(
+        context: context,
+        builder: (ctx) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_outlined),
+                  title: const Text('Foto'),
+                  onTap: () => Navigator.pop(ctx, 'photo'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.videocam_outlined),
+                  title: const Text('Video'),
+                  onTap: () => Navigator.pop(ctx, 'video'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      if (choice == null || !mounted) return;
+      if (choice == 'video') {
+        final picked = await picker.pickVideo(source: ImageSource.gallery);
+        if (picked == null || !mounted) return;
+        final persisted = await copyToUniqueTempPath(File(picked.path));
+        if (!mounted) return;
+        setState(() {
+          _localVideoFile = persisted;
+          _localImageFile = null;
+          _bgSource = ShareBgSource.device;
+          _wordImageUrl = null;
+        });
+        return;
+      }
+      final picked = await picker.pickImage(source: ImageSource.gallery);
       if (picked == null || !mounted) return;
       final persisted = await copyToUniqueTempPath(File(picked.path));
       if (!mounted) return;
       setState(() {
         _localImageFile = persisted;
+        _localVideoFile = null;
         _bgSource = ShareBgSource.device;
         _wordImageUrl = null;
       });
@@ -280,11 +388,38 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       final origin = box != null
           ? box.localToGlobal(Offset.zero) & box.size
           : const Rect.fromLTWH(0, 0, 1, 1);
-      await shareCardAsPng(
-        repaintKey: _repaintKey,
-        caption: _cardData.caption,
-        sharePositionOrigin: origin,
-      );
+      if (_isVideoBackground && _videoUrl != null) {
+        try {
+          await shareCardAsVideo(
+            overlayKey: _overlayKey,
+            videoUrl: _videoUrl!,
+            videoIsFile: _videoIsFile,
+            caption: _cardData.caption,
+            sharePositionOrigin: origin,
+          );
+        } catch (e) {
+          debugPrint('[ShareVideo] $e');
+          if (mounted) {
+            showFToast(
+              context: context,
+              title: const Text(
+                'Video tidak bisa diekspor. Dibagikan sebagai foto.',
+              ),
+            );
+          }
+          await shareCardAsPng(
+            repaintKey: _pngFallbackKey,
+            caption: _cardData.caption,
+            sharePositionOrigin: origin,
+          );
+        }
+      } else {
+        await shareCardAsPng(
+          repaintKey: _repaintKey,
+          caption: _cardData.caption,
+          sharePositionOrigin: origin,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       showFToast(
@@ -310,7 +445,29 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       await Future<void>.delayed(const Duration(milliseconds: 80));
       if (!mounted) return;
 
-      final saved = await saveCardToGallery(repaintKey: _repaintKey);
+      var saved = false;
+      if (_isVideoBackground && _videoUrl != null) {
+        try {
+          saved = await saveCardVideoToGallery(
+            overlayKey: _overlayKey,
+            videoUrl: _videoUrl!,
+            videoIsFile: _videoIsFile,
+          );
+        } catch (e) {
+          debugPrint('[ShareVideo] $e');
+          if (mounted) {
+            showFToast(
+              context: context,
+              title: const Text(
+                'Video tidak bisa diekspor. Disimpan sebagai foto.',
+              ),
+            );
+          }
+          saved = await saveCardToGallery(repaintKey: _pngFallbackKey);
+        }
+      } else {
+        saved = await saveCardToGallery(repaintKey: _repaintKey);
+      }
       if (!mounted) return;
       if (!saved) {
         showPermissionDeniedDialog(context);
@@ -356,6 +513,8 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       ratio: _ratio,
       settings: _settings,
       imageProvider: _imageProvider,
+      videoUrl: _videoUrl,
+      videoIsFile: _videoIsFile,
     );
     if (!mounted || updated == null) return;
     setState(() => _settings = updated);
@@ -369,6 +528,8 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       ratio: _ratio,
       settings: _settings,
       imageProvider: _imageProvider,
+      videoUrl: _videoUrl,
+      videoIsFile: _videoIsFile,
     );
   }
 
@@ -504,11 +665,37 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                     ratio: _ratio,
                                     settings: _settings,
                                     imageProvider: _imageProvider,
+                                    videoUrl: _videoUrl,
+                                    videoIsFile: _videoIsFile,
                                   ),
                                 ),
                               ),
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+                    Offstage(
+                      child: RepaintBoundary(
+                        key: _overlayKey,
+                        child: ShareCardCanvas(
+                          data: _cardData,
+                          template: _template,
+                          ratio: _ratio,
+                          settings: _settings,
+                          transparentBackdrop: true,
+                        ),
+                      ),
+                    ),
+                    Offstage(
+                      child: RepaintBoundary(
+                        key: _pngFallbackKey,
+                        child: ShareCardCanvas(
+                          data: _cardData,
+                          template: _template,
+                          ratio: _ratio,
+                          settings: _settings,
+                          imageProvider: _imageProvider,
                         ),
                       ),
                     ),
@@ -567,7 +754,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                         scrollDirection: Axis.horizontal,
                         children: [
                           _SourceChip(
-                            label: 'Tanpa\nfoto',
+                            label: 'Tanpa\nlatar',
                             selected: _bgSource == ShareBgSource.none ||
                                 _template.forcesNoPhoto,
                             selectedBorder: chipSelected,
@@ -580,9 +767,12 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                           _SourceChip(
                             label: 'Galeri',
                             selected: _bgSource == ShareBgSource.device &&
-                                _localImageFile != null,
+                                (_localImageFile != null ||
+                                    _localVideoFile != null),
                             selectedBorder: chipSelected,
-                            icon: Icons.photo_outlined,
+                            icon: _localVideoFile != null
+                                ? Icons.videocam_outlined
+                                : Icons.photo_outlined,
                             onTap: _template.forcesNoPhoto
                                 ? null
                                 : () => _pickFromSource(ImageSource.gallery),
@@ -619,6 +809,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                       _bgSource = ShareBgSource.wordImage;
                                       _wordImageUrl = img.url;
                                       _localImageFile = null;
+                                      _localVideoFile = null;
                                     }),
                               onLongPress: () => _openImageFullscreen(
                                 NetworkImage(img.url),
@@ -628,22 +819,28 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                           ],
                           for (var i = 0; i < _bgItems.length; i++) ...[
                             _SourceChip(
-                              label: 'Unsplash',
-                              selected: _bgSource == ShareBgSource.unsplash &&
+                              label: _bgItems[i].isVideo
+                                  ? 'Video'
+                                  : (_bgItems[i].provider == 'pexels'
+                                      ? 'Pexels'
+                                      : 'Unsplash'),
+                              selected: _bgSource == ShareBgSource.stock &&
                                   _selectedBgIndex == i &&
                                   !_template.forcesNoPhoto,
                               selectedBorder: chipSelected,
-                              preview: NetworkImage(_bgItems[i].url),
+                              preview: NetworkImage(_bgItems[i].thumbUrl),
+                              showPlay: _bgItems[i].isVideo,
                               onTap: _template.forcesNoPhoto
                                   ? null
                                   : () => setState(() {
-                                      _bgSource = ShareBgSource.unsplash;
+                                      _bgSource = ShareBgSource.stock;
                                       _selectedBgIndex = i;
                                       _localImageFile = null;
+                                      _localVideoFile = null;
                                       _wordImageUrl = null;
                                     }),
                               onLongPress: () => _openImageFullscreen(
-                                NetworkImage(_bgItems[i].url),
+                                NetworkImage(_bgItems[i].thumbUrl),
                               ),
                             ),
                             const Gap(8),
@@ -662,14 +859,14 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Unsplash tidak tersedia. Pakai tanpa foto, galeri, kamera, atau gambar kata.',
+                        'Latar stok tidak tersedia. Pakai tanpa latar, galeri, kamera, atau gambar kata.',
                         style: theme.typography.sm.copyWith(color: chipMuted),
                       ),
                     ),
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      'Tahan thumb untuk preview fullscreen · Explorer untuk cari foto',
+                      'Tahan thumb untuk preview fullscreen · Explorer untuk cari latar',
                       style: theme.typography.sm.copyWith(
                         color: chipMuted,
                         fontSize: 11,
@@ -690,7 +887,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                               _bgSource = ShareBgSource.none;
                             } else if (_bgSource == ShareBgSource.none &&
                                 _bgItems.isNotEmpty) {
-                              _bgSource = ShareBgSource.unsplash;
+                              _bgSource = ShareBgSource.stock;
                             }
                           });
                         },
@@ -859,7 +1056,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                       _settings = _settings.copyWith(lemmaFontScale: v);
                     }),
                   ),
-                  Text('Ukuran teks tubuh', style: theme.typography.sm),
+                  Text('Ukuran teks deskripsi', style: theme.typography.sm),
                   Slider(
                     value: _settings.bodyFontScale.clamp(0.7, 1.6),
                     min: 0.7,
@@ -1000,6 +1197,7 @@ class _SourceChip extends StatelessWidget {
     this.icon,
     this.gradient,
     this.selectedBorder,
+    this.showPlay = false,
   });
 
   final String label;
@@ -1010,6 +1208,7 @@ class _SourceChip extends StatelessWidget {
   final IconData? icon;
   final List<Color>? gradient;
   final Color? selectedBorder;
+  final bool showPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -1064,7 +1263,9 @@ class _SourceChip extends StatelessWidget {
                     ),
                   ],
                 )
-              : null,
+              : (showPlay
+                    ? const Icon(Icons.play_circle_fill, color: Colors.white)
+                    : null),
         ),
       ),
     );

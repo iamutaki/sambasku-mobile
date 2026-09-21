@@ -22,6 +22,8 @@ Future<void> showShareCardFullscreen(
   required ShareRatioId ratio,
   required ShareEditorSettings settings,
   ImageProvider? imageProvider,
+  String? videoUrl,
+  bool videoIsFile = false,
 }) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -32,6 +34,8 @@ Future<void> showShareCardFullscreen(
         ratio: ratio,
         settings: settings,
         imageProvider: imageProvider,
+        videoUrl: videoUrl,
+        videoIsFile: videoIsFile,
       ),
     ),
   );
@@ -45,6 +49,8 @@ Future<ShareEditorSettings?> showShareLayoutEditor(
   required ShareRatioId ratio,
   required ShareEditorSettings settings,
   ImageProvider? imageProvider,
+  String? videoUrl,
+  bool videoIsFile = false,
 }) {
   return Navigator.of(context).push<ShareEditorSettings>(
     MaterialPageRoute(
@@ -55,6 +61,8 @@ Future<ShareEditorSettings?> showShareLayoutEditor(
         ratio: ratio,
         initialSettings: settings,
         imageProvider: imageProvider,
+        videoUrl: videoUrl,
+        videoIsFile: videoIsFile,
       ),
     ),
   );
@@ -92,6 +100,8 @@ class _FullscreenCardPage extends StatelessWidget {
     required this.ratio,
     required this.settings,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
   });
 
   final ShareCardData data;
@@ -99,6 +109,8 @@ class _FullscreenCardPage extends StatelessWidget {
   final ShareRatioId ratio;
   final ShareEditorSettings settings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +136,8 @@ class _FullscreenCardPage extends StatelessWidget {
                 ratio: ratio,
                 settings: settings,
                 imageProvider: imageProvider,
+                videoUrl: videoUrl,
+                videoIsFile: videoIsFile,
               ),
             ),
           ),
@@ -140,6 +154,8 @@ class _LayoutEditorPage extends StatefulWidget {
     required this.ratio,
     required this.initialSettings,
     this.imageProvider,
+    this.videoUrl,
+    this.videoIsFile = false,
   });
 
   final ShareCardData Function(ShareEditorSettings settings) buildData;
@@ -147,6 +163,8 @@ class _LayoutEditorPage extends StatefulWidget {
   final ShareRatioId ratio;
   final ShareEditorSettings initialSettings;
   final ImageProvider? imageProvider;
+  final String? videoUrl;
+  final bool videoIsFile;
 
   @override
   State<_LayoutEditorPage> createState() => _LayoutEditorPageState();
@@ -230,6 +248,8 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                       ratio: widget.ratio,
                       settings: _settings,
                       imageProvider: widget.imageProvider,
+                      videoUrl: widget.videoUrl,
+                      videoIsFile: widget.videoIsFile,
                       layoutEditMode: true,
                       selectedElement: _selected,
                       onSelectElement: (id) => setState(() => _selected = id),

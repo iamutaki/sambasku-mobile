@@ -5,7 +5,7 @@ import 'package:gap/gap.dart';
 import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
 
-/// Jelajah / cari foto latar (default: Unsplash popular, search kosong).
+/// Jelajah / cari latar (Unsplash, Pexels foto, Pexels video).
 Future<ShareBackground?> showShareImageExplorer(
   BuildContext context, {
   required ShareBackgroundRepository backgrounds,
@@ -31,7 +31,8 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
-  final String _provider = 'unsplash';
+  String _provider = 'unsplash';
+  String _media = 'photo';
   String _mode = 'popular'; // popular | relevant
   String _activeQuery = '';
   int _page = 1;
@@ -76,6 +77,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
       page: 1,
       sort: isSearch ? 'relevant' : 'popular',
       provider: _provider,
+      media: _media,
       limit: 12,
     );
     if (!mounted) return;
@@ -99,6 +101,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
       page: next,
       sort: _mode,
       provider: _provider,
+      media: _media,
       limit: 12,
     );
     if (!mounted) return;
@@ -162,7 +165,9 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                           border: Border.all(color: theme.colors.border),
                         ),
                         child: Text(
-                          'Unsplash',
+                          _media == 'video'
+                              ? 'Pexels video'
+                              : (_provider == 'pexels' ? 'Pexels' : 'Unsplash'),
                           style: theme.typography.sm.copyWith(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -181,6 +186,47 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
             ),
           ),
           Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Unsplash'),
+                  selected: _provider == 'unsplash' && _media == 'photo',
+                  onSelected: (_) {
+                    setState(() {
+                      _provider = 'unsplash';
+                      _media = 'photo';
+                    });
+                    _loadInitial();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Pexels'),
+                  selected: _provider == 'pexels' && _media == 'photo',
+                  onSelected: (_) {
+                    setState(() {
+                      _provider = 'pexels';
+                      _media = 'photo';
+                    });
+                    _loadInitial();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Video'),
+                  selected: _media == 'video',
+                  onSelected: (_) {
+                    setState(() {
+                      _provider = 'pexels';
+                      _media = 'video';
+                    });
+                    _loadInitial();
+                  },
+                ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
@@ -190,7 +236,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => _onSearch(),
                     decoration: InputDecoration(
-                      hintText: 'Cari foto…',
+                      hintText: 'Cari latar…',
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -217,9 +263,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              _mode == 'popular'
-                  ? 'Foto populer'
-                  : 'Hasil: $_activeQuery',
+              _mode == 'popular' ? 'Populer' : 'Hasil: $_activeQuery',
               style: theme.typography.sm.copyWith(
                 color: theme.colors.mutedForeground,
               ),
@@ -235,7 +279,7 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                           padding: const EdgeInsets.all(24),
                           child: Text(
                             _degraded
-                                ? 'Foto tidak tersedia. Coba lagi nanti.'
+                                ? 'Latar tidak tersedia. Coba lagi nanti.'
                                 : 'Tidak ada hasil.',
                             textAlign: TextAlign.center,
                             style: theme.typography.sm.copyWith(
@@ -268,16 +312,30 @@ class _ImageExplorerBodyState extends State<_ImageExplorerBody> {
                             onTap: () => Navigator.of(context).pop(item),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                item.url,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => ColoredBox(
-                                  color: theme.colors.secondary,
-                                  child: Icon(
-                                    Icons.broken_image_outlined,
-                                    color: theme.colors.mutedForeground,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    item.thumbUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => ColoredBox(
+                                      color: theme.colors.secondary,
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        color: theme.colors.mutedForeground,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  if (item.isVideo)
+                                    const Align(
+                                      alignment: Alignment.center,
+                                      child: Icon(
+                                        Icons.play_circle_fill,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           );
