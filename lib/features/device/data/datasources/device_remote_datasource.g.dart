@@ -20,7 +20,7 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<ApiResponse<Map<String, dynamic>>> registerDevice(
+  Future<ApiResponse<RegisterDeviceResponseDto>> registerDevice(
     RegisterDeviceRequestDto body,
   ) async {
     final _extra = <String, dynamic>{};
@@ -28,7 +28,7 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body.toJson());
-    final _options = _setStreamType<ApiResponse<Map<String, dynamic>>>(
+    final _options = _setStreamType<ApiResponse<RegisterDeviceResponseDto>>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -39,11 +39,12 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<Map<String, dynamic>> _value;
+    late ApiResponse<RegisterDeviceResponseDto> _value;
     try {
-      _value = ApiResponse<Map<String, dynamic>>.fromJson(
+      _value = ApiResponse<RegisterDeviceResponseDto>.fromJson(
         _result.data!,
-        (json) => json as Map<String, dynamic>,
+        (json) =>
+            RegisterDeviceResponseDto.fromJson(json as Map<String, dynamic>),
       );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
@@ -53,7 +54,7 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
   }
 
   @override
-  Future<ApiResponse<Map<String, dynamic>>> revokeDevice(
+  Future<ApiResponse<RevokeDeviceResponseDto>> revokeDevice(
     RevokeDeviceRequestDto body,
   ) async {
     final _extra = <String, dynamic>{};
@@ -61,7 +62,7 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body.toJson());
-    final _options = _setStreamType<ApiResponse<Map<String, dynamic>>>(
+    final _options = _setStreamType<ApiResponse<RevokeDeviceResponseDto>>(
       Options(method: 'PATCH', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -72,11 +73,12 @@ class _DeviceRemoteDatasource implements DeviceRemoteDatasource {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late ApiResponse<Map<String, dynamic>> _value;
+    late ApiResponse<RevokeDeviceResponseDto> _value;
     try {
-      _value = ApiResponse<Map<String, dynamic>>.fromJson(
+      _value = ApiResponse<RevokeDeviceResponseDto>.fromJson(
         _result.data!,
-        (json) => json as Map<String, dynamic>,
+        (json) =>
+            RevokeDeviceResponseDto.fromJson(json as Map<String, dynamic>),
       );
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
