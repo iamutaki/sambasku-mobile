@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+String shareProviderLabel(String id) => switch (id) {
+      'pexels' => 'Pexels',
+      'pixabay' => 'Pixabay',
+      'openverse' => 'Openverse',
+      'wikimedia' => 'Wikimedia',
+      _ => 'Unsplash',
+    };
+
 /// Kandidat latar dari GET /api/v1/share/backgrounds.
 class ShareBackground {
   const ShareBackground({
@@ -8,7 +16,7 @@ class ShareBackground {
     required this.photographer,
     required this.username,
     required this.attributionUrl,
-    this.provider = 'unsplash',
+    this.provider = 'pexels',
     this.kind = ShareMediaKind.photo,
     this.previewUrl,
     this.width = 0,
@@ -47,7 +55,7 @@ class ShareBackgroundsResult {
     required this.items,
     required this.page,
     required this.degraded,
-    this.provider = 'unsplash',
+    this.provider = 'pexels',
   });
 
   final List<ShareBackground> items;
@@ -70,6 +78,9 @@ class ShareCardData {
     this.padanan,
     this.exampleSentence,
     this.photographer,
+    this.provider,
+    this.isVideo = false,
+    this.variantsLine,
   });
 
   final String lemma;
@@ -78,14 +89,34 @@ class ShareCardData {
   final String? padanan;
   final String? exampleSentence;
   final String? photographer;
+  final String? provider;
+  final bool isVideo;
+  final String? variantsLine;
+
+  /// Baris atribusi stok. Kosong jika tidak ada nama fotografer.
+  String? get creditLine {
+    final name = photographer?.trim();
+    if (name == null || name.isEmpty) return null;
+    final kind = isVideo ? 'Video' : 'Foto';
+    final id = provider?.trim() ?? '';
+    if (id.isEmpty) return '$kind: $name';
+    return '$kind: $name / ${shareProviderLabel(id)}';
+  }
 
   String get caption {
     final pad = (padanan != null && padanan!.isNotEmpty) ? padanan! : lemma;
+    final variants = variantsLine;
+    if (variants != null && variants.isNotEmpty) {
+      return '"$lemma" ($variants) — $pad · kamus bahasa Sambas #SambasKu';
+    }
     return '"$lemma" — $pad · kamus bahasa Sambas #SambasKu';
   }
 
   String get copyText {
     final buf = StringBuffer(lemma);
+    if (variantsLine != null && variantsLine!.isNotEmpty) {
+      buf.write('\n${variantsLine!}');
+    }
     if (wordClassName != null && wordClassName!.isNotEmpty) {
       buf.write(' ($wordClassName)');
     }
@@ -143,6 +174,8 @@ extension ShareTextColorIdX on ShareTextColorId {
   /// Surface gelap (editorial/polaroid) jika teks terang.
   bool get prefersDarkSurface => this != ShareTextColorId.tinta;
 }
+
+enum ShareBackdropKind { gradient, solid }
 
 enum ShareGradientId { senja, laut, hutan, pasir, charcoal }
 
@@ -225,6 +258,8 @@ class ShareEditorSettings {
     this.fontPair = ShareFontPair.classic,
     this.textColorId = ShareTextColorId.putih,
     this.gradientId = ShareGradientId.senja,
+    this.backdropKind = ShareBackdropKind.gradient,
+    this.solidColor = const Color(0xFF1C1917),
     this.showWordClass = true,
     this.showPadanan = true,
     this.showDefinition = true,
@@ -235,6 +270,7 @@ class ShareEditorSettings {
     this.definitionLayout = ShareTextLayout.zero,
     this.exampleLayout = ShareTextLayout.zero,
     this.wordClassLayout = ShareTextLayout.zero,
+    this.mediaAlignment = Offset.zero,
   });
 
   final double lemmaFontScale;
@@ -243,6 +279,8 @@ class ShareEditorSettings {
   final ShareFontPair fontPair;
   final ShareTextColorId textColorId;
   final ShareGradientId gradientId;
+  final ShareBackdropKind backdropKind;
+  final Color solidColor;
   final bool showWordClass;
   final bool showPadanan;
   final bool showDefinition;
@@ -253,6 +291,14 @@ class ShareEditorSettings {
   final ShareTextLayout definitionLayout;
   final ShareTextLayout exampleLayout;
   final ShareTextLayout wordClassLayout;
+
+  /// -1..1, mengikuti `Alignment` `BoxFit.cover` (geser crop foto/video).
+  final Offset mediaAlignment;
+
+  /// Isi latar Tanpa latar / Poster / fallback. Solid = dua warna sama.
+  List<Color> get backdropColors => backdropKind == ShareBackdropKind.solid
+      ? [solidColor, solidColor]
+      : gradientId.colors;
 
   ShareTextLayout layoutFor(ShareTextElementId id) => switch (id) {
     ShareTextElementId.lemma => lemmaLayout,
@@ -279,6 +325,7 @@ class ShareEditorSettings {
       definitionLayout: ShareTextLayout.zero,
       exampleLayout: ShareTextLayout.zero,
       wordClassLayout: ShareTextLayout.zero,
+      mediaAlignment: Offset.zero,
     );
   }
 
@@ -289,6 +336,8 @@ class ShareEditorSettings {
     ShareFontPair? fontPair,
     ShareTextColorId? textColorId,
     ShareGradientId? gradientId,
+    ShareBackdropKind? backdropKind,
+    Color? solidColor,
     bool? showWordClass,
     bool? showPadanan,
     bool? showDefinition,
@@ -299,6 +348,7 @@ class ShareEditorSettings {
     ShareTextLayout? definitionLayout,
     ShareTextLayout? exampleLayout,
     ShareTextLayout? wordClassLayout,
+    Offset? mediaAlignment,
   }) {
     return ShareEditorSettings(
       lemmaFontScale: lemmaFontScale ?? this.lemmaFontScale,
@@ -307,6 +357,8 @@ class ShareEditorSettings {
       fontPair: fontPair ?? this.fontPair,
       textColorId: textColorId ?? this.textColorId,
       gradientId: gradientId ?? this.gradientId,
+      backdropKind: backdropKind ?? this.backdropKind,
+      solidColor: solidColor ?? this.solidColor,
       showWordClass: showWordClass ?? this.showWordClass,
       showPadanan: showPadanan ?? this.showPadanan,
       showDefinition: showDefinition ?? this.showDefinition,
@@ -317,6 +369,7 @@ class ShareEditorSettings {
       definitionLayout: definitionLayout ?? this.definitionLayout,
       exampleLayout: exampleLayout ?? this.exampleLayout,
       wordClassLayout: wordClassLayout ?? this.wordClassLayout,
+      mediaAlignment: mediaAlignment ?? this.mediaAlignment,
     );
   }
 }
@@ -364,6 +417,8 @@ extension ShareTemplateIdX on ShareTemplateId {
   };
 
   bool get forcesNoPhoto => this == ShareTemplateId.posterHuruf;
+
+  bool get allowsMediaPan => !forcesNoPhoto;
 
   bool get usesOverlay => switch (this) {
     ShareTemplateId.unsplash ||

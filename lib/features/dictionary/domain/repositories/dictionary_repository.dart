@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../entities/word_detail.dart';
+import '../entities/word_of_day.dart';
 import '../entities/word_summary.dart';
 import '../failures/dictionary_failure.dart';
 
@@ -16,6 +17,9 @@ abstract interface class DictionaryRepository {
 
   /// Detail kata by id. 404 WORD_NOT_FOUND → Failure.
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id);
+
+  /// Kata hari ini. Right(null) = korpus published kosong (bukan error).
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay();
 
   /// Daftar semua kata A-Z (18-api-list-words.md). Cursor komposit
   /// opaque; [q] = filter server-side (bukan pencarian - tanpa

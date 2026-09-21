@@ -21,8 +21,11 @@ class ShareCardCanvas extends StatelessWidget {
     this.transparentBackdrop = false,
     this.layoutEditMode = false,
     this.selectedElement,
+    this.mediaSelected = false,
     this.onSelectElement,
     this.onPanElement,
+    this.onSelectMedia,
+    this.onPanMedia,
   });
 
   final ShareCardData data;
@@ -35,8 +38,11 @@ class ShareCardCanvas extends StatelessWidget {
   final bool transparentBackdrop;
   final bool layoutEditMode;
   final ShareTextElementId? selectedElement;
+  final bool mediaSelected;
   final ValueChanged<ShareTextElementId>? onSelectElement;
   final void Function(ShareTextElementId id, Offset canvasDelta)? onPanElement;
+  final VoidCallback? onSelectMedia;
+  final void Function(Offset canvasDelta)? onPanMedia;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +51,14 @@ class ShareCardCanvas extends StatelessWidget {
       selected: selectedElement,
       onSelect: onSelectElement,
       onPan: onPanElement,
+      mediaAlignment: Alignment(
+        settings.mediaAlignment.dx.clamp(-1.0, 1.0),
+        settings.mediaAlignment.dy.clamp(-1.0, 1.0),
+      ),
+      mediaEdit: layoutEditMode && template.allowsMediaPan,
+      mediaSelected: mediaSelected,
+      onSelectMedia: onSelectMedia,
+      onPanMedia: onPanMedia,
     );
     return SizedBox(
       width: ratio.width,
@@ -130,12 +144,22 @@ class _LayoutCallbacks {
     required this.selected,
     required this.onSelect,
     required this.onPan,
+    this.mediaAlignment = Alignment.center,
+    this.mediaEdit = false,
+    this.mediaSelected = false,
+    this.onSelectMedia,
+    this.onPanMedia,
   });
 
   final bool editMode;
   final ShareTextElementId? selected;
   final ValueChanged<ShareTextElementId>? onSelect;
   final void Function(ShareTextElementId id, Offset canvasDelta)? onPan;
+  final Alignment mediaAlignment;
+  final bool mediaEdit;
+  final bool mediaSelected;
+  final VoidCallback? onSelectMedia;
+  final void Function(Offset canvasDelta)? onPanMedia;
 }
 
 TextStyle _lemmaStyle({
@@ -197,20 +221,23 @@ Widget _photoOrGradient({
   String? videoUrl,
   bool videoIsFile = false,
   bool transparentBackdrop = false,
+  _LayoutCallbacks? layout,
 }) {
   if (transparentBackdrop) {
     return const ColoredBox(color: Color(0x00000000));
   }
+  final alignment = layout?.mediaAlignment ?? Alignment.center;
+  Widget child;
   if (videoUrl != null && videoUrl.isNotEmpty) {
-    return ShareVideoLayer(
+    child = ShareVideoLayer(
       url: videoUrl,
       isFile: videoIsFile,
       fallback: imageProvider,
       gradient: gradient,
+      alignment: alignment,
     );
-  }
-  if (imageProvider == null) {
-    return DecoratedBox(
+  } else if (imageProvider == null) {
+    child = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -219,20 +246,37 @@ Widget _photoOrGradient({
         ),
       ),
     );
-  }
-  return Image(
-    image: imageProvider,
-    fit: BoxFit.cover,
-    width: double.infinity,
-    height: double.infinity,
-    errorBuilder: (_, _, _) => DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
+  } else {
+    child = Image(
+      image: imageProvider,
+      fit: BoxFit.cover,
+      alignment: alignment,
+      width: double.infinity,
+      height: double.infinity,
+      errorBuilder: (_, _, _) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
         ),
       ),
+    );
+  }
+  if (layout == null || !layout.mediaEdit) return child;
+  return GestureDetector(
+    onTap: layout.onSelectMedia,
+    onPanStart: (_) => layout.onSelectMedia?.call(),
+    onPanUpdate: (d) => layout.onPanMedia?.call(d.delta),
+    child: DecoratedBox(
+      decoration: layout.mediaSelected
+          ? BoxDecoration(
+              border: Border.all(color: const Color(0xFF38BDF8), width: 6),
+            )
+          : const BoxDecoration(),
+      position: DecorationPosition.foreground,
+      child: child,
     ),
   );
 }
@@ -254,8 +298,30 @@ Widget _classPill(
   );
 }
 
+Widget _variantsUnderLemma({
+  required ShareCardData data,
+  required ShareFontPair pair,
+  required Color color,
+  required double size,
+  TextAlign align = TextAlign.start,
+}) {
+  final line = data.variantsLine;
+  if (line == null || line.isEmpty) return const SizedBox.shrink();
+  return Padding(
+    padding: const EdgeInsets.only(top: 10),
+    child: Text(
+      line,
+      textAlign: align,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: _bodyStyle(pair: pair, size: size, color: color),
+    ),
+  );
+}
+
 Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
   final photo = data.photographer;
+  final credit = data.creditLine;
   final radius = BorderRadius.circular(
     photo != null && photo.isNotEmpty ? 20 : 999,
   );
@@ -290,10 +356,10 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
                     ],
                   ),
             ),
-            if (photo != null && photo.isNotEmpty) ...[
+            if (credit != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Foto: $photo / Unsplash',
+                credit,
                 style: _bodyStyle(
                   pair: pair,
                   size: 15,
@@ -386,7 +452,7 @@ class _UnsplashCard extends StatelessWidget {
     final lemmaSize = 120 * settings.lemmaFontScale;
     final bodySize = 40 * settings.bodyFontScale;
     final overlay = settings.overlayStrength.clamp(0.0, 1.0);
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -397,23 +463,30 @@ class _UnsplashCard extends StatelessWidget {
           videoUrl: videoUrl,
           videoIsFile: videoIsFile,
           transparentBackdrop: transparentBackdrop,
+          layout: layout,
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromRGBO(0, 0, 0, 0.2 * overlay),
-                Colors.transparent,
-                Color.fromRGBO(0, 0, 0, 0.85 * overlay + 0.15),
-              ],
-              stops: const [0, 0.35, 1],
+        IgnorePointer(
+          ignoring: layout.mediaEdit,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color.fromRGBO(0, 0, 0, 0.2 * overlay),
+                  Colors.transparent,
+                  Color.fromRGBO(0, 0, 0, 0.85 * overlay + 0.15),
+                ],
+                stops: const [0, 0.35, 1],
+              ),
             ),
           ),
         ),
-        Padding(
+        IgnorePointer(
+          ignoring: layout.mediaSelected,
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(72, 160, 72, 140),
+          child: ClipRect(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -441,6 +514,12 @@ class _UnsplashCard extends StatelessWidget {
                     color: lemmaColor,
                   ),
                 ),
+              ),
+              _variantsUnderLemma(
+                data: data,
+                pair: pair,
+                color: lemmaColor,
+                size: 28 * settings.bodyFontScale,
               ),
               if (settings.showPadanan &&
                   data.padanan != null &&
@@ -471,6 +550,7 @@ class _UnsplashCard extends StatelessWidget {
                   child: Text(
                     data.definition!,
                     maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
                     softWrap: true,
                     style: _bodyStyle(
                       pair: pair,
@@ -491,6 +571,7 @@ class _UnsplashCard extends StatelessWidget {
                   child: Text(
                     '"${data.exampleSentence}"',
                     maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
                     softWrap: true,
                     style: _bodyStyle(
                       pair: pair,
@@ -502,6 +583,8 @@ class _UnsplashCard extends StatelessWidget {
               ],
             ],
           ),
+          ),
+        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -553,6 +636,7 @@ class _KamusEditorialCard extends StatelessWidget {
           color: bg,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(72, 140, 72, 120),
+            child: ClipRect(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -587,6 +671,12 @@ class _KamusEditorialCard extends StatelessWidget {
                                 color: lemmaColor,
                               ),
                             ),
+                          ),
+                          _variantsUnderLemma(
+                            data: data,
+                            pair: pair,
+                            color: lemmaColor,
+                            size: 26 * settings.bodyFontScale,
                           ),
                           if (settings.showWordClass &&
                               data.wordClassName != null &&
@@ -623,6 +713,7 @@ class _KamusEditorialCard extends StatelessWidget {
                             videoUrl: videoUrl,
                             videoIsFile: videoIsFile,
                             transparentBackdrop: transparentBackdrop,
+          layout: layout,
                           ),
                         ),
                       ),
@@ -641,6 +732,7 @@ class _KamusEditorialCard extends StatelessWidget {
                     child: Text(
                       data.definition!,
                       maxLines: 6,
+                      overflow: TextOverflow.ellipsis,
                       softWrap: true,
                       style: _bodyStyle(
                         pair: pair,
@@ -678,6 +770,7 @@ class _KamusEditorialCard extends StatelessWidget {
                     child: Text(
                       '"${data.exampleSentence}"',
                       maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                       softWrap: true,
                       style: _bodyStyle(
                         pair: pair,
@@ -688,6 +781,7 @@ class _KamusEditorialCard extends StatelessWidget {
                   ),
                 ],
               ],
+            ),
             ),
           ),
         ),
@@ -719,7 +813,7 @@ class _PosterHurufCard extends StatelessWidget {
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
     final lemmaSize = 180 * settings.lemmaFontScale;
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -735,6 +829,7 @@ class _PosterHurufCard extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(64, 160, 64, 140),
+          child: ClipRect(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -767,6 +862,12 @@ class _PosterHurufCard extends StatelessWidget {
                   ),
                 ),
               ),
+              _variantsUnderLemma(
+                data: data,
+                pair: pair,
+                color: lemmaColor,
+                size: 32 * settings.bodyFontScale,
+              ),
               const Spacer(),
               if (settings.showPadanan &&
                   data.padanan != null &&
@@ -795,6 +896,7 @@ class _PosterHurufCard extends StatelessWidget {
                   child: Text(
                     data.definition!,
                     maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
                     softWrap: true,
                     style: _bodyStyle(
                       pair: pair,
@@ -805,6 +907,7 @@ class _PosterHurufCard extends StatelessWidget {
                 ),
               ],
             ],
+          ),
           ),
         ),
         if (settings.showWatermark)
@@ -845,7 +948,7 @@ class _PolaroidCard extends StatelessWidget {
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
     final lemmaSize = 80 * settings.lemmaFontScale;
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -854,6 +957,7 @@ class _PolaroidCard extends StatelessWidget {
           color: pageBg,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(80, 140, 80, 120),
+            child: ClipRect(
             child: Column(
               children: [
                 Expanded(
@@ -880,6 +984,7 @@ class _PolaroidCard extends StatelessWidget {
                               videoUrl: videoUrl,
                               videoIsFile: videoIsFile,
                               transparentBackdrop: transparentBackdrop,
+          layout: layout,
                             ),
                           ),
                         ),
@@ -897,6 +1002,13 @@ class _PolaroidCard extends StatelessWidget {
                               color: lemmaColor,
                             ),
                           ),
+                        ),
+                        _variantsUnderLemma(
+                          data: data,
+                          pair: pair,
+                          color: lemmaColor,
+                          size: 24 * settings.bodyFontScale,
+                          align: TextAlign.center,
                         ),
                         if (settings.showPadanan &&
                             data.padanan != null &&
@@ -952,6 +1064,7 @@ class _PolaroidCard extends StatelessWidget {
                       data.definition!,
                       textAlign: TextAlign.center,
                       maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                       softWrap: true,
                       style: _bodyStyle(
                         pair: pair,
@@ -961,6 +1074,7 @@ class _PolaroidCard extends StatelessWidget {
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ),
@@ -1003,7 +1117,7 @@ class _SisiCard extends StatelessWidget {
     final panel = dark ? const Color(0xFF1C1917) : const Color(0xFFF5F0E8);
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
     final media = ClipRect(
       child: _photoOrGradient(
         imageProvider: imageProvider,
@@ -1017,6 +1131,7 @@ class _SisiCard extends StatelessWidget {
       color: panel,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(56, 64, 56, 120),
+        child: ClipRect(
         child: _stackedCopy(
           data: data,
           settings: settings,
@@ -1026,6 +1141,7 @@ class _SisiCard extends StatelessWidget {
           bodyColor: bodyColor,
           lemmaSize: 88 * settings.lemmaFontScale,
           align: CrossAxisAlignment.start,
+        ),
         ),
       ),
     );
@@ -1083,7 +1199,7 @@ class _KacaCard extends StatelessWidget {
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
     final overlay = settings.overlayStrength.clamp(0.0, 1.0);
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -1094,20 +1210,26 @@ class _KacaCard extends StatelessWidget {
           videoUrl: videoUrl,
           videoIsFile: videoIsFile,
           transparentBackdrop: transparentBackdrop,
+          layout: layout,
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Color.fromRGBO(0, 0, 0, 0.55 * overlay + 0.12),
-              ],
+        IgnorePointer(
+          ignoring: layout.mediaEdit,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Color.fromRGBO(0, 0, 0, 0.55 * overlay + 0.12),
+                ],
+              ),
             ),
           ),
         ),
-        Padding(
+        IgnorePointer(
+          ignoring: layout.mediaSelected,
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(56, 80, 56, 120),
           child: Align(
             alignment: Alignment.bottomCenter,
@@ -1125,6 +1247,7 @@ class _KacaCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.16),
                     ),
                   ),
+                  child: ClipRect(
                   child: _stackedCopy(
                     data: data,
                     settings: settings,
@@ -1135,10 +1258,12 @@ class _KacaCard extends StatelessWidget {
                     lemmaSize: 96 * settings.lemmaFontScale,
                     align: CrossAxisAlignment.start,
                   ),
+                  ),
                 ),
               ),
             ),
           ),
+        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -1176,7 +1301,7 @@ class _KutipanCard extends StatelessWidget {
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
     final overlay = settings.overlayStrength.clamp(0.0, 1.0);
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -1187,12 +1312,19 @@ class _KutipanCard extends StatelessWidget {
           videoUrl: videoUrl,
           videoIsFile: videoIsFile,
           transparentBackdrop: transparentBackdrop,
+          layout: layout,
         ),
-        ColoredBox(
-          color: Color.fromRGBO(0, 0, 0, 0.35 * overlay + 0.28),
+        IgnorePointer(
+          ignoring: layout.mediaEdit,
+          child: ColoredBox(
+            color: Color.fromRGBO(0, 0, 0, 0.35 * overlay + 0.28),
+          ),
         ),
-        Padding(
+        IgnorePointer(
+          ignoring: layout.mediaSelected,
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(72, 160, 72, 160),
+          child: ClipRect(
           child: Column(
             children: [
               Text(
@@ -1217,6 +1349,13 @@ class _KutipanCard extends StatelessWidget {
                     color: lemmaColor,
                   ),
                 ),
+              ),
+              _variantsUnderLemma(
+                data: data,
+                pair: pair,
+                color: lemmaColor,
+                size: 28 * settings.bodyFontScale,
+                align: TextAlign.center,
               ),
               if (settings.showPadanan &&
                   data.padanan != null &&
@@ -1249,6 +1388,7 @@ class _KutipanCard extends StatelessWidget {
                     data.definition!,
                     textAlign: TextAlign.center,
                     maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
                     style: _bodyStyle(
                       pair: pair,
                       size: 34 * settings.bodyFontScale,
@@ -1281,6 +1421,7 @@ class _KutipanCard extends StatelessWidget {
                     '"${data.exampleSentence}"',
                     textAlign: TextAlign.center,
                     maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: _bodyStyle(
                       pair: pair,
                       size: 28 * settings.bodyFontScale,
@@ -1291,6 +1432,8 @@ class _KutipanCard extends StatelessWidget {
               ],
             ],
           ),
+          ),
+        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -1329,7 +1472,7 @@ class _KartuCard extends StatelessWidget {
     final paper = dark ? const Color(0xFF1C1917) : const Color(0xFFFFFBF5);
     final lemmaColor = settings.textColorId.lemma;
     final bodyColor = settings.textColorId.body;
-    final gradient = settings.gradientId.colors;
+    final gradient = settings.backdropColors;
 
     return Stack(
       fit: StackFit.expand,
@@ -1347,6 +1490,7 @@ class _KartuCard extends StatelessWidget {
                     videoUrl: videoUrl,
                     videoIsFile: videoIsFile,
                     transparentBackdrop: transparentBackdrop,
+          layout: layout,
                   ),
                 ),
               ),
@@ -1354,6 +1498,7 @@ class _KartuCard extends StatelessWidget {
                 flex: 11,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(64, 48, 64, 120),
+                  child: ClipRect(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1381,6 +1526,12 @@ class _KartuCard extends StatelessWidget {
                             color: lemmaColor,
                           ),
                         ),
+                      ),
+                      _variantsUnderLemma(
+                        data: data,
+                        pair: pair,
+                        color: lemmaColor,
+                        size: 26 * settings.bodyFontScale,
                       ),
                       if (settings.showPadanan &&
                           data.padanan != null &&
@@ -1415,8 +1566,9 @@ class _KartuCard extends StatelessWidget {
                           layout: layout,
                           child: Text(
                             data.definition!,
-                            maxLines: 6,
-                            style: _bodyStyle(
+                    maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
+                    style: _bodyStyle(
                               pair: pair,
                               size: 36 * settings.bodyFontScale,
                               color: bodyColor,
@@ -1434,6 +1586,7 @@ class _KartuCard extends StatelessWidget {
                           child: Text(
                             data.exampleSentence!,
                             maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                             style: _bodyStyle(
                               pair: pair,
                               size: 28 * settings.bodyFontScale,
@@ -1443,6 +1596,7 @@ class _KartuCard extends StatelessWidget {
                         ),
                       ],
                     ],
+                  ),
                   ),
                 ),
               ),
@@ -1490,6 +1644,15 @@ Widget _stackedCopy({
           style: _lemmaStyle(pair: pair, size: lemmaSize, color: lemmaColor),
         ),
       ),
+      _variantsUnderLemma(
+        data: data,
+        pair: pair,
+        color: lemmaColor,
+        size: 26 * settings.bodyFontScale,
+        align: align == CrossAxisAlignment.center
+            ? TextAlign.center
+            : TextAlign.start,
+      ),
       if (settings.showPadanan &&
           data.padanan != null &&
           data.padanan!.isNotEmpty) ...[
@@ -1519,6 +1682,7 @@ Widget _stackedCopy({
           child: Text(
             data.definition!,
             maxLines: 5,
+            overflow: TextOverflow.ellipsis,
             style: _bodyStyle(
               pair: pair,
               size: 32 * settings.bodyFontScale,
@@ -1538,6 +1702,7 @@ Widget _stackedCopy({
           child: Text(
             data.exampleSentence!,
             maxLines: 3,
+            overflow: TextOverflow.ellipsis,
             style: _bodyStyle(
               pair: pair,
               size: 26 * settings.bodyFontScale,

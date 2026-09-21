@@ -1,5 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+/// Izin tambah ke galeri (foto atau video). False jika user menolak.
+Future<bool> requestGalleryWriteAccess() async {
+  if (await Gal.hasAccess()) return true;
+  if (await Gal.requestAccess()) return true;
+  final perm = Platform.isIOS ? Permission.photosAddOnly : Permission.photos;
+  final status = await perm.request();
+  if (status.isGranted || status.isLimited) return true;
+  return Gal.hasAccess();
+}
 
 void showPermissionDeniedDialog(BuildContext context) {
   showDialog<void>(

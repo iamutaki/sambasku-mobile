@@ -15,6 +15,7 @@ import '../domain/share_models.dart';
 import 'share_card_renderer.dart';
 import 'share_fullscreen.dart';
 import 'share_image_explorer_sheet.dart';
+import 'share_solid_color_sheet.dart';
 import 'widgets/share_card_canvas.dart';
 
 /// Buka sheet share kartu dari detail kata.
@@ -27,6 +28,7 @@ Future<void> showWordShareSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    clipBehavior: Clip.none,
     builder: (sheetContext) {
       return _WordShareSheetBody(detail: detail, backgrounds: backgrounds);
     },
@@ -58,6 +60,8 @@ ShareCardData buildCardData({
   required WordMeaning meaning,
   required ShareEditorSettings settings,
   String? photographer,
+  String? provider,
+  bool isVideo = false,
 }) {
   return ShareCardData(
     lemma: detail.lemma,
@@ -68,7 +72,23 @@ ShareCardData buildCardData({
         ? meaning.examples.first.sourceSentence
         : null,
     photographer: photographer,
+    provider: provider,
+    isVideo: isVideo,
+    variantsLine: spellingVariantsLine(detail),
   );
+}
+
+String? spellingVariantsLine(WordDetail detail) {
+  final seen = <String>{detail.lemma.trim().toLowerCase()};
+  final parts = <String>[];
+  for (final v in detail.variants) {
+    final form = v.form.trim();
+    if (form.isEmpty) continue;
+    if (!seen.add(form.toLowerCase())) continue;
+    parts.add(form);
+  }
+  if (parts.isEmpty) return null;
+  return parts.join(' / ');
 }
 
 class _WordShareSheetBody extends StatefulWidget {
@@ -174,11 +194,18 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     return name.isEmpty ? null : name;
   }
 
+  String? get _stockProvider {
+    if (_photographer == null) return null;
+    return _selectedStock?.provider;
+  }
+
   ShareCardData get _cardData => buildCardData(
     detail: widget.detail,
     meaning: _meaning,
     settings: _settings,
     photographer: _photographer,
+    provider: _stockProvider,
+    isVideo: _isVideoBackground && _bgSource == ShareBgSource.stock,
   );
 
   @override
@@ -202,15 +229,6 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     final q = buildShareQuery(widget.detail, _meaning);
     final orientation = _ratio == ShareRatioId.story ? 'portrait' : 'square';
     final results = await Future.wait([
-      widget.backgrounds.listBackgrounds(
-        q,
-        page: page,
-        sort: 'relevant',
-        provider: 'unsplash',
-        media: 'photo',
-        orientation: orientation,
-        limit: 3,
-      ),
       widget.backgrounds.listBackgrounds(
         q,
         page: page,
@@ -264,6 +282,20 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         ),
       );
     }
+  }
+
+  Future<void> _pickSolidColor() async {
+    final picked = await showShareSolidColorSheet(
+      context,
+      initial: _settings.solidColor,
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      _settings = _settings.copyWith(
+        backdropKind: ShareBackdropKind.solid,
+        solidColor: picked,
+      );
+    });
   }
 
   Future<void> _openImageExplorer() async {
@@ -509,6 +541,8 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         meaning: _meaning,
         settings: settings,
         photographer: _photographer,
+        provider: _stockProvider,
+        isVideo: _isVideoBackground && _bgSource == ShareBgSource.stock,
       ),
       template: _template,
       ratio: _ratio,
@@ -543,8 +577,6 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     final theme = context.theme;
     final media = MediaQuery.of(context);
     final chipSelected = theme.colors.primary;
-    final chipFg = theme.colors.primaryForeground;
-    final chipBg = theme.colors.secondary;
     final chipMuted = theme.colors.mutedForeground;
 
     Widget styleChip({
@@ -552,26 +584,13 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
       required bool selected,
       required ValueChanged<bool> onSelected,
     }) {
-      return FilterChip(
-        visualDensity: VisualDensity.compact,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-        label: Text(
-          label,
-          style: theme.typography.sm.copyWith(
-            color: selected ? chipFg : theme.colors.foreground,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 12,
-          ),
-        ),
-        selected: selected,
-        onSelected: onSelected,
-        selectedColor: chipSelected,
-        backgroundColor: chipBg,
-        checkmarkColor: chipFg,
-        side: BorderSide(
-          color: selected ? chipSelected : theme.colors.border,
+      return GestureDetector(
+        onTap: () => onSelected(true),
+        child: FBadge(
+          variant: selected
+              ? FBadgeVariant.primary
+              : FBadgeVariant.secondary,
+          child: Text(label),
         ),
       );
     }
@@ -676,28 +695,26 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                         ),
                       ),
                     ),
-                    Offstage(
-                      child: RepaintBoundary(
-                        key: _overlayKey,
-                        child: ShareCardCanvas(
-                          data: _cardData,
-                          template: _template,
-                          ratio: _ratio,
-                          settings: _settings,
-                          transparentBackdrop: true,
-                        ),
+                    _OffscreenCaptureBox(
+                      boundaryKey: _overlayKey,
+                      ratio: _ratio,
+                      child: ShareCardCanvas(
+                        data: _cardData,
+                        template: _template,
+                        ratio: _ratio,
+                        settings: _settings,
+                        transparentBackdrop: true,
                       ),
                     ),
-                    Offstage(
-                      child: RepaintBoundary(
-                        key: _pngFallbackKey,
-                        child: ShareCardCanvas(
-                          data: _cardData,
-                          template: _template,
-                          ratio: _ratio,
-                          settings: _settings,
-                          imageProvider: _imageProvider,
-                        ),
+                    _OffscreenCaptureBox(
+                      boundaryKey: _pngFallbackKey,
+                      ratio: _ratio,
+                      child: ShareCardCanvas(
+                        data: _cardData,
+                        template: _template,
+                        ratio: _ratio,
+                        settings: _settings,
+                        imageProvider: _imageProvider,
                       ),
                     ),
                     ListTile(
@@ -708,13 +725,15 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                         color: theme.colors.foreground,
                       ),
                       title: Text(
-                        'Atur posisi teks',
+                        'Atur posisi',
                         style: theme.typography.sm.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        'Buka fullscreen untuk geser / putar teks',
+                        _template.allowsMediaPan
+                            ? 'Geser teks atau crop gambar / video'
+                            : 'Buka fullscreen untuk geser / putar teks',
                         style: theme.typography.sm.copyWith(
                           color: chipMuted,
                           fontSize: 11,
@@ -759,7 +778,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                             selected: _bgSource == ShareBgSource.none ||
                                 _template.forcesNoPhoto,
                             selectedBorder: chipSelected,
-                            gradient: _settings.gradientId.colors,
+                            gradient: _settings.backdropColors,
                             onTap: () => setState(() {
                               _bgSource = ShareBgSource.none;
                             }),
@@ -830,9 +849,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                             _SourceChip(
                               label: _bgItems[i].isVideo
                                   ? 'Video'
-                                  : (_bgItems[i].provider == 'pexels'
-                                      ? 'Pexels'
-                                      : 'Unsplash'),
+                                  : shareProviderLabel(_bgItems[i].provider),
                               selected: _bgSource == ShareBgSource.stock &&
                                   _selectedBgIndex == i &&
                                   !_template.forcesNoPhoto,
@@ -1015,8 +1032,10 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                               for (final g in ShareGradientId.values) ...[
                                 GestureDetector(
                                   onTap: () => setState(() {
-                                    _settings =
-                                        _settings.copyWith(gradientId: g);
+                                    _settings = _settings.copyWith(
+                                      gradientId: g,
+                                      backdropKind: ShareBackdropKind.gradient,
+                                    );
                                   }),
                                   child: Container(
                                     width: 40,
@@ -1028,10 +1047,14 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                         colors: g.colors,
                                       ),
                                       border: Border.all(
-                                        color: _settings.gradientId == g
+                                        color: _settings.backdropKind ==
+                                                    ShareBackdropKind.gradient &&
+                                                _settings.gradientId == g
                                             ? chipSelected
                                             : theme.colors.border,
-                                        width: _settings.gradientId == g
+                                        width: _settings.backdropKind ==
+                                                    ShareBackdropKind.gradient &&
+                                                _settings.gradientId == g
                                             ? 2.5
                                             : 1,
                                       ),
@@ -1039,6 +1062,28 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                   ),
                                 ),
                               ],
+                              GestureDetector(
+                                onTap: _pickSolidColor,
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _settings.solidColor,
+                                    border: Border.all(
+                                      color: _settings.backdropKind ==
+                                              ShareBackdropKind.solid
+                                          ? chipSelected
+                                          : theme.colors.border,
+                                      width: _settings.backdropKind ==
+                                              ShareBackdropKind.solid
+                                          ? 2.5
+                                          : 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1268,6 +1313,43 @@ class _SourceChip extends StatelessWidget {
               : (showPlay
                     ? const Icon(Icons.play_circle_fill, color: Colors.white)
                     : null),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu di luar viewport tapi tetap dipaint, supaya `toImage` punya layer.
+class _OffscreenCaptureBox extends StatelessWidget {
+  const _OffscreenCaptureBox({
+    required this.boundaryKey,
+    required this.ratio,
+    required this.child,
+  });
+
+  final GlobalKey boundaryKey;
+  final ShareRatioId ratio;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 0,
+      height: 0,
+      child: OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: ratio.width,
+        maxWidth: ratio.width,
+        minHeight: ratio.height,
+        maxHeight: ratio.height,
+        child: Transform.translate(
+          offset: const Offset(-10000, 0),
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              key: boundaryKey,
+              child: child,
+            ),
+          ),
         ),
       ),
     );

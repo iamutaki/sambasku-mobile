@@ -11,12 +11,14 @@ class ShareVideoLayer extends StatefulWidget {
     this.isFile = false,
     this.fallback,
     required this.gradient,
+    this.alignment = Alignment.center,
   });
 
   final String url;
   final bool isFile;
   final ImageProvider? fallback;
   final List<Color> gradient;
+  final Alignment alignment;
 
   @override
   State<ShareVideoLayer> createState() => _ShareVideoLayerState();
@@ -76,6 +78,7 @@ class _ShareVideoLayerState extends State<ShareVideoLayer> {
         return Image(
           image: widget.fallback!,
           fit: BoxFit.cover,
+          alignment: widget.alignment,
           width: double.infinity,
           height: double.infinity,
         );
@@ -92,6 +95,7 @@ class _ShareVideoLayerState extends State<ShareVideoLayer> {
     }
     return FittedBox(
       fit: BoxFit.cover,
+      alignment: widget.alignment,
       clipBehavior: Clip.hardEdge,
       child: SizedBox(
         width: controller.value.size.width,

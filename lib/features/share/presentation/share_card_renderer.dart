@@ -9,12 +9,22 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/share_video_composer.dart';
+import '../../../shared/utils/permission_helper.dart';
 
 /// Capture [RepaintBoundary] → PNG bytes.
 Future<Uint8List> captureShareCardPngBytes(GlobalKey repaintKey) async {
-  final boundary =
+  await WidgetsBinding.instance.endOfFrame;
+  var boundary =
       repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+  if (boundary == null || !boundary.hasSize || boundary.size.isEmpty) {
+    await WidgetsBinding.instance.endOfFrame;
+    boundary =
+        repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+  }
   if (boundary == null) {
+    throw StateError('Kartu share belum siap digambar');
+  }
+  if (!boundary.hasSize || boundary.size.isEmpty) {
     throw StateError('Kartu share belum siap digambar');
   }
 
@@ -54,7 +64,7 @@ Future<void> shareCardAsPng({
 /// Throws [StateError] jika render gagal, atau [GalException] dari plugin.
 /// Returns `false` jika user menolak izin galeri.
 Future<bool> saveCardToGallery({required GlobalKey repaintKey}) async {
-  final granted = await Gal.requestAccess();
+  final granted = await requestGalleryWriteAccess();
   if (!granted) return false;
 
   final bytes = await captureShareCardPngBytes(repaintKey);
@@ -117,7 +127,7 @@ Future<bool> saveCardVideoToGallery({
   required String videoUrl,
   required bool videoIsFile,
 }) async {
-  final granted = await Gal.requestAccess();
+  final granted = await requestGalleryWriteAccess();
   if (!granted) return false;
 
   final overlayBytes = await captureShareCardPngBytes(overlayKey);

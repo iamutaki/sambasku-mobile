@@ -33,4 +33,8 @@ abstract interface class DictionaryRemoteDatasource {
   /// Detail kata lengkap (makna, terjemahan, relasi, dll). Publik.
   @GET('/api/v1/words/{id}')
   Future<ApiResponse<WordDetailDto>> getWordById(@Path('id') String id);
+
+  /// Kata hari ini (28-api-word-of-the-day.md). Publik. data null = korpus kosong.
+  @GET('/api/v1/words/today')
+  Future<ApiResponse<WordDetailDto>> getWordOfDay();
 }

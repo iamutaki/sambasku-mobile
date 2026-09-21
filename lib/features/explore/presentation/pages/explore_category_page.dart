@@ -38,6 +38,11 @@ class ExploreCategoryPage extends StatelessWidget {
                 color: theme.colors.primary,
               ),
               const Gap(16),
+              FBadge(
+                variant: FBadgeVariant.outline,
+                child: const Text('Coming Soon'),
+              ),
+              const Gap(12),
               Text(
                 'Segera hadir',
                 style: theme.typography.lg.copyWith(

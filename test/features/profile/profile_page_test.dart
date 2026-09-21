@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -60,6 +63,23 @@ class _FakeNotificationRepository implements NotificationRepository {
       Either.right(0);
 }
 
+/// Jangan biarkan Dio menjadwalkan connectTimeout (pending Timer di tes).
+class _ThrowingAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async =>
+      throw DioException.connectionError(
+        requestOptions: options,
+        reason: 'mock offline',
+      );
+
+  @override
+  void close({bool force = false}) {}
+}
+
 /// Widget test Profile (mobile-base-stack Section 10): status login vs
 /// tamu menentukan tombol "Keluar" / "Masuk / Login", dan logout berfungsi.
 void main() {
@@ -68,11 +88,21 @@ void main() {
     Map<String, Object> prefs = const {},
     Map<String, String> secure = const {},
   }) async {
+    // Viewport default 800x600: tile Notifikasi + menu tema mendorong
+    // Keluar ke luar cacheExtent. Scrollable.first lalu kena nested
+    // FSelectMenuTile, bukan ListView halaman.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     SharedPreferences.setMockInitialValues(prefs);
     FlutterSecureStorage.setMockInitialValues(secure);
+    final throwingDio = Dio()..httpClientAdapter = _ThrowingAdapter();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          dioProvider.overrideWithValue(throwingDio),
           authTokenStorageProvider.overrideWithValue(AuthTokenStorage()),
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
           notificationRepositoryProvider.overrideWithValue(
@@ -125,19 +155,11 @@ void main() {
     expect(find.text('budi'), findsOneWidget);
     expect(find.text('Masuk / Login'), findsNothing);
     expect(find.text('Daftar'), findsNothing);
-
-    // ListView lazy: tile Keluar di bawah fold belum di-build
-    await tester.scrollUntilVisible(
-      find.text('Keluar'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
     expect(find.text('Keluar'), findsOneWidget);
 
     await tester.tap(find.text('Keluar'));
     await tester.pump();
-    // Forui FButton memakai Future.delayed untuk pressedEnter/Exit -
-    // majukan waktu supaya Timer-nya habis (hindari pending timer test).
+    // Forui FTappable: pressedEnter/Exit = Future.delayed 100ms.
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));

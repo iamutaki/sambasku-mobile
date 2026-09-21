@@ -13,8 +13,6 @@ class ExplorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-
     return Column(
       children: [
         const FHeader(
@@ -25,11 +23,12 @@ class ExplorePage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              Text(
-                'Jelajahi Sambas di luar kamus.',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
+              FAlert(
+                title: const Text('Sasaran berikutnya SambasKu'),
+                subtitle: const Text(
+                  'Bukan hanya kamus. Kami menyiapkan wisata, UMKM, event, berita, dan budaya Sambas. Konten di bawah masih dalam persiapan.',
                 ),
+                icon: const Icon(FLucideIcons.sparkles),
               ),
               const Gap(16),
               GridView.builder(
@@ -40,7 +39,7 @@ class ExplorePage extends StatelessWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.05,
+                  childAspectRatio: 0.98,
                 ),
                 itemBuilder: (context, index) {
                   final cat = ExploreCategory.all[index];
@@ -84,7 +83,23 @@ class _CategoryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(category.icon, size: 26, color: theme.colors.primary),
+              Row(
+                children: [
+                  Icon(category.icon, size: 26, color: theme.colors.primary),
+                  if (category.comingSoon) ...[
+                    const Gap(8),
+                    const Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _ComingSoonBadge(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               const Spacer(),
               Text(
                 category.title,
@@ -108,6 +123,25 @@ class _CategoryCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ComingSoonBadge extends StatelessWidget {
+  const _ComingSoonBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return FBadge(
+      variant: FBadgeVariant.outline,
+      style: .delta(
+        contentStyle: .delta(
+          padding: .value(
+            const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          ),
+        ),
+      ),
+      child: const Text('Coming Soon'),
     );
   }
 }

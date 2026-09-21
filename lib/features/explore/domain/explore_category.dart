@@ -8,12 +8,16 @@ class ExploreCategory {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.comingSoon = true,
   });
 
   final String id;
   final String title;
   final String subtitle;
   final IconData icon;
+
+  /// Konten API belum ada — kartu tetap tampil sebagai sasaran app.
+  final bool comingSoon;
 
   static const List<ExploreCategory> all = [
     ExploreCategory(

@@ -15,6 +15,8 @@ import '../../dictionary_router.dart';
 import '../../domain/entities/word_summary.dart';
 import '../models/dictionary_search_state.dart';
 import '../providers/dictionary_search_providers.dart';
+import '../providers/word_of_day_providers.dart';
+import '../widgets/word_of_day_card.dart';
 
 /// Tab HOME: pencarian kosakata publik (GET /api/v1/words/search).
 /// Idle: daftar search-miss sebagai konten utama (bukan chip kecil).
@@ -43,6 +45,8 @@ class HomeSearchPage extends HookConsumerWidget {
 
     final theme = context.theme;
     final isLemma = state.searchIn == 'lemma';
+    // Prefetch + keep-alive selama tab Home hidup (kartu unmount saat mengetik).
+    ref.watch(wordOfDayProvider);
 
     return Column(
       children: [
@@ -328,117 +332,133 @@ class _HomeIdleMisses extends ConsumerWidget {
 
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(searchMissListProvider(_limit));
-    await ref.read(searchMissListProvider(_limit).future);
+    ref.invalidate(wordOfDayProvider);
+    await Future.wait([
+      ref.read(searchMissListProvider(_limit).future),
+      ref.read(wordOfDayProvider.future),
+    ]);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
 
-    return RefreshIndicator(
-      onRefresh: () => _refresh(ref),
-      child: misses.when(
-        loading: () => SearchMissSkeletonList(
-          itemCount: _limit,
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sedang dicari warga',
-                style: theme.typography.lg.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colors.foreground,
-                ),
-              ),
-              const Gap(2),
-              Text(
-                'Belum ada di kamus - ketuk untuk mengusulkan arti.',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
-                ),
-              ),
-            ],
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child: WordOfDayCard(),
         ),
-        error: (_, _) => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            SizedBox(
-              height: MediaQuery.sizeOf(context).height * 0.45,
-              child: _IdleSearchHint(theme: theme),
-            ),
-          ],
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                SizedBox(
-                  height: MediaQuery.sizeOf(context).height * 0.45,
-                  child: _IdleSearchHint(theme: theme),
-                ),
-              ],
-            );
-          }
-
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-            children: [
-              Text(
-                'Sedang dicari warga',
-                style: theme.typography.lg.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colors.foreground,
-                ),
-              ),
-              const Gap(2),
-              Text(
-                'Belum ada di kamus - ketuk untuk mengusulkan arti.',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
-                ),
-              ),
-              const Gap(10),
-              FTileGroup(
-                children: [
-                  for (final item in items)
-                    FTile(
-                      title: Text(item.term),
-                      subtitle: Text(_missSubtitle(item)),
-                      suffix: Icon(
-                        FLucideIcons.chevronRight,
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _refresh(ref),
+            child: misses.when(
+              loading: () => SearchMissSkeletonList(
+                itemCount: _limit,
+                header: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sedang dicari warga',
+                      style: theme.typography.lg.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colors.foreground,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      'Belum ada di kamus - ketuk untuk mengusulkan arti.',
+                      style: theme.typography.sm.copyWith(
                         color: theme.colors.mutedForeground,
                       ),
-                      onPress: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        final q = Uri(
-                          queryParameters: <String, String>{
-                            'lemma': item.term,
-                            'search_in': item.searchIn,
-                            'miss_id': item.id,
-                          },
-                        ).query;
-                        context.push('/contribute?$q');
-                      },
                     ),
+                  ],
+                ),
+              ),
+              error: (_, _) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.45,
+                    child: _IdleSearchHint(theme: theme),
+                  ),
                 ],
               ),
-              const Gap(12),
-              FButton(
-                variant: FButtonVariant.outline,
-                onPress: () {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  context.go('/action');
-                },
-                child: const Text('Lihat semua di Kontribusi'),
-              ),
-            ],
-          );
-        },
-      ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.45,
+                        child: _IdleSearchHint(theme: theme),
+                      ),
+                    ],
+                  );
+                }
+
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                  children: [
+                    Text(
+                      'Sedang dicari warga',
+                      style: theme.typography.lg.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colors.foreground,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      'Belum ada di kamus - ketuk untuk mengusulkan arti.',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                    const Gap(10),
+                    FTileGroup(
+                      children: [
+                        for (final item in items)
+                          FTile(
+                            title: Text(item.term),
+                            subtitle: Text(_missSubtitle(item)),
+                            suffix: Icon(
+                              FLucideIcons.chevronRight,
+                              color: theme.colors.mutedForeground,
+                            ),
+                            onPress: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              final q = Uri(
+                                queryParameters: <String, String>{
+                                  'lemma': item.term,
+                                  'search_in': item.searchIn,
+                                  'miss_id': item.id,
+                                },
+                              ).query;
+                              context.push('/contribute?$q');
+                            },
+                          ),
+                      ],
+                    ),
+                    const Gap(12),
+                    FButton(
+                      variant: FButtonVariant.outline,
+                      onPress: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        context.go('/action');
+                      },
+                      child: const Text('Lihat semua di Kontribusi'),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -5,13 +5,8 @@ import 'package:gap/gap.dart';
 import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
 
-const _photoProviders = ['unsplash', 'pexels'];
-const _videoProviders = ['pexels'];
-
-String _providerLabel(String id) => switch (id) {
-      'pexels' => 'Pexels',
-      _ => 'Unsplash',
-    };
+const _photoProviders = ['pexels', 'pixabay', 'openverse', 'wikimedia', 'unsplash'];
+const _videoProviders = ['pexels', 'pixabay', 'wikimedia'];
 
 /// Jelajah latar: tab Gambar | Video, provider sebagai chip di dalam tab.
 Future<ShareBackground?> showShareMediaExplorer(
@@ -49,7 +44,7 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
   final _scrollCtrl = ScrollController();
   late final TabController _tabs;
 
-  String _photoProvider = 'unsplash';
+  String _photoProvider = 'pexels';
   String _videoProvider = 'pexels';
   late String _media;
   late String _provider;
@@ -190,8 +185,8 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
     final theme = context.theme;
     final media = MediaQuery.of(context);
     final badge = _media == 'video'
-        ? '${_providerLabel(_provider)} video'
-        : _providerLabel(_provider);
+        ? '${shareProviderLabel(_provider)} video'
+        : shareProviderLabel(_provider);
 
     return SizedBox(
       height: media.size.height * 0.92,
@@ -255,13 +250,18 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: Wrap(
-              spacing: 8,
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 for (final id in _providersForTab)
-                  FilterChip(
-                    label: Text(_providerLabel(id)),
-                    selected: _provider == id,
-                    onSelected: (_) => _selectProvider(id),
+                  GestureDetector(
+                    onTap: () => _selectProvider(id),
+                    child: FBadge(
+                      variant: _provider == id
+                          ? FBadgeVariant.primary
+                          : FBadgeVariant.secondary,
+                      child: Text(shareProviderLabel(id)),
+                    ),
                   ),
               ],
             ),

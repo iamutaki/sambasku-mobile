@@ -11,6 +11,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.Presentation
 import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -62,6 +63,14 @@ class MainActivity : FlutterActivity() {
         }
         val overlay: TextureOverlay = BitmapOverlay.createStaticBitmapOverlay(bitmap)
         val overlayEffect = OverlayEffect(ImmutableList.of(overlay))
+        val width = evenDimension(bitmap.width)
+        val height = evenDimension(bitmap.height)
+        val presentation =
+            Presentation.createForWidthAndHeight(
+                width,
+                height,
+                Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+            )
         val clipping =
             MediaItem.ClippingConfiguration.Builder()
                 .setEndPositionMs(maxSeconds * 1000L)
@@ -74,7 +83,7 @@ class MainActivity : FlutterActivity() {
         val edited =
             EditedMediaItem.Builder(mediaItem)
                 .setRemoveAudio(true)
-                .setEffects(Effects(listOf(), listOf(overlayEffect)))
+                .setEffects(Effects(listOf(), listOf(presentation, overlayEffect)))
                 .build()
 
         val outFile = File(outputPath)
@@ -107,4 +116,6 @@ class MainActivity : FlutterActivity() {
         transformer = active
         active.start(edited, outputPath)
     }
+
+    private fun evenDimension(value: Int): Int = maxOf(2, value - (value % 2))
 }

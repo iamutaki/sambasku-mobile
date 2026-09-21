@@ -58,6 +58,8 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
               ?.map((e) => WordVariantDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      date: json['date'] as String?,
+      isNewThisWeek: json['is_new_this_week'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
@@ -80,6 +82,8 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'related_words': instance.relatedWords,
       'appears_in': instance.appearsIn,
       'variants': instance.variants,
+      'date': instance.date,
+      'is_new_this_week': instance.isNewThisWeek,
     };
 
 _WordVerifierDto _$WordVerifierDtoFromJson(Map<String, dynamic> json) =>

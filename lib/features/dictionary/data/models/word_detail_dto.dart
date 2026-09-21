@@ -27,6 +27,10 @@ abstract class WordDetailDto with _$WordDetailDto {
     List<RelatedWordDto> relatedWords,
     @JsonKey(name: 'appears_in') @Default([]) List<RelatedWordDto> appearsIn,
     @Default([]) List<WordVariantDto> variants,
+
+    /// Hanya diisi GET /words/today; detail biasa mengabaikan (null/false).
+    String? date,
+    @JsonKey(name: 'is_new_this_week') @Default(false) bool isNewThisWeek,
   }) = _WordDetailDto;
 
   factory WordDetailDto.fromJson(Map<String, dynamic> json) =>

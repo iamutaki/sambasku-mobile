@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
 import '../domain/share_models.dart';
 import 'widgets/share_card_canvas.dart';
@@ -41,7 +42,7 @@ Future<void> showShareCardFullscreen(
   );
 }
 
-/// Editor posisi teks fullscreen. Mengembalikan settings baru jika user tap Selesai.
+/// Editor posisi fullscreen. Mengembalikan settings baru jika user tap Selesai.
 Future<ShareEditorSettings?> showShareLayoutEditor(
   BuildContext context, {
   required ShareCardData Function(ShareEditorSettings settings) buildData,
@@ -173,6 +174,7 @@ class _LayoutEditorPage extends StatefulWidget {
 class _LayoutEditorPageState extends State<_LayoutEditorPage> {
   late ShareEditorSettings _settings;
   ShareTextElementId? _selected;
+  bool _mediaSelected = false;
 
   @override
   void initState() {
@@ -184,9 +186,27 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
     final current = _settings.layoutFor(id);
     setState(() {
       _selected = id;
+      _mediaSelected = false;
       _settings = _settings.withLayout(
         id,
         current.copyWith(offset: current.offset + canvasDelta),
+      );
+    });
+  }
+
+  void _onPanMedia(Offset canvasDelta) {
+    if (!widget.template.allowsMediaPan) return;
+    final w = widget.ratio.width / 2;
+    final h = widget.ratio.height / 2;
+    final cur = _settings.mediaAlignment;
+    setState(() {
+      _mediaSelected = true;
+      _selected = null;
+      _settings = _settings.copyWith(
+        mediaAlignment: Offset(
+          (cur.dx - canvasDelta.dx / w).clamp(-1.0, 1.0),
+          (cur.dy - canvasDelta.dy / h).clamp(-1.0, 1.0),
+        ),
       );
     });
   }
@@ -195,6 +215,7 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
   Widget build(BuildContext context) {
     final data = widget.buildData(_settings);
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final canPanMedia = widget.template.allowsMediaPan;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -202,7 +223,7 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Atur posisi teks'),
+        title: const Text('Atur posisi'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -226,7 +247,9 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              'Geser teks bertanda border · ketuk untuk pilih · putar di bawah',
+              canPanMedia
+                  ? 'Ketuk Latar lalu geser gambar · ketuk teks untuk geser / putar'
+                  : 'Geser teks bertanda border · ketuk untuk pilih · putar di bawah',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.65),
                 fontSize: 13,
@@ -252,8 +275,19 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                       videoIsFile: widget.videoIsFile,
                       layoutEditMode: true,
                       selectedElement: _selected,
-                      onSelectElement: (id) => setState(() => _selected = id),
+                      mediaSelected: _mediaSelected,
+                      onSelectElement: (id) => setState(() {
+                        _selected = id;
+                        _mediaSelected = false;
+                      }),
                       onPanElement: _onPan,
+                      onSelectMedia: canPanMedia
+                          ? () => setState(() {
+                              _mediaSelected = true;
+                              _selected = null;
+                            })
+                          : null,
+                      onPanMedia: canPanMedia ? _onPanMedia : null,
                     ),
                   ),
                 ),
@@ -268,6 +302,22 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (canPanMedia)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _mediaSelected = true;
+                        _selected = null;
+                      }),
+                      child: FBadge(
+                        variant: _mediaSelected
+                            ? FBadgeVariant.primary
+                            : FBadgeVariant.secondary,
+                        child: const Text('Latar'),
+                      ),
+                    ),
+                  ),
                 if (_selected != null) ...[
                   Text(
                     'Rotasi ${_selected!.label}',
@@ -298,9 +348,19 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                       });
                     },
                   ),
-                ] else
+                ] else if (_mediaSelected)
+                  const Text(
+                    'Geser di kartu untuk mengatur crop gambar atau video',
+                    style: TextStyle(
+                      color: Color(0x8AFFFFFF),
+                      fontSize: 13,
+                    ),
+                  )
+                else
                   Text(
-                    'Pilih elemen teks di kartu untuk mengatur rotasi',
+                    canPanMedia
+                        ? 'Pilih Latar untuk geser gambar, atau ketuk teks untuk rotasi'
+                        : 'Pilih elemen teks di kartu untuk mengatur rotasi',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.55),
                       fontSize: 13,
@@ -312,6 +372,7 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                     onPressed: () => setState(() {
                       _settings = _settings.resetLayouts();
                       _selected = null;
+                      _mediaSelected = false;
                     }),
                     child: const Text('Reset posisi'),
                   ),

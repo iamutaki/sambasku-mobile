@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../domain/entities/word_detail.dart';
+import '../../domain/entities/word_of_day.dart';
 import '../../domain/entities/word_summary.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../../domain/repositories/dictionary_repository.dart';
@@ -168,6 +169,39 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
           fallback: 'Gagal memuat detail kata',
           notFoundMessage: 'Kata tidak ditemukan',
         ),
+      );
+    } catch (error) {
+      return Either.left(DictionaryFailure(error.toString()));
+    }
+  }
+
+  @override
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async {
+    try {
+      final response = await _remoteDatasource.getWordOfDay();
+
+      if (response.success == false) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Gagal memuat kata hari ini',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+
+      final dto = response.data;
+      if (dto == null) return Either.right(null);
+
+      return Either.right(
+        WordOfDay(
+          word: _mapDetail(dto),
+          date: dto.date ?? '',
+          isNewThisWeek: dto.isNewThisWeek,
+        ),
+      );
+    } on DioException catch (error) {
+      return Either.left(
+        _mapDio(error, fallback: 'Gagal memuat kata hari ini'),
       );
     } catch (error) {
       return Either.left(DictionaryFailure(error.toString()));

@@ -150,7 +150,7 @@ class ProfilePage extends ConsumerWidget {
                     FTile(
                       prefix: const Icon(FLucideIcons.info),
                       title: const Text('Tentang SambasKu'),
-                      subtitle: const Text('Versi aplikasi dan informasi'),
+                      subtitle: const Text('Fitur dan versi aplikasi'),
                       suffix: const Icon(FLucideIcons.chevronRight),
                       onPress: () => context.push('/about'),
                     ),

@@ -57,8 +57,11 @@ enum ShareVideoComposer {
 
     let duration = min(asset.duration, CMTime(seconds: maxSeconds, preferredTimescale: 600))
     let timeRange = CMTimeRange(start: .zero, duration: duration)
-    let natural = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-    let renderSize = CGSize(width: abs(natural.width), height: abs(natural.height))
+    let renderSize = CGSize(
+      width: evenDimension(CGFloat(overlayImage.width)),
+      height: evenDimension(CGFloat(overlayImage.height))
+    )
+    let fill = coverTransform(track: videoTrack, renderSize: renderSize)
 
     let mix = AVMutableComposition()
     guard
@@ -80,7 +83,7 @@ enum ShareVideoComposer {
     let instruction = AVMutableVideoCompositionInstruction()
     instruction.timeRange = timeRange
     let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionTrack)
-    layerInstruction.setTransform(videoTrack.preferredTransform, at: .zero)
+    layerInstruction.setTransform(fill, at: .zero)
     instruction.layerInstructions = [layerInstruction]
 
     let videoComposition = AVMutableVideoComposition()
@@ -95,7 +98,7 @@ enum ShareVideoComposer {
     let overlayLayer = CALayer()
     overlayLayer.contents = overlayImage
     overlayLayer.frame = parent.frame
-    overlayLayer.contentsGravity = .resizeAspect
+    overlayLayer.contentsGravity = .resize
     overlayLayer.isGeometryFlipped = true
     parent.addSublayer(videoLayer)
     parent.addSublayer(overlayLayer)
@@ -134,5 +137,24 @@ enum ShareVideoComposer {
         }
       }
     }
+  }
+
+  /// Aspect-fill video ke frame overlay (sama BoxFit.cover di preview).
+  private static func coverTransform(track: AVAssetTrack, renderSize: CGSize) -> CGAffineTransform {
+    let preferred = track.preferredTransform
+    let mapped = CGRect(origin: .zero, size: track.naturalSize).applying(preferred)
+    let src = CGSize(width: abs(mapped.width), height: abs(mapped.height))
+    var t = preferred
+    t.tx -= mapped.origin.x
+    t.ty -= mapped.origin.y
+    let scale = max(renderSize.width / src.width, renderSize.height / src.height)
+    t = t.concatenating(CGAffineTransform(scaleX: scale, y: scale))
+    let dx = (renderSize.width - src.width * scale) / 2
+    let dy = (renderSize.height - src.height * scale) / 2
+    return t.concatenating(CGAffineTransform(translationX: dx, y: dy))
+  }
+
+  private static func evenDimension(_ value: CGFloat) -> CGFloat {
+    max(2, (value / 2).rounded(.down) * 2)
   }
 }
