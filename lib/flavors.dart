@@ -4,7 +4,9 @@ enum Flavor { staging, production }
 class F {
   F._();
 
-  static late final Flavor appFlavor;
+  /// Bukan `late final`: tes flavor (staging lalu production) harus
+  /// bisa ganti nilai di isolate yang sama. `main()` tetap assign sekali.
+  static late Flavor appFlavor;
 
   static String get name => appFlavor.name;
 

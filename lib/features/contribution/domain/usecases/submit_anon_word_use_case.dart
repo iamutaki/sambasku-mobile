@@ -18,8 +18,9 @@ class SubmitAnonWordUseCase {
 
     // Placeholder definisi: hanya definisi sentinel "-" + flag false.
     // Padanan opsional: isHaveTranslation=false → translations [].
+    // Kedua flag independen (form Definisi/Padanan boleh salah satu saja).
     final isHaveDefinition = params.isHaveDefinition;
-    final isHaveTranslation = params.isHaveTranslation && isHaveDefinition;
+    final isHaveTranslation = params.isHaveTranslation;
     final definition = isHaveDefinition ? params.definition.trim() : '-';
     final translations = isHaveTranslation
         ? params.translationTexts

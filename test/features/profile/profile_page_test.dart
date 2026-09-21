@@ -10,6 +10,10 @@ import 'package:sambasku_mobile/features/auth/data/providers/auth_data_providers
 import 'package:sambasku_mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:sambasku_mobile/features/auth/domain/failures/auth_failure.dart';
 import 'package:sambasku_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:sambasku_mobile/features/notification/data/providers/notification_data_providers.dart';
+import 'package:sambasku_mobile/features/notification/domain/entities/inbox_notification_page.dart';
+import 'package:sambasku_mobile/features/notification/domain/failures/notification_failure.dart';
+import 'package:sambasku_mobile/features/notification/domain/repositories/notification_repository.dart';
 import 'package:sambasku_mobile/features/profile/presentation/pages/profile_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,6 +39,27 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Either<AuthFailure, void>> logout() async => Either.right(null);
 }
 
+class _FakeNotificationRepository implements NotificationRepository {
+  @override
+  Future<Either<NotificationFailure, InboxNotificationPage>> listMine({
+    int limit = 20,
+    String? cursor,
+  }) async =>
+      Either.right(const InboxNotificationPage(items: []));
+
+  @override
+  Future<Either<NotificationFailure, int>> unreadCount() async =>
+      Either.right(0);
+
+  @override
+  Future<Either<NotificationFailure, bool>> markRead(String id) async =>
+      Either.right(false);
+
+  @override
+  Future<Either<NotificationFailure, int>> markAllRead() async =>
+      Either.right(0);
+}
+
 /// Widget test Profile (mobile-base-stack Section 10): status login vs
 /// tamu menentukan tombol "Keluar" / "Masuk / Login", dan logout berfungsi.
 void main() {
@@ -50,6 +75,9 @@ void main() {
         overrides: [
           authTokenStorageProvider.overrideWithValue(AuthTokenStorage()),
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+          notificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(),
+          ),
         ],
         child: MaterialApp(
           theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
