@@ -3,8 +3,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../shared/dev_tool/network_monitor/network_monitor_registry.dart';
 import '../constants/env.dart';
+import '../services/rate_limit_device_id.dart';
 import 'auth_token_storage.dart';
 import 'interceptors/auth_interceptor.dart';
+import 'interceptors/device_id_interceptor.dart';
 import 'interceptors/network_monitor_interceptor.dart';
 
 part 'network_providers.g.dart';
@@ -32,6 +34,7 @@ Dio dio(Ref ref) {
       repository: NetworkMonitorRegistry.repository,
     ),
   );
+  dio.interceptors.add(DeviceIdInterceptor(RateLimitDeviceIdService()));
   dio.interceptors.add(
     AuthInterceptor(
       tokenStorage: ref.watch(authTokenStorageProvider),

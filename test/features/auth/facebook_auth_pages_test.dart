@@ -13,6 +13,7 @@ import 'package:sambasku_mobile/features/auth/domain/usecases/login_with_faceboo
 import 'package:sambasku_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:sambasku_mobile/features/auth/presentation/pages/register_page.dart';
 import 'package:sambasku_mobile/features/auth/presentation/providers/auth_login_providers.dart';
+import 'package:sambasku_mobile/flavors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _StubSignIn implements FacebookSignInPort {
@@ -94,8 +95,15 @@ Widget _harness({
   );
 }
 
+/// LoginPage Skeletonizer tidak idle; FTappable tap menyimpan timer 100 ms.
+Future<void> _pumpUi(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 200));
+}
+
 void main() {
   setUp(() {
+    F.appFlavor = Flavor.staging;
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
   });
@@ -109,7 +117,7 @@ void main() {
         overrides: [facebookAuthEnabledProvider.overrideWithValue(false)],
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.text('Masuk dengan Facebook'), findsNothing);
   });
 
@@ -122,7 +130,7 @@ void main() {
         overrides: [facebookAuthEnabledProvider.overrideWithValue(true)],
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.text('Masuk dengan Facebook'), findsOneWidget);
   });
 
@@ -133,7 +141,7 @@ void main() {
         overrides: [facebookAuthEnabledProvider.overrideWithValue(true)],
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.text('Daftar dengan Facebook'), findsOneWidget);
   });
 
@@ -160,9 +168,9 @@ void main() {
         ],
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     await tester.tap(find.text('Masuk dengan Facebook'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.textContaining('Email sudah terdaftar'), findsOneWidget);
   });
 
@@ -189,10 +197,10 @@ void main() {
         ],
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     await tester.ensureVisible(find.text('Daftar dengan Facebook'));
     await tester.tap(find.text('Daftar dengan Facebook'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.textContaining('Email sudah terdaftar'), findsOneWidget);
   });
 }

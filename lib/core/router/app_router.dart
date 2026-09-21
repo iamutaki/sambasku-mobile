@@ -17,6 +17,7 @@ import '../../features/dictionary/presentation/pages/home_search_page.dart';
 import '../../features/onboarding/data/onboarding_prefs.dart';
 import '../../features/onboarding/onboarding_router.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/report_bug/report_bug_router.dart';
 import '../../features/user_profile/user_profile_router.dart';
 import '../../features/verifier_application/verifier_application_router.dart';
 import '../../shared/splash/splash_router.dart';
@@ -50,6 +51,7 @@ class AppRouter {
       ...BookmarkRouter.routes,
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,
+      ...ReportBugRouter.routes,
       ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

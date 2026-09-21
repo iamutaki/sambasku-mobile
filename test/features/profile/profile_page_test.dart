@@ -170,6 +170,7 @@ void main() {
     expect(find.text('Belum masuk'), findsOneWidget);
     expect(find.text('Masuk / Login'), findsOneWidget);
     expect(find.text('Daftar'), findsOneWidget);
+    expect(find.text('Laporkan Masalah'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
   });
 

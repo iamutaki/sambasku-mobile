@@ -29,20 +29,28 @@ class BrandLogo extends StatelessWidget {
         height: size,
         fit: BoxFit.contain,
         frameBuilder: frameBuilder,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: size ?? 120,
-          height: size ?? 120,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-            color: Colors.grey.shade200,
-          ),
-          child: Icon(
-            Icons.menu_book_rounded,
-            size: (size ?? 120) * 0.4,
-            color: Colors.grey,
-          ),
-        ),
+        errorBuilder: (context, error, stackTrace) {
+          final fallback = Container(
+            width: size ?? 120,
+            height: size ?? 120,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(borderRadius),
+              color: Colors.grey.shade200,
+            ),
+            child: Icon(
+              Icons.menu_book_rounded,
+              size: (size ?? 120) * 0.4,
+              color: Colors.grey,
+            ),
+          );
+          // errorBuilder menggantikan frameBuilder; tetap laporkan "sudah
+          // selesai" supaya Skeletonizer di login tidak shimmer selamanya.
+          if (frameBuilder != null) {
+            return frameBuilder!(context, fallback, 0, true);
+          }
+          return fallback;
+        },
       ),
     );
   }
