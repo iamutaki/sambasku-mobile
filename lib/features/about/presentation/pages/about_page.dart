@@ -80,7 +80,7 @@ class AboutPage extends StatelessWidget {
                 const _AboutBlock(
                   title: 'Cari kosakata',
                   body:
-                      'Ketik lemma atau padanan. Setiap entri menampilkan '
+                      'Ketik lemma atau terjemahan. Setiap entri menampilkan '
                       'kelas kata, definisi, contoh kalimat, dan variasi '
                       'penulisan.',
                 ),

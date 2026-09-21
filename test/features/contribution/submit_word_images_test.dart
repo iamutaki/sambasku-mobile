@@ -12,12 +12,8 @@ class _FakeRepo implements ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
-    bool isHaveDefinition = true,
-    bool isHaveTranslation = true,
+    required List<SubmitWordMeaning> meanings,
     String? dialectId,
-    required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
@@ -42,10 +38,14 @@ void main() {
       const SubmitAnonWordParams(
         lemma: 'makatn',
         languageId: '01LANG',
-        wordClassId: '01CLASS',
-        definition: 'makan',
         translationLanguageId: '01IDN',
-        translationTexts: ['makan'],
+        meanings: [
+          SubmitAnonWordMeaningParams(
+            wordClassId: '01CLASS',
+            definition: 'makan',
+            translationTexts: ['makan'],
+          ),
+        ],
         images: [
           SubmitWordImage(
             url: 'https://ik.imagekit.io/x/a.jpg',

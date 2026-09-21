@@ -1176,7 +1176,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                   ),
                   const Gap(8),
                   settingsSwitchRow(
-                    label: 'Tampilkan padanan',
+                    label: 'Tampilkan terjemahan',
                     value: _settings.showPadanan,
                     onChange: (v) => setState(() {
                       _settings = _settings.copyWith(showPadanan: v);

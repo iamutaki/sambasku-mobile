@@ -14,12 +14,8 @@ class _FakeRepo implements ContributionRepository {
   final Either<ContributionFailure, SubmitWordResult> result;
   String? lemma;
   String? languageId;
-  String? wordClassId;
-  String? definition;
-  bool? isHaveDefinition;
-  bool? isHaveTranslation;
+  List<SubmitWordMeaning>? meanings;
   String? dialectId;
-  List<String>? translationTexts;
   List<String>? categoryIds;
   String? notes;
   List<String>? spellingVariants;
@@ -32,12 +28,8 @@ class _FakeRepo implements ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
-    bool isHaveDefinition = true,
-    bool isHaveTranslation = true,
+    required List<SubmitWordMeaning> meanings,
     String? dialectId,
-    required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
@@ -48,12 +40,8 @@ class _FakeRepo implements ContributionRepository {
   }) async {
     this.lemma = lemma;
     this.languageId = languageId;
-    this.wordClassId = wordClassId;
-    this.definition = definition;
-    this.isHaveDefinition = isHaveDefinition;
-    this.isHaveTranslation = isHaveTranslation;
+    this.meanings = meanings;
     this.dialectId = dialectId;
-    this.translationTexts = translationTexts;
     this.categoryIds = categoryIds;
     this.notes = notes;
     this.spellingVariants = spellingVariants;
@@ -63,6 +51,42 @@ class _FakeRepo implements ContributionRepository {
     this.searchMissId = searchMissId;
     return result;
   }
+}
+
+SubmitAnonWordParams _params({
+  String lemma = 'makai',
+  String languageId = 'lan-sbs',
+  String wordClassId = 'wc-01',
+  String definition = 'memakai',
+  bool isHaveDefinition = true,
+  bool isHaveTranslation = true,
+  List<String> translationTexts = const ['make'],
+  String? dialectId,
+  List<String> categoryIds = const [],
+  String? notes,
+  List<SubmitWordRelation> relatedWords = const [],
+  List<SubmitWordImage> images = const [],
+  String translationLanguageId = 'lan-idn',
+}) {
+  return SubmitAnonWordParams(
+    lemma: lemma,
+    languageId: languageId,
+    meanings: [
+      SubmitAnonWordMeaningParams(
+        wordClassId: wordClassId,
+        definition: definition,
+        isHaveDefinition: isHaveDefinition,
+        isHaveTranslation: isHaveTranslation,
+        translationTexts: translationTexts,
+      ),
+    ],
+    dialectId: dialectId,
+    categoryIds: categoryIds,
+    notes: notes,
+    relatedWords: relatedWords,
+    images: images,
+    translationLanguageId: translationLanguageId,
+  );
 }
 
 void main() {
@@ -76,22 +100,20 @@ void main() {
     final usecase = SubmitAnonWordUseCase(repo);
 
     final r = await usecase(
-      const SubmitAnonWordParams(
+      _params(
         lemma: '  makai  ',
-        languageId: 'lan-sbs',
-        wordClassId: 'wc-01',
         definition: '  memakai  ',
         dialectId: '  ',
         translationTexts: ['  ', '  make  ', '  '],
         categoryIds: ['  ', 'kat-01'],
         notes: 'halo',
-        translationLanguageId: 'lan-idn',
       ),
     );
 
     expect(repo.lemma, 'makai');
-    expect(repo.definition, 'memakai');
-    expect(repo.translationTexts, ['make']);
+    expect(repo.meanings, hasLength(1));
+    expect(repo.meanings!.first.definition, 'memakai');
+    expect(repo.meanings!.first.translationTexts, ['make']);
     expect(repo.categoryIds, ['kat-01']);
     // dialectId kosong → di-null-kan (kontrak repository optional)
     expect(repo.dialectId, isNull);
@@ -112,14 +134,7 @@ void main() {
     final usecase = SubmitAnonWordUseCase(repo);
 
     final r = await usecase(
-      const SubmitAnonWordParams(
-        lemma: 'makai',
-        languageId: 'lan-xyz',
-        wordClassId: 'wc-01',
-        definition: 'memakai',
-        translationTexts: ['make'],
-        translationLanguageId: 'lan-idn',
-      ),
+      _params(languageId: 'lan-xyz'),
     );
 
     final failure = r.getLeft().toNullable();
@@ -133,19 +148,16 @@ void main() {
     final usecase = SubmitAnonWordUseCase(repo);
 
     await usecase(
-      const SubmitAnonWordParams(
+      _params(
         lemma: 'x',
-        languageId: 'lan-sbs',
-        wordClassId: 'wc-01',
         definition: 'y',
         translationTexts: ['   '],
-        translationLanguageId: 'lan-idn',
       ),
     );
 
     // usecase hanya membersihkan; validasi minimal 1 ada di backend
     // (VALIDATION_ERROR inline field translation_texts).
-    expect(repo.translationTexts, isEmpty);
+    expect(repo.meanings!.first.translationTexts, isEmpty);
   });
 
   test('tanpa definisi - paksa definition "-" saja; terjemahan tetap', () async {
@@ -153,14 +165,10 @@ void main() {
     final usecase = SubmitAnonWordUseCase(repo);
 
     await usecase(
-      const SubmitAnonWordParams(
-        lemma: 'makai',
-        languageId: 'lan-sbs',
-        wordClassId: 'wc-01',
+      _params(
         definition: 'akan diabaikan',
         isHaveDefinition: false,
         translationTexts: ['  memakai  '],
-        translationLanguageId: 'lan-idn',
         relatedWords: [
           SubmitWordRelation(relationType: 'synonym', lemma: ' make '),
           SubmitWordRelation(relationType: 'antonym', lemma: 'makai'),
@@ -168,9 +176,9 @@ void main() {
       ),
     );
 
-    expect(repo.definition, '-');
-    expect(repo.translationTexts, ['memakai']);
-    expect(repo.isHaveDefinition, false);
+    expect(repo.meanings!.first.definition, '-');
+    expect(repo.meanings!.first.translationTexts, ['memakai']);
+    expect(repo.meanings!.first.isHaveDefinition, false);
     // lemma induk didrop; synonym tetap
     expect(repo.relatedWords?.length, 1);
     expect(repo.relatedWords?.first.lemma, 'make');
@@ -182,19 +190,54 @@ void main() {
     final usecase = SubmitAnonWordUseCase(repo);
 
     await usecase(
-      const SubmitAnonWordParams(
-        lemma: 'makai',
-        languageId: 'lan-sbs',
-        wordClassId: 'wc-01',
+      _params(
         definition: 'uraian makna tanpa padanan tunggal',
         isHaveTranslation: false,
         translationTexts: ['akan diabaikan'],
-        translationLanguageId: 'lan-idn',
       ),
     );
 
-    expect(repo.definition, 'uraian makna tanpa padanan tunggal');
-    expect(repo.translationTexts, isEmpty);
-    expect(repo.isHaveTranslation, false);
+    expect(
+      repo.meanings!.first.definition,
+      'uraian makna tanpa padanan tunggal',
+    );
+    expect(repo.meanings!.first.translationTexts, isEmpty);
+    expect(repo.meanings!.first.isHaveTranslation, false);
+  });
+
+  test('multi makna - semua blok di-trim dan order terjaga', () async {
+    final repo = _FakeRepo(Either.right(result));
+    final usecase = SubmitAnonWordUseCase(repo);
+
+    await usecase(
+      const SubmitAnonWordParams(
+        lemma: '  makatn  ',
+        languageId: 'lan-sbs',
+        translationLanguageId: 'lan-idn',
+        meanings: [
+          SubmitAnonWordMeaningParams(
+            wordClassId: ' wc-1 ',
+            definition: '  makan  ',
+            translationTexts: ['  makan  '],
+          ),
+          SubmitAnonWordMeaningParams(
+            wordClassId: 'wc-2',
+            definition: 'sudah makan',
+            isHaveDefinition: true,
+            isHaveTranslation: false,
+            translationTexts: ['abaikan'],
+          ),
+        ],
+      ),
+    );
+
+    expect(repo.lemma, 'makatn');
+    expect(repo.meanings, hasLength(2));
+    expect(repo.meanings![0].wordClassId, 'wc-1');
+    expect(repo.meanings![0].definition, 'makan');
+    expect(repo.meanings![0].translationTexts, ['makan']);
+    expect(repo.meanings![1].definition, 'sudah makan');
+    expect(repo.meanings![1].isHaveTranslation, false);
+    expect(repo.meanings![1].translationTexts, isEmpty);
   });
 }

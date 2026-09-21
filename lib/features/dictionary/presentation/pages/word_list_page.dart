@@ -126,7 +126,7 @@ class WordListPage extends HookConsumerWidget {
               ],
               const Gap(12),
               FButton(
-                onPress: () => ref.invalidate(wordListProvider),
+                onPress: () => ref.read(wordListProvider.notifier).load(),
                 variant: FButtonVariant.outline,
                 prefix: const Icon(FLucideIcons.rotateCcw),
                 child: const Text('Coba lagi'),
@@ -138,9 +138,7 @@ class WordListPage extends HookConsumerWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(wordListProvider);
-      },
+      onRefresh: () => ref.read(wordListProvider.notifier).load(),
       // Satu FTileGroup: semua lemma dalam 1 kartu + divider Forui.
       // Urutan server (lemma ASC) - TANPA grouping header huruf.
       child: ListView(

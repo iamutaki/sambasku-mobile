@@ -617,7 +617,7 @@ class _MeaningBlock extends StatelessWidget {
                 ] else ...[
                   const Gap(4),
                   Text(
-                    'Belum ada padanan',
+                    'Belum ada terjemahan',
                     style: theme.typography.sm.copyWith(
                       color: theme.colors.mutedForeground,
                       fontStyle: FontStyle.italic,

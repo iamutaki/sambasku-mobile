@@ -30,6 +30,23 @@ class SubmitWordRelation {
   final String lemma;
 }
 
+/// Satu makna dalam usulan kata (API `meanings[]`).
+class SubmitWordMeaning {
+  const SubmitWordMeaning({
+    required this.wordClassId,
+    required this.definition,
+    this.isHaveDefinition = true,
+    this.isHaveTranslation = true,
+    this.translationTexts = const [],
+  });
+
+  final String wordClassId;
+  final String definition;
+  final bool isHaveDefinition;
+  final bool isHaveTranslation;
+  final List<String> translationTexts;
+}
+
 /// Kontrak repository submit kata.
 ///
 /// Method `submitAnon` = endpoint `POST /api/v1/contributions/words`
@@ -41,14 +58,8 @@ abstract interface class ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
-    // false = placeholder "-" (docs: is_have_definition).
-    bool isHaveDefinition = true,
-    // false = tanpa padanan (docs: is_have_translation).
-    bool isHaveTranslation = true,
+    required List<SubmitWordMeaning> meanings,
     String? dialectId,
-    required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     // Ejaan alternatif (variasi penulisan, docs/api/11) - dikirim sebagai

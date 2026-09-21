@@ -203,8 +203,8 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
       context: context,
       title: Text(
         matched != null
-            ? 'Terisi dari KBBI (padanan, kelas kata, definisi)'
-            : 'Terisi dari KBBI (padanan & definisi)',
+            ? 'Terisi dari KBBI (terjemahan, kelas kata, definisi)'
+            : 'Terisi dari KBBI (terjemahan & definisi)',
       ),
     );
   }
@@ -338,8 +338,8 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
 
       final images = <Map<String, dynamic>>[];
       for (final slot in _newImages) {
-        final dto = slot.dto;
-        if (dto == null) continue;
+        final dto = slot.uploaded;
+        if (dto == null || !slot.isReady) continue;
         images.add({
           'action': 'add',
           'url': dto.url,
@@ -466,7 +466,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
               if (hasMeaning) ...[
                 const Gap(12),
                 const _FieldCaption(
-                  'Padanan Indonesia',
+                  'Terjemahan Indonesia',
                   info:
                       'Satu kata/frasa setara dengan lemma.\n\n'
                       'Contoh: “makan”. Beda dari definisi.',
@@ -526,7 +526,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                 const _FieldCaption(
                   'Definisi',
                   info:
-                      'Uraian makna berbahasa Indonesia - bukan padanan satu kata.',
+                      'Uraian makna berbahasa Indonesia - bukan terjemahan satu kata.',
                 ),
                 FTextField(
                   control: FTextFieldControl.managed(

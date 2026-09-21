@@ -15,10 +15,10 @@ class ReportImageUploadService {
   final BugReportRepository _repo;
   final ImageKitUploader _uploader;
 
-  Future<BugReportImageRef> upload(XFile file) async {
+  Future<BugReportImageRef> upload(File file) async {
     final creds = await _repo.getUploadToken();
     final uploaded = await _uploader.upload(
-      file: File(file.path),
+      file: file,
       creds: UploadCredentialsDto(
         token: creds.token,
         signature: creds.signature,
@@ -30,4 +30,7 @@ class ReportImageUploadService {
     );
     return BugReportImageRef(url: uploaded.url, providerFileId: uploaded.fileId);
   }
+
+  /// Kompatibilitas pemanggil lama yang masih pakai XFile.
+  Future<BugReportImageRef> uploadXFile(XFile file) => upload(File(file.path));
 }

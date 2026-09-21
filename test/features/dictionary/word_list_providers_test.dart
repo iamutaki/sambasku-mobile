@@ -23,6 +23,7 @@ WordSummary _word(String lemma) => WordSummary(
 class _FakeDictionaryRepository implements DictionaryRepository {
   final calls = <({String q, String? cursor})>[];
   bool failNext = false;
+  bool empty = false;
 
   @override
   Future<Either<DictionaryFailure, WordSearchPage>> listWords({
@@ -34,6 +35,13 @@ class _FakeDictionaryRepository implements DictionaryRepository {
     if (failNext) {
       failNext = false;
       return Either.left(const DictionaryFailure('gagal memuat'));
+    }
+    if (empty) {
+      return Either.right(const WordSearchPage(
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      ));
     }
     if (cursor == 'page-2') {
       return Either.right(WordSearchPage(
@@ -163,6 +171,50 @@ void main() {
     final state = container.read(wordListProvider);
     expect(state.errorMessage, 'gagal memuat');
     expect(state.isLoading, false);
+    sub.close();
+  });
+
+  test('empty: unsubscribe+resubscribe tidak stuck loading (keepAlive)', () async {
+    final repo = _FakeDictionaryRepository()..empty = true;
+    final container = ProviderContainer(
+      overrides: [dictionaryRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+
+    var sub = container.listen(wordListProvider, (_, _) {});
+    await _flush();
+    expect(container.read(wordListProvider).isLoading, false);
+    expect(container.read(wordListProvider).items, isEmpty);
+    final callsAfterFirst = repo.calls.length;
+
+    sub.close();
+    await _flush();
+
+    sub = container.listen(wordListProvider, (_, _) {});
+    await _flush();
+    expect(container.read(wordListProvider).isLoading, false);
+    expect(container.read(wordListProvider).items, isEmpty);
+    // keepAlive: tidak refetch hanya karena listener hilang/kembali
+    expect(repo.calls.length, callsAfterFirst);
+    sub.close();
+  });
+
+  test('onQueryChanged empty idle tidak refetch (hindari remount loop)', () async {
+    final repo = _FakeDictionaryRepository()..empty = true;
+    final container = ProviderContainer(
+      overrides: [dictionaryRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+
+    final sub = container.listen(wordListProvider, (_, _) {});
+    await _flush();
+    final callsBefore = repo.calls.length;
+
+    container.read(wordListProvider.notifier).onQueryChanged('');
+    await _flush();
+
+    expect(repo.calls.length, callsBefore);
+    expect(container.read(wordListProvider).isLoading, false);
     sub.close();
   });
 }

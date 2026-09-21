@@ -750,7 +750,7 @@ class _KamusEditorialCard extends StatelessWidget {
                     settings: settings,
                     layout: layout,
                     child: Text(
-                      'Padanan: ${data.padanan}',
+                      'Terjemahan: ${data.padanan}',
                       style: _bodyStyle(
                         pair: pair,
                         size: 36 * settings.bodyFontScale,

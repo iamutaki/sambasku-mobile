@@ -222,7 +222,7 @@ enum ShareTextElementId { lemma, padanan, definition, example, wordClass }
 extension ShareTextElementIdX on ShareTextElementId {
   String get label => switch (this) {
     ShareTextElementId.lemma => 'Lemma',
-    ShareTextElementId.padanan => 'Padanan',
+    ShareTextElementId.padanan => 'Terjemahan',
     ShareTextElementId.definition => 'Definisi',
     ShareTextElementId.example => 'Contoh',
     ShareTextElementId.wordClass => 'Kelas kata',

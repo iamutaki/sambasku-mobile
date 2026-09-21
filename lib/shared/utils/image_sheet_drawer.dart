@@ -24,6 +24,9 @@ void showImageSheetDrawer(
   bool galleryPicker = true,
   bool filePicker = true,
   bool requireGpsForCamera = false,
+  // Kompresi picker (mobile-base-stack §9.1) - tanpa paket ekstra.
+  double maxWidth = 1600,
+  int imageQuality = 80,
 }) {
   final imagePicker = picker ?? ImagePicker();
 
@@ -72,6 +75,8 @@ void showImageSheetDrawer(
                             onPickedWithSource?.call(file, PhotoPickSource.camera);
                             onPicked?.call(file);
                           },
+                          maxWidth: maxWidth,
+                          imageQuality: imageQuality,
                         ),
                       ),
                     if (galleryPicker)
@@ -90,6 +95,8 @@ void showImageSheetDrawer(
                             );
                             onPicked?.call(file);
                           },
+                          maxWidth: maxWidth,
+                          imageQuality: imageQuality,
                         ),
                       ),
                     if (filePicker)
@@ -125,8 +132,10 @@ void showImageSheetDrawer(
 Future<void> openCamera(
   BuildContext context,
   ImagePicker picker,
-  Function(XFile) onSuccess,
-) async {
+  Function(XFile) onSuccess, {
+  double maxWidth = 1600,
+  int imageQuality = 80,
+}) async {
   try {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
@@ -134,7 +143,11 @@ Future<void> openCamera(
       return;
     }
 
-    final picked = await picker.pickImage(source: ImageSource.camera);
+    final picked = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: maxWidth,
+      imageQuality: imageQuality,
+    );
     if (picked == null) return;
 
     final persisted = await copyToUniqueTempPath(File(picked.path));
@@ -153,10 +166,16 @@ Future<void> openCamera(
 Future<void> pickImageFromGallery(
   BuildContext context,
   ImagePicker picker,
-  Function(XFile) onSuccess,
-) async {
+  Function(XFile) onSuccess, {
+  double maxWidth = 1600,
+  int imageQuality = 80,
+}) async {
   try {
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: maxWidth,
+      imageQuality: imageQuality,
+    );
     if (picked == null) return;
 
     final persisted = await copyToUniqueTempPath(File(picked.path));

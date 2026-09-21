@@ -22,12 +22,8 @@ class ContributionRepositoryImpl implements ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
-    bool isHaveDefinition = true,
-    bool isHaveTranslation = true,
+    required List<SubmitWordMeaning> meanings,
     String? dialectId,
-    required List<String> translationTexts,
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
@@ -60,18 +56,17 @@ class ContributionRepositoryImpl implements ContributionRepository {
           )
           .toList(growable: false);
 
-      final body = CreateWordRequestDto(
-        lemma: lemma,
-        languageId: languageId,
-        dialectId: dialectId,
-        meanings: [
+      final meaningDtos = <CreateWordMeaningDto>[];
+      for (var i = 0; i < meanings.length; i++) {
+        final m = meanings[i];
+        meaningDtos.add(
           CreateWordMeaningDto(
-            wordClassId: wordClassId,
-            definition: definition,
-            isHaveDefinition: isHaveDefinition,
-            isHaveTranslation: isHaveTranslation,
-            orderIndex: 1,
-            translations: translationTexts
+            wordClassId: m.wordClassId,
+            definition: m.definition,
+            isHaveDefinition: m.isHaveDefinition,
+            isHaveTranslation: m.isHaveTranslation,
+            orderIndex: i + 1,
+            translations: m.translationTexts
                 .map(
                   (text) => CreateWordTranslationDto(
                     languageId: translationLanguageId,
@@ -80,7 +75,14 @@ class ContributionRepositoryImpl implements ContributionRepository {
                 )
                 .toList(growable: false),
           ),
-        ],
+        );
+      }
+
+      final body = CreateWordRequestDto(
+        lemma: lemma,
+        languageId: languageId,
+        dialectId: dialectId,
+        meanings: meaningDtos,
         categoryIds: categoryIds,
         notes: notes,
         variants: variantDtos.isEmpty ? null : variantDtos,

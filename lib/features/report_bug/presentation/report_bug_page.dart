@@ -5,12 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../shared/widgets/attachment_images_field.dart';
 import '../../auth/presentation/providers/auth_status_providers.dart';
 import '../data/bug_report_providers.dart';
 import '../domain/bug_report_models.dart';
@@ -22,7 +23,7 @@ class ReportBugPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final description = useTextEditingController();
     useListenable(description);
-    final images = useState<List<XFile>>(<XFile>[]);
+    final images = useState<List<AttachmentImageSlot>>(const []);
     final attachmentsEnabled = useState(true);
     final submitting = useState(false);
     final errorMessage = useState<String?>(null);
@@ -31,92 +32,32 @@ class ReportBugPage extends HookConsumerWidget {
     final trimmed = description.text.trim();
     final canSubmit = trimmed.length >= 10 && !submitting.value;
 
-    Future<void> pickImages() async {
-      final remaining = 4 - images.value.length;
-      if (remaining <= 0) return;
-      final picker = ImagePicker();
-      final picked = await picker.pickMultiImage(
-        maxWidth: 1600,
-        imageQuality: 80,
-        limit: remaining,
-      );
-      if (picked.isEmpty) return;
-      images.value = [...images.value, ...picked.take(remaining)];
-    }
-
     Future<void> submit({bool skipImages = false}) async {
       if (!canSubmit) return;
+
+      if (!skipImages &&
+          attachmentsEnabled.value &&
+          images.value.any((e) => e.uploading)) {
+        showFToast(
+          context: context,
+          title: const Text('Tunggu upload gambar selesai'),
+        );
+        return;
+      }
+
       submitting.value = true;
       errorMessage.value = null;
       try {
         final repo = ref.read(bugReportRepositoryProvider);
-        final uploader = ref.read(reportImageUploadServiceProvider);
-        final uploaded = <BugReportImageRef>[];
-        var hideAttachments = false;
+        final ready = skipImages || !attachmentsEnabled.value
+            ? const <AttachmentUploadedImage>[]
+            : readyAttachmentImages(images.value);
 
-        if (!skipImages && attachmentsEnabled.value) {
-          for (final file in images.value) {
-            try {
-              uploaded.add(await uploader.upload(file));
-            } on ImageUploadUnavailable {
-              hideAttachments = true;
-              attachmentsEnabled.value = false;
-              break;
-            } on DioException catch (e) {
-              if (e.response?.statusCode == 503) {
-                hideAttachments = true;
-                attachmentsEnabled.value = false;
-                break;
-              }
-              if (context.mounted) {
-                showFToast(
-                  context: context,
-                  title: const Text('Satu gambar gagal diunggah'),
-                );
-              }
-            } catch (_) {
-              if (context.mounted) {
-                showFToast(
-                  context: context,
-                  title: const Text('Satu gambar gagal diunggah'),
-                );
-              }
-            }
-          }
-        }
-
-        if (hideAttachments && uploaded.isEmpty && images.value.isNotEmpty) {
-          submitting.value = false;
-          if (!context.mounted) return;
-          final sendText = await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Gambar tidak bisa diunggah'),
-              content: const Text(
-                'Penyimpanan gambar sedang tidak tersedia. Kirim laporan tanpa lampiran?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Batal'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Kirim tanpa gambar'),
-                ),
-              ],
-            ),
-          );
-          if (sendText == true) {
-            await submit(skipImages: true);
-          }
-          return;
-        }
-
+        // Soft-fail: semua slot error / belum siap padahal user lampirkan.
         if (!skipImages &&
             attachmentsEnabled.value &&
             images.value.isNotEmpty &&
-            uploaded.isEmpty) {
+            ready.isEmpty) {
           submitting.value = false;
           if (!context.mounted) return;
           final sendText = await showDialog<bool>(
@@ -153,7 +94,10 @@ class ReportBugPage extends HookConsumerWidget {
 
         await repo.submit(
           description: trimmed,
-          images: skipImages ? const [] : uploaded,
+          images: [
+            for (final u in ready)
+              BugReportImageRef(url: u.url, providerFileId: u.providerFileId),
+          ],
           appVersion: info.version,
           platform: platform,
         );
@@ -195,10 +139,11 @@ class ReportBugPage extends HookConsumerWidget {
               const Gap(12),
             ],
             FTextField(
-              control: .managed(controller: description),
+              control: FTextFieldControl.managed(controller: description),
               enabled: !submitting.value,
               label: const Text('Keterangan'),
-              hint: 'Ceritakan apa yang terjadi, langkah reproduksi, dan yang kamu harapkan',
+              hint:
+                  'Ceritakan apa yang terjadi, langkah reproduksi, dan yang kamu harapkan',
               keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
               minLines: 5,
@@ -222,50 +167,92 @@ class ReportBugPage extends HookConsumerWidget {
                 ),
               ),
               const Gap(8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (var i = 0; i < images.value.length; i++)
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(images.value[i].path),
-                            width: 88,
-                            height: 88,
-                            fit: BoxFit.cover,
+              AttachmentImagesField(
+                enabled: !submitting.value,
+                maxImages: 4,
+                maxSizeMb: 5,
+                images: images.value,
+                onChanged: (next) => images.value = next,
+                onUnavailable: () {
+                  attachmentsEnabled.value = false;
+                  images.value = const [];
+                  // Soft-fail: tawarkan kirim tanpa gambar jika sudah ada teks.
+                  if (trimmed.length >= 10) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      if (!context.mounted) return;
+                      final sendText = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Gambar tidak bisa diunggah'),
+                          content: const Text(
+                            'Penyimpanan gambar sedang tidak tersedia. Kirim laporan tanpa lampiran?',
                           ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: const Text('Batal'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(true),
+                              child: const Text('Kirim tanpa gambar'),
+                            ),
+                          ],
                         ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            visualDensity: VisualDensity.compact,
-                            onPressed: submitting.value
-                                ? null
-                                : () {
-                                    final next = [...images.value]..removeAt(i);
-                                    images.value = next;
-                                  },
-                            icon: const Icon(FLucideIcons.x, size: 14),
-                          ),
+                      );
+                      if (sendText == true && context.mounted) {
+                        await submit(skipImages: true);
+                      }
+                    });
+                  }
+                },
+                upload: (File file, {required bool isPrimary}) async {
+                  final uploader = ref.read(reportImageUploadServiceProvider);
+                  try {
+                    final refImg = await uploader.upload(file);
+                    return Either.right(
+                      AttachmentUploadedImage(
+                        url: refImg.url,
+                        providerFileId: refImg.providerFileId,
+                        isPrimary: isPrimary,
+                      ),
+                    );
+                  } on ImageUploadUnavailable {
+                    return Either.left(
+                      const AttachmentUploadFailure(
+                        'Penyimpanan gambar belum tersedia',
+                        errorCode: 'IMAGE_UPLOAD_UNAVAILABLE',
+                      ),
+                    );
+                  } on DioException catch (e) {
+                    if (e.response?.statusCode == 503) {
+                      return Either.left(
+                        const AttachmentUploadFailure(
+                          'Penyimpanan gambar belum tersedia',
+                          errorCode: 'IMAGE_UPLOAD_UNAVAILABLE',
                         ),
-                      ],
-                    ),
-                  if (images.value.length < 4)
-                    IconButton.outlined(
-                      onPressed: submitting.value ? null : pickImages,
-                      icon: const Icon(FLucideIcons.plus),
-                    ),
-                ],
+                      );
+                    }
+                    return Either.left(
+                      const AttachmentUploadFailure(
+                        'Satu gambar gagal diunggah',
+                      ),
+                    );
+                  } catch (_) {
+                    return Either.left(
+                      const AttachmentUploadFailure(
+                        'Satu gambar gagal diunggah',
+                      ),
+                    );
+                  }
+                },
               ),
             ],
             if (errorMessage.value != null) ...[
               const Gap(12),
               FAlert(
-                variant: .destructive,
+                variant: FAlertVariant.destructive,
                 title: Text(errorMessage.value!),
               ),
             ],
@@ -284,7 +271,9 @@ class ReportBugPage extends HookConsumerWidget {
 
 String _mapDio(DioException error) {
   final data = error.response?.data;
-  if (data is Map && data['message'] is String && (data['message'] as String).isNotEmpty) {
+  if (data is Map &&
+      data['message'] is String &&
+      (data['message'] as String).isNotEmpty) {
     final message = data['message'] as String;
     if (error.response?.statusCode == 429) {
       final retry = error.response?.headers.value('retry-after');
@@ -297,7 +286,8 @@ String _mapDio(DioException error) {
   return switch (error.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
-    DioExceptionType.receiveTimeout => 'Koneksi lambat, coba lagi',
+    DioExceptionType.receiveTimeout =>
+      'Koneksi lambat, coba lagi',
     DioExceptionType.connectionError => 'Tidak ada koneksi internet',
     _ => 'Terjadi kesalahan, coba lagi',
   };

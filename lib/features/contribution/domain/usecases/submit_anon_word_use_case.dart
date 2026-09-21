@@ -9,6 +9,9 @@ class SubmitAnonWordUseCase {
 
   final ContributionRepository _repository;
 
+  /// Batas UI + payload: cukup untuk polisemi ringan, hindari form panjang.
+  static const maxMeanings = 5;
+
   Future<Either<ContributionFailure, SubmitWordResult>> call(
     SubmitAnonWordParams params,
   ) {
@@ -16,18 +19,31 @@ class SubmitAnonWordUseCase {
     final dialectId = params.dialectId?.trim();
     final notes = params.notes?.trim();
 
-    // Placeholder definisi: hanya definisi sentinel "-" + flag false.
-    // Padanan opsional: isHaveTranslation=false → translations [].
-    // Kedua flag independen (form Definisi/Padanan boleh salah satu saja).
-    final isHaveDefinition = params.isHaveDefinition;
-    final isHaveTranslation = params.isHaveTranslation;
-    final definition = isHaveDefinition ? params.definition.trim() : '-';
-    final translations = isHaveTranslation
-        ? params.translationTexts
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(growable: false)
-        : <String>[];
+    final meanings = <SubmitWordMeaning>[];
+    for (final m in params.meanings.take(maxMeanings)) {
+      // Placeholder definisi: hanya definisi sentinel "-" + flag false.
+      // Padanan opsional: isHaveTranslation=false → translations [].
+      // Kedua flag independen (form Definisi/Padanan boleh salah satu saja).
+      final isHaveDefinition = m.isHaveDefinition;
+      final isHaveTranslation = m.isHaveTranslation;
+      final definition = isHaveDefinition ? m.definition.trim() : '-';
+      final translations = isHaveTranslation
+          ? m.translationTexts
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(growable: false)
+          : <String>[];
+
+      meanings.add(
+        SubmitWordMeaning(
+          wordClassId: m.wordClassId.trim(),
+          definition: definition,
+          isHaveDefinition: isHaveDefinition,
+          isHaveTranslation: isHaveTranslation,
+          translationTexts: translations,
+        ),
+      );
+    }
 
     final categoryIds = params.categoryIds
         .map((e) => e.trim())
@@ -84,12 +100,8 @@ class SubmitAnonWordUseCase {
     return _repository.submitAnon(
       lemma: lemma,
       languageId: params.languageId.trim(),
-      wordClassId: params.wordClassId.trim(),
-      definition: definition,
-      isHaveDefinition: isHaveDefinition,
-      isHaveTranslation: isHaveTranslation,
+      meanings: meanings,
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
-      translationTexts: translations,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
@@ -101,17 +113,29 @@ class SubmitAnonWordUseCase {
   }
 }
 
+class SubmitAnonWordMeaningParams {
+  const SubmitAnonWordMeaningParams({
+    required this.wordClassId,
+    required this.definition,
+    this.isHaveDefinition = true,
+    this.isHaveTranslation = true,
+    this.translationTexts = const [],
+  });
+
+  final String wordClassId;
+  final String definition;
+  final bool isHaveDefinition;
+  final bool isHaveTranslation;
+  final List<String> translationTexts;
+}
+
 class SubmitAnonWordParams {
   const SubmitAnonWordParams({
     required this.lemma,
     required this.languageId,
-    required this.wordClassId,
-    required this.definition,
+    required this.meanings,
     required this.translationLanguageId,
-    this.isHaveDefinition = true,
-    this.isHaveTranslation = true,
     this.dialectId,
-    this.translationTexts = const [],
     this.categoryIds = const [],
     this.notes,
     this.spellingVariants = const [],
@@ -122,13 +146,9 @@ class SubmitAnonWordParams {
 
   final String lemma;
   final String languageId;
-  final String wordClassId;
-  final String definition;
+  final List<SubmitAnonWordMeaningParams> meanings;
   final String translationLanguageId;
-  final bool isHaveDefinition;
-  final bool isHaveTranslation;
   final String? dialectId;
-  final List<String> translationTexts;
   final List<String> categoryIds;
   final String? notes;
   final List<String> spellingVariants;

@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 
-/// Dua toggle independen (bukan radio): Definisi / Padanan.
+/// Dua toggle independen (bukan radio): Definisi / Terjemahan.
 /// Keduanya boleh aktif sekaligus; keduanya mati = belum memilih.
 class KnowledgeToggles extends StatelessWidget {
   const KnowledgeToggles({
@@ -32,7 +32,7 @@ class KnowledgeToggles extends StatelessWidget {
         const Gap(10),
         Expanded(
           child: KnowledgeToggleChip(
-            label: 'Padanan',
+            label: 'Terjemahan',
             selected: wantPadanan,
             onTap: () => onPadananChanged(!wantPadanan),
           ),
@@ -122,13 +122,13 @@ class KnowledgeToggleChip extends StatelessWidget {
 
 String knowledgeHint({required bool wantDefinition, required bool wantPadanan}) {
   if (!wantDefinition && !wantPadanan) {
-    return 'Centang Definisi dan/atau Padanan. Form makna muncul setelah itu.';
+    return 'Centang Definisi dan/atau Terjemahan. Form makna muncul setelah itu.';
   }
   if (wantDefinition && wantPadanan) {
-    return 'Isi padanan kata dan uraian definisi.';
+    return 'Isi terjemahan dan uraian definisi.';
   }
   if (wantDefinition) {
-    return 'Isi uraian makna. Padanan bisa dilengkapi nanti.';
+    return 'Isi uraian makna. Terjemahan bisa dilengkapi nanti.';
   }
-  return 'Isi padanan kata saja. Definisi bisa dilengkapi nanti.';
+  return 'Isi terjemahan saja. Definisi bisa dilengkapi nanti.';
 }
