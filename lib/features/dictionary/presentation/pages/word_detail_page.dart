@@ -26,6 +26,7 @@ import '../../../user_profile/user_profile_router.dart';
 import '../../../share/data/share_background_repository.dart';
 import '../../../share/presentation/share_sheet.dart';
 import '../../../../core/network/network_providers.dart';
+import '../../application/word_clipboard.dart';
 import '../widgets/audio_player_tile.dart';
 import '../widgets/pronunciation_section.dart';
 import '../../../word_report/presentation/report_word_sheet.dart';
@@ -308,6 +309,7 @@ class _DetailBody extends ConsumerWidget {
           ...detail.meanings.asMap().entries.map(
             (e) => _MeaningBlock(
               index: e.key + 1,
+              lemma: detail.lemma,
               meaning: e.value,
               wordId: wordId,
               languageId: detail.languageId,
@@ -545,6 +547,15 @@ class _WordActionTileGroup extends ConsumerWidget {
     return FTileGroup(
       children: [
         FTile(
+          prefix: const Icon(FLucideIcons.copy),
+          title: const Text('Salin semua makna'),
+          subtitle: const Text(
+            'Lemma dan seluruh makna ke clipboard',
+          ),
+          suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
+          onPress: () => copyWordDetailToClipboard(context, detail),
+        ),
+        FTile(
           prefix: const Icon(FLucideIcons.image),
           title: const Text('Bagikan kartu'),
           subtitle: const Text(
@@ -630,12 +641,14 @@ class _SectionLabel extends StatelessWidget {
 class _MeaningBlock extends StatelessWidget {
   const _MeaningBlock({
     required this.index,
+    required this.lemma,
     required this.meaning,
     required this.wordId,
     required this.languageId,
   });
 
   final int index;
+  final String lemma;
   final WordMeaning meaning;
   final String wordId;
   final String languageId;
@@ -741,6 +754,22 @@ class _MeaningBlock extends StatelessWidget {
                   }),
                 ],
               ],
+            ),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            tooltip: 'Salin makna',
+            onPressed: () => copyWordMeaningToClipboard(
+              context,
+              lemma: lemma,
+              meaning: meaning,
+            ),
+            icon: Icon(
+              FLucideIcons.copy,
+              size: 16,
+              color: theme.colors.mutedForeground,
             ),
           ),
         ],

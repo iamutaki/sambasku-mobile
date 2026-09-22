@@ -15,6 +15,7 @@ import 'core/theme/forui_palette_controller.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'features/device/data/datasources/device_remote_datasource.dart';
 import 'features/device/data/repositories/device_repository_impl.dart';
+import 'features/notification/presentation/providers/notification_providers.dart';
 import 'features/onboarding/data/onboarding_prefs.dart';
 import 'flavors.dart';
 
@@ -67,6 +68,13 @@ Future<void> main() async {
   );
   DeviceRegistrationHolder.instance = registrationService;
   await registrationService.start();
+
+  // Bridge FCM → Riverpod: keepAlive inbox/unread tidak auto-refetch.
+  NotificationService.onNotificationsMayHaveChanged = () {
+    container.invalidate(unreadNotificationCountControllerProvider);
+    container.invalidate(notificationInboxListControllerProvider);
+  };
+  NotificationService.attachAppLifecycle();
 
   // retry: null = matikan auto-retry Riverpod 3 (default: 10x backoff ~47s).
   // Failure 4xx tidak transient - retry manual via tombol "Coba lagi" di UI;
