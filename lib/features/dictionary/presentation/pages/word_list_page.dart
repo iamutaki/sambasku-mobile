@@ -236,7 +236,10 @@ class WordListPage extends HookConsumerWidget {
         children: [
           FTileGroup(
             physics: const NeverScrollableScrollPhysics(),
-            children: [for (final item in state.items) _WordTile(item: item)],
+            children: [
+              for (final item in state.items)
+                _WordTile(item: item, searchIn: state.searchIn),
+            ],
           ),
           if (state.isLoadingMore) const _LoadingMoreFooter(),
         ],
@@ -246,16 +249,24 @@ class WordListPage extends HookConsumerWidget {
 }
 
 class _WordTile extends StatelessWidget with FTileMixin {
-  const _WordTile({required this.item});
+  const _WordTile({required this.item, required this.searchIn});
 
   final WordSummary item;
 
+  /// `lemma` (Sambas A-Z / saring) atau `translation` (cari Indonesia).
+  final String searchIn;
+
   @override
   Widget build(BuildContext context) {
-    final gloss = item.sense?.trim();
-    final subtitle = (gloss != null && gloss.isNotEmpty)
-        ? gloss
-        : (item.wordType != 'word' ? item.wordTypeLabel : null);
+    // Tab Indonesia: hanya lemma Sambas, tanpa gloss/jenis.
+    // Tab Sambas: gloss A-Z (atau label jenis jika bukan "word").
+    String? subtitle;
+    if (searchIn != 'translation') {
+      final gloss = item.sense?.trim();
+      subtitle = (gloss != null && gloss.isNotEmpty)
+          ? gloss
+          : (item.wordType != 'word' ? item.wordTypeLabel : null);
+    }
 
     return FTile(
       title: Text(item.lemma),
