@@ -109,7 +109,7 @@ class WordExample {
   const WordExample({
     required this.id,
     required this.sourceSentence,
-    String? this.targetSentence,
+    this.targetSentence,
     this.audios = const [],
   });
 

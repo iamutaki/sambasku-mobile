@@ -30,6 +30,7 @@ class _FakeRepo implements ContributionRepository {
     required String languageId,
     required List<SubmitWordMeaning> meanings,
     String? dialectId,
+    String wordType = 'word',
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
