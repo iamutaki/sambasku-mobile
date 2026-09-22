@@ -2,27 +2,194 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sambasku_mobile/core/network/auth_token_storage.dart';
 import 'package:sambasku_mobile/core/network/interceptors/auth_interceptor.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Adapter antri respons JSON (tanpa package mock tambahan).
-class _QueuedAdapter implements HttpClientAdapter {
-  final List<ResponseBody Function(RequestOptions)> _handlers = [];
-  final List<RequestOptions> requests = [];
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  void enqueue(int status, Object? data) {
-    _handlers.add((_) {
-      final body = data == null ? '' : jsonEncode(data);
-      return ResponseBody.fromString(
-        body,
-        status,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType],
-        },
-      );
+  late AuthTokenStorage storage;
+  late _RecordingAdapter adapter;
+  late Dio dio;
+  late Dio refreshDio;
+
+  setUp(() async {
+    FlutterSecureStorage.setMockInitialValues({
+      'accessToken': 'stale-access',
+      'refreshToken': 'stale-refresh',
     });
-  }
+    SharedPreferences.setMockInitialValues({'isAuth': true});
+    storage = AuthTokenStorage();
+    await storage.setIsAuth(true);
+
+    adapter = _RecordingAdapter();
+    refreshDio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+    refreshDio.httpClientAdapter = adapter;
+
+    dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+    dio.httpClientAdapter = adapter;
+    dio.interceptors.add(
+      AuthInterceptor(
+        tokenStorage: storage,
+        baseUrl: 'https://api.test',
+        refreshDio: refreshDio,
+      ),
+    );
+  });
+
+  test(
+    '401 + refresh gagal → clearTokens sekali, tidak panggil /device/revoke',
+    () async {
+      var refreshHits = 0;
+      adapter.handler = (options) {
+        if (options.path.contains('/auth/refresh')) {
+          refreshHits++;
+          return _json(401, {
+            'success': false,
+            'error': {'code': 'UNAUTHORIZED'},
+          });
+        }
+        if (options.path.contains('/device/revoke')) {
+          fail(
+            'Interceptor tidak boleh memanggil /device/revoke saat session-death',
+          );
+        }
+        return _json(401, {
+          'success': false,
+          'error': {'code': 'UNAUTHORIZED'},
+        });
+      };
+
+      await expectLater(
+        () => dio.get('/api/v1/words/w1'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(refreshHits, 1);
+      expect(await storage.getAccessToken(), isNull);
+      expect(await storage.getRefreshToken(), isNull);
+      expect(await storage.getIsAuth(), isFalse);
+    },
+  );
+
+  test('401 pada /device/revoke tidak memicu POST /auth/refresh', () async {
+    var refreshHits = 0;
+    var revokeHits = 0;
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        refreshHits++;
+        return _json(200, {
+          'success': true,
+          'data': {
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          },
+        });
+      }
+      if (options.path.contains('/device/revoke')) {
+        revokeHits++;
+        return _json(401, {
+          'success': false,
+          'error': {'code': 'UNAUTHORIZED'},
+        });
+      }
+      return _json(500, {'success': false});
+    };
+
+    await expectLater(
+      () => dio.patch('/api/v1/device/revoke', data: {'udid': 'dev-1'}),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(revokeHits, 1);
+    expect(refreshHits, 0);
+    expect(await storage.getAccessToken(), 'stale-access');
+  });
+
+  test('401 + extra skipAuthRefresh tidak memicu refresh', () async {
+    var refreshHits = 0;
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        refreshHits++;
+        return _json(200, {
+          'success': true,
+          'data': {
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          },
+        });
+      }
+      return _json(401, {'success': false});
+    };
+
+    await expectLater(
+      () => dio.get(
+        '/api/v1/words/w1',
+        options: Options(extra: {kSkipAuthRefreshExtra: true}),
+      ),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(refreshHits, 0);
+    expect(await storage.getAccessToken(), 'stale-access');
+  });
+
+  test('401 + refresh sukses → retry request asli sekali', () async {
+    var refreshHits = 0;
+    var wordHits = 0;
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        refreshHits++;
+        return _json(200, {
+          'success': true,
+          'data': {
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          },
+        });
+      }
+      if (options.path.contains('/words/w1')) {
+        wordHits++;
+        if (wordHits == 1) {
+          return _json(401, {'success': false});
+        }
+        return _json(200, {
+          'success': true,
+          'data': {'id': 'w1'},
+        });
+      }
+      return _json(500, {'success': false});
+    };
+
+    final res = await dio.get('/api/v1/words/w1');
+    expect(res.statusCode, 200);
+    expect(refreshHits, 1);
+    expect(wordHits, 2);
+    expect(await storage.getAccessToken(), 'new-access');
+    expect(await storage.getRefreshToken(), 'new-refresh');
+  });
+}
+
+ResponseBody _json(int status, Map<String, Object?> body) {
+  return ResponseBody.fromString(
+    jsonEncode(body),
+    status,
+    headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    },
+  );
+}
+
+typedef _AdapterHandler = ResponseBody Function(RequestOptions options);
+
+class _RecordingAdapter implements HttpClientAdapter {
+  _AdapterHandler? handler;
+
+  @override
+  void close({bool force = false}) {}
 
   @override
   Future<ResponseBody> fetch(
@@ -30,134 +197,10 @@ class _QueuedAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    requests.add(options);
-    if (_handlers.isEmpty) {
-      throw StateError('Tidak ada response antrian untuk ${options.uri}');
+    final h = handler;
+    if (h == null) {
+      return _json(500, {'success': false});
     }
-    return _handlers.removeAt(0)(options);
+    return h(options);
   }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-class _MemoryTokenStorage extends AuthTokenStorage {
-  String? _access;
-  String? _refresh;
-
-  @override
-  Future<void> saveTokens({
-    required String accessToken,
-    required String refreshToken,
-  }) async {
-    if (accessToken.isEmpty || refreshToken.isEmpty) {
-      throw ArgumentError('token kosong');
-    }
-    _access = accessToken;
-    _refresh = refreshToken;
-  }
-
-  @override
-  Future<String?> getAccessToken() async =>
-      (_access == null || _access!.isEmpty) ? null : _access;
-
-  @override
-  Future<String?> getRefreshToken() async =>
-      (_refresh == null || _refresh!.isEmpty) ? null : _refresh;
-
-  @override
-  Future<void> clearTokens() async {
-    _access = null;
-    _refresh = null;
-  }
-
-  @override
-  Future<bool> getIsAuth() async => _access != null;
-
-  @override
-  Future<void> setIsAuth(bool value) async {}
-}
-
-void main() {
-  late Dio api;
-  late Dio refreshDio;
-  late _QueuedAdapter apiAdapter;
-  late _QueuedAdapter refreshAdapter;
-  late _MemoryTokenStorage storage;
-
-  setUp(() async {
-    storage = _MemoryTokenStorage();
-    await storage.saveTokens(
-      accessToken: 'old-access',
-      refreshToken: 'old-refresh',
-    );
-
-    apiAdapter = _QueuedAdapter();
-    refreshAdapter = _QueuedAdapter();
-
-    api = Dio(BaseOptions(baseUrl: 'https://example.test'));
-    api.httpClientAdapter = apiAdapter;
-
-    refreshDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
-    refreshDio.httpClientAdapter = refreshAdapter;
-
-    api.interceptors.add(
-      AuthInterceptor(
-        tokenStorage: storage,
-        baseUrl: 'https://example.test',
-        refreshDio: refreshDio,
-      ),
-    );
-  });
-
-  test('401 → refresh → retry dengan access token baru', () async {
-    // request protected pertama: 401
-    apiAdapter.enqueue(401, {
-      'success': false,
-      'error_code': 'TOKEN_EXPIRED',
-      'message': 'expired',
-    });
-    // refresh
-    refreshAdapter.enqueue(200, {
-      'success': true,
-      'data': {
-        'access_token': 'new-access',
-        'expires_in': 900,
-        'refresh_token': 'new-refresh',
-      },
-    });
-    // retry via refreshDio.fetch(original options)
-    refreshAdapter.enqueue(200, {'success': true, 'data': []});
-
-    final response = await api.get('/api/v1/words/search');
-
-    expect(response.statusCode, 200);
-    expect(await storage.getAccessToken(), 'new-access');
-    expect(await storage.getRefreshToken(), 'new-refresh');
-
-    final refreshReq = refreshAdapter.requests.first;
-    expect(refreshReq.path, '/api/v1/auth/refresh');
-    expect(refreshReq.data, {'refresh_token': 'old-refresh'});
-  });
-
-  test('401 + refresh gagal → clear tokens', () async {
-    apiAdapter.enqueue(401, {
-      'success': false,
-      'error_code': 'UNAUTHORIZED',
-      'message': 'nope',
-    });
-    refreshAdapter.enqueue(401, {
-      'success': false,
-      'error_code': 'UNAUTHORIZED',
-      'message': 'refresh mati',
-    });
-
-    await expectLater(
-      () => api.get('/api/v1/words/search'),
-      throwsA(isA<DioException>()),
-    );
-
-    expect(await storage.getAccessToken(), isNull);
-    expect(await storage.getRefreshToken(), isNull);
-  });
 }
