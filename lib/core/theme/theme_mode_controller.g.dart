@@ -8,15 +8,24 @@ part of 'theme_mode_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Preferensi tema: default system, toggle menyimpan light/dark ke SharedPreferences.
+/// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
+///
+/// [preload] wajib dipanggil di main sebelum runApp supaya frame pertama
+/// tidak flash ke ThemeMode.system (ikut device) lalu jump ke nilai prefs.
 
 @ProviderFor(ThemeModeController)
 final themeModeControllerProvider = ThemeModeControllerProvider._();
 
-/// Preferensi tema: default system, toggle menyimpan light/dark ke SharedPreferences.
+/// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
+///
+/// [preload] wajib dipanggil di main sebelum runApp supaya frame pertama
+/// tidak flash ke ThemeMode.system (ikut device) lalu jump ke nilai prefs.
 final class ThemeModeControllerProvider
     extends $NotifierProvider<ThemeModeController, ThemeMode> {
-  /// Preferensi tema: default system, toggle menyimpan light/dark ke SharedPreferences.
+  /// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
+  ///
+  /// [preload] wajib dipanggil di main sebelum runApp supaya frame pertama
+  /// tidak flash ke ThemeMode.system (ikut device) lalu jump ke nilai prefs.
   ThemeModeControllerProvider._()
     : super(
         from: null,
@@ -45,9 +54,12 @@ final class ThemeModeControllerProvider
 }
 
 String _$themeModeControllerHash() =>
-    r'2323c299a832b5bb5111842596141a20f4b83c24';
+    r'b42984ea5166a3fcd4ce021330c26eb6a08bd881';
 
-/// Preferensi tema: default system, toggle menyimpan light/dark ke SharedPreferences.
+/// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
+///
+/// [preload] wajib dipanggil di main sebelum runApp supaya frame pertama
+/// tidak flash ke ThemeMode.system (ikut device) lalu jump ke nilai prefs.
 
 abstract class _$ThemeModeController extends $Notifier<ThemeMode> {
   ThemeMode build();

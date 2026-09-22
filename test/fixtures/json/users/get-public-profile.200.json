@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "username": "budi",
+    "role": "reviewer",
+    "is_verifier": true,
+    "joined_at": "2026-08-01T00:00:00.000Z",
+    "stats": {
+      "contributions_approved": 12,
+      "verifications_done": 34
+    }
+  }
+}

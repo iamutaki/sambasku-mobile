@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 
 import '../auth_token_storage.dart';
+import '../../services/device_registration_holder.dart';
 
 /// Interceptor auth (pola jnn_mobile, varian sambasku):
 /// - onRequest: sisipkan Bearer access token
 /// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry;
-///   gagal refresh → clear token (router redirect ke login)
+///   gagal refresh → best-effort revoke FCM lalu clear token
 ///
 /// Refresh memakai varian mobile (`docs/api/00-api-auth.md`):
 /// `POST /api/v1/auth/refresh` body `{ refresh_token }`
@@ -55,7 +56,11 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final path = err.requestOptions.path;
     final isAuthEndpoint =
-        path.contains('/auth/login') || path.contains('/auth/refresh');
+        path.contains('/auth/login') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/verify-email') ||
+        path.contains('/auth/resend-otp');
     if (err.response?.statusCode != 401 || isAuthEndpoint) {
       return handler.next(err);
     }
@@ -63,7 +68,7 @@ class AuthInterceptor extends Interceptor {
     try {
       final refreshed = await _refreshToken();
       if (!refreshed) {
-        await _tokenStorage.clearTokens();
+        await _clearSessionWithDeviceDetach();
         return handler.next(err);
       }
 
@@ -76,11 +81,16 @@ class AuthInterceptor extends Interceptor {
       final response = await _refreshDio.fetch(options);
       return handler.resolve(response);
     } on DioException catch (e) {
-      await _tokenStorage.clearTokens();
+      await _clearSessionWithDeviceDetach();
       return handler.next(e);
     } catch (_) {
       return handler.next(err);
     }
+  }
+
+  Future<void> _clearSessionWithDeviceDetach() async {
+    await DeviceRegistrationHolder.instance?.revokeBestEffort();
+    await _tokenStorage.clearTokens();
   }
 
   /// Single-flight: beberapa 401 bersamaan berbagi satu panggilan refresh.

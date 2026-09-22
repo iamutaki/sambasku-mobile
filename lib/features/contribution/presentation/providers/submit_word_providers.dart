@@ -33,13 +33,13 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
   Future<void> submit({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
+    required List<SubmitAnonWordMeaningParams> meanings,
     String? dialectId,
-    required List<String> translationTexts,
+    String wordType = 'word',
     List<String> categoryIds = const [],
     String? notes,
     List<String> spellingVariants = const [],
+    List<SubmitWordRelation> relatedWords = const [],
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],
     String? searchMissId,
@@ -57,13 +57,13 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     final result = await usecase(SubmitAnonWordParams(
       lemma: lemma,
       languageId: languageId,
-      wordClassId: wordClassId,
-      definition: definition,
+      meanings: meanings,
       dialectId: dialectId,
-      translationTexts: translationTexts,
+      wordType: wordType,
       categoryIds: categoryIds,
       notes: notes,
       spellingVariants: spellingVariants,
+      relatedWords: relatedWords,
       translationLanguageId: translationLanguageId,
       images: images,
       searchMissId: searchMissId ?? state.initialSearchMissId,
@@ -92,6 +92,12 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     final f = state.failure;
     if (f is! ContributionFailure) return null;
     return f.errorFor(field);
+  }
+
+  String? errorForMeaning(int index, String field) {
+    final f = state.failure;
+    if (f is! ContributionFailure) return null;
+    return f.errorForMeaning(index, field);
   }
 
   SubmitWordResult? get successResult {

@@ -4,7 +4,9 @@ enum Flavor { staging, production }
 class F {
   F._();
 
-  static late final Flavor appFlavor;
+  /// Bukan `late final`: tes flavor (staging lalu production) harus
+  /// bisa ganti nilai di isolate yang sama. `main()` tetap assign sekali.
+  static late Flavor appFlavor;
 
   static String get name => appFlavor.name;
 
@@ -12,4 +14,8 @@ class F {
 
   static String get title =>
       isStaging ? 'SambasKu Staging' : 'SambasKu';
+
+  /// Path aset logo in-app + sumber ikon launcher (pola jnn_mobile).
+  static String get logoAsset =>
+      isStaging ? 'assets/icons/logo.staging.png' : 'assets/icons/logo.png';
 }

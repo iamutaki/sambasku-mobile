@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "error_code": "USER_NOT_FOUND",
+  "message": "User tidak ditemukan",
+  "details": null
+}

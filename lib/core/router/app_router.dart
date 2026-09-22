@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/about/about_router.dart';
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/auth_router.dart';
+import '../../features/bookmark/bookmark_router.dart';
+import '../../features/my_comments/my_comments_router.dart';
+import '../../features/my_votes/my_votes_router.dart';
 import '../../features/change_password/change_password_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
+import '../../features/my_contributions/my_contributions_router.dart';
+import '../../features/notification/notification_router.dart';
+import '../../features/explore/explore_router.dart';
+import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/dictionary/presentation/pages/home_search_page.dart';
+import '../../features/dictionary/presentation/providers/latest_words_providers.dart';
+import '../../features/dictionary/presentation/providers/word_of_day_providers.dart';
+import '../../features/onboarding/data/onboarding_prefs.dart';
+import '../../features/onboarding/onboarding_router.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/report_bug/report_bug_router.dart';
+import '../../features/user_profile/user_profile_router.dart';
+import '../../features/verifier_application/verifier_application_router.dart';
 import '../../shared/splash/splash_router.dart';
 import '../network/auth_token_storage.dart';
 
 /// Router utama (pola jnn_mobile):
-/// - redirect auth global (isAuth dari AuthTokenStorage)
-/// - StatefulShellRoute = 3 tab bottom nav: Home (pencarian), Action
-///   (kontribusi - placeholder), Profile (placeholder)
-/// - cold start langsung HOME (pencarian publik tanpa login)
+/// - redirect onboarding first-install + auth
+/// - StatefulShellRoute = 4 tab: Home, Eksplorasi, Kontribusi, Profil
+/// - cold start: onboarding jika belum selesai, selain itu HOME
 class AppRouter {
   AppRouter._();
 
@@ -31,36 +45,61 @@ class AppRouter {
     initialLocation: '/',
     routes: [
       ...SplashRouter.routes,
+      ...OnboardingRouter.routes,
       ...AuthRouter.routes,
       ...ChangePasswordRouter.routes,
       ...AboutRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
+      ...MyContributionsRouter.routes,
+      ...NotificationRouter.routes,
+      ...BookmarkRouter.routes,
+      ...MyVotesRouter.routes,
+      ...MyCommentsRouter.routes,
+      ...UserProfileRouter.routes,
+      ...VerifierApplicationRouter.routes,
+      ...ReportBugRouter.routes,
+      ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             _HomeShell(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/',
-              name: 'HomeRouter.search',
-              builder: (context, state) => const HomeSearchPage(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/action',
-              name: 'ActionRouter.activity',
-              builder: (context, state) => const ActivityPage(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/profile',
-              name: 'ProfileRouter.profile',
-              builder: (context, state) => const ProfilePage(),
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                name: 'HomeRouter.search',
+                builder: (context, state) => const HomeSearchPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: ExploreRouter.hub.path,
+                name: ExploreRouter.hub.name,
+                builder: (context, state) => const ExplorePage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/action',
+                name: 'ActionRouter.activity',
+                builder: (context, state) => const ActivityPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                name: 'ProfileRouter.profile',
+                builder: (context, state) => const ProfilePage(),
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -76,31 +115,43 @@ class AppRouter {
     ),
   );
 
-  /// Tamu BOLEH pakai app (pencarian publik). Redirect hanya:
-  /// - user sudah login tapi masih di /login atau /register → HOME
+  /// Tamu BOLEH pakai app (pencarian publik). Redirect:
+  /// - onboarding belum selesai → /onboarding
+  /// - onboarding selesai tapi masih di /onboarding → HOME
+  /// - user sudah login tapi masih di /login → HOME
+  /// Register, verify-email, forgot/reset tidak di-redirect: daftar akun
+  /// baru boleh terjadi meski sesi lama ada, dan tautan reset dari email
+  /// harus tetap bisa dibuka.
   static Future<String?> _redirect(
     BuildContext context,
     GoRouterState state,
   ) async {
-    final isAuth = await _tokenStorage.getIsAuth();
     final loc = state.matchedLocation;
-    final isOnAuth =
-        loc == AuthRouter.login.path || loc == AuthRouter.register.path;
+    final onboardingDone = OnboardingPrefs.done;
+    final isOnboarding = loc == OnboardingRouter.onboarding.path;
 
-    if (isAuth && isOnAuth) return '/';
+    if (!onboardingDone && !isOnboarding) {
+      return OnboardingRouter.onboarding.path;
+    }
+    if (onboardingDone && isOnboarding) {
+      return '/';
+    }
+
+    final isAuth = await _tokenStorage.getIsAuth();
+    if (isAuth && loc == AuthRouter.login.path) return '/';
 
     return null;
   }
 }
 
-/// Shell 3 tab bottom navigation (Forui).
-class _HomeShell extends StatelessWidget {
+/// Shell 4 tab bottom navigation (Forui).
+class _HomeShell extends ConsumerWidget {
   const _HomeShell({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // resizeToAvoidBottomInset false: keyboard tidak dorong bottom nav
     // (nested scaffold + inset = overflow / "geser drawer")
     // footerDecoration dikosongkan - FBottomNavigationBar sudah punya top border
@@ -114,12 +165,23 @@ class _HomeShell extends StatelessWidget {
           // IndexedStack menyimpan fokus search → keyboard ikut "nempel"
           // saat ganti tab / setelah hot reload. Unfocus dulu.
           FocusManager.instance.primaryFocus?.unfocus();
+          final openingHome = index == 0 && navigationShell.currentIndex != 0;
           navigationShell.goBranch(index);
+          if (openingHome) {
+            // keepAlive + IndexedStack tidak membangun ulang Home, jadi
+            // kata yang baru disetujui tetap tersembunyi sampai di-refresh.
+            ref.invalidate(wordOfDayProvider);
+            ref.read(latestWordsProvider.notifier).load();
+          }
         },
         children: const [
           FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.house),
             label: Text('Home'),
+          ),
+          FBottomNavigationBarItem(
+            icon: Icon(FLucideIcons.compass),
+            label: Text('Eksplorasi'),
           ),
           FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.circlePlus),

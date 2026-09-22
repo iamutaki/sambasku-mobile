@@ -3,8 +3,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'comment_dto.freezed.dart';
 part 'comment_dto.g.dart';
 
-/// Satu komentar dari list-komentar (dengan vote counts) ATAU response
-/// tulis-komentar (dengan status, tanpa counts - default 0).
+/// Satu komentar dari list (vote counts) ATAU response create.
+/// [body] nullable saat taken_down / deleted_by_author.
 @freezed
 abstract class CommentDto with _$CommentDto {
   const factory CommentDto({
@@ -12,7 +12,7 @@ abstract class CommentDto with _$CommentDto {
     @JsonKey(name: 'word_id') required String wordId,
     @JsonKey(name: 'user_id') required String userId,
     String? username,
-    required String body,
+    String? body,
     @JsonKey(name: 'created_at') String? createdAt,
     @Default(0) int upvotes,
     @Default(0) int downvotes,

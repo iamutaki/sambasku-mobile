@@ -9,11 +9,21 @@ part of 'word_detail_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+///
+/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
+/// Pull-to-refresh di halaman detail memanggil `invalidate` + await
+/// `.future` supaya data segar.
 
 @ProviderFor(wordDetail)
 final wordDetailProvider = WordDetailFamily._();
 
 /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+///
+/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
+/// Pull-to-refresh di halaman detail memanggil `invalidate` + await
+/// `.future` supaya data segar.
 
 final class WordDetailProvider
     extends
@@ -24,13 +34,18 @@ final class WordDetailProvider
         >
     with $FutureModifier<WordDetail>, $FutureProvider<WordDetail> {
   /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+  ///
+  /// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+  /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
+  /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
+  /// `.future` supaya data segar.
   WordDetailProvider._({
     required WordDetailFamily super.from,
     required String super.argument,
   }) : super(
          retry: null,
          name: r'wordDetailProvider',
-         isAutoDispose: true,
+         isAutoDispose: false,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
@@ -67,9 +82,14 @@ final class WordDetailProvider
   }
 }
 
-String _$wordDetailHash() => r'dc3e762c88848bf85285729a59f8f0757a9b9e3f';
+String _$wordDetailHash() => r'49559f87b2469f1584d0b6bae9a5cd6f52746bfe';
 
 /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+///
+/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
+/// Pull-to-refresh di halaman detail memanggil `invalidate` + await
+/// `.future` supaya data segar.
 
 final class WordDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<WordDetail>, String> {
@@ -79,10 +99,15 @@ final class WordDetailFamily extends $Family
         name: r'wordDetailProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
-        isAutoDispose: true,
+        isAutoDispose: false,
       );
 
   /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+  ///
+  /// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+  /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
+  /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
+  /// `.future` supaya data segar.
 
   WordDetailProvider call(String wordId) =>
       WordDetailProvider._(argument: wordId, from: this);

@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/utils/format_datetime.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_comment.dart';
 import '../../domain/failures/comment_failure.dart';
 import '../providers/comment_providers.dart';
+import '../../../user_profile/user_profile_router.dart';
 
 /// Section komentar pada detail kata (09-api-comment.md). List published
 /// (terbaru dulu) + vote per komentar + composer (pre-moderation).
@@ -38,30 +40,6 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
     super.dispose();
   }
 
-  static bool _isVerifier(String? role) =>
-      role == 'admin' || role == 'root' || role == 'reviewer';
-
-  String _formatDate(String? iso) {
-    final dt = DateTime.tryParse(iso ?? '');
-    if (dt == null) return '';
-    final local = dt.toLocal();
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    return '${local.day} ${months[local.month - 1]} ${local.year}';
-  }
-
   bool _isAuth() => ref.read(authStatusProvider).value?.isAuth ?? false;
 
   void _promptLogin() {
@@ -86,7 +64,7 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
       _bodyCtrl.clear();
       showFToast(
         context: context,
-        title: const Text('Komentar terkirim, menunggu moderasi'),
+        title: const Text('Komentar terkirim'),
         variant: FToastVariant.primary,
       );
     } else {
@@ -119,7 +97,9 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus komentar?'),
-        content: const Text('Komentar ini akan disembunyikan dari semua orang.'),
+        content: const Text(
+          'Komentar akan ditandai sebagai dihapus oleh penulis.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -153,8 +133,9 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
     final theme = context.theme;
     final auth = ref.watch(authStatusProvider).value;
     final isAuth = auth?.isAuth ?? false;
-    final listState =
-        ref.watch(commentListControllerProvider(widget.wordId)).value;
+    final listState = ref
+        .watch(commentListControllerProvider(widget.wordId))
+        .value;
     final count = listState?.items.length ?? 0;
 
     return Column(
@@ -184,14 +165,17 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
           ],
         ),
         const Gap(8),
-        ref.watch(commentListControllerProvider(widget.wordId)).when(
+        ref
+            .watch(commentListControllerProvider(widget.wordId))
+            .when(
               loading: () => const _CommentsSkeleton(),
               error: (error, _) => _CommentsError(
                 message: error is CommentFailure
                     ? error.message
                     : 'Gagal memuat komentar',
-                onRetry: () =>
-                    ref.invalidate(commentListControllerProvider(widget.wordId)),
+                onRetry: () => ref.invalidate(
+                  commentListControllerProvider(widget.wordId),
+                ),
               ),
               data: (state) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,13 +189,21 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                     )
                   else
                     ...state.items.map((c) {
-                      final canDelete = auth != null &&
-                          (c.isOwner(auth.userId) || _isVerifier(auth.role));
+                      final canDelete =
+                          auth != null &&
+                          c.isPublished &&
+                          c.isOwner(auth.userId);
                       return _CommentRow(
                         comment: c,
-                        dateLabel: _formatDate(c.createdAt),
-                        onVote: (value) => _toggleVote(c, value),
+                        dateLabel: formatDateTimeIso(c.createdAt),
+                        onVote: c.isPublished
+                            ? (value) => _toggleVote(c, value)
+                            : null,
                         onDelete: canDelete ? () => _deleteComment(c) : null,
+                        onUsernameTap: c.username == null
+                            ? null
+                            : () =>
+                                  UserProfileRouter.open(context, c.username!),
                       );
                     }),
                   if (state.hasMore) ...[
@@ -223,18 +215,17 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                         onPress: state.isLoadingMore
                             ? null
                             : () => ref
-                                .read(
-                                  commentListControllerProvider(widget.wordId)
-                                      .notifier,
-                                )
-                                .loadMore(),
+                                  .read(
+                                    commentListControllerProvider(
+                                      widget.wordId,
+                                    ).notifier,
+                                  )
+                                  .loadMore(),
                         prefix: state.isLoadingMore
                             ? const FCircularProgress()
                             : null,
                         child: Text(
-                          state.isLoadingMore
-                              ? 'Memuat...'
-                              : 'Muat lainnya',
+                          state.isLoadingMore ? 'Memuat...' : 'Muat lainnya',
                         ),
                       ),
                     ),
@@ -276,23 +267,26 @@ class _CommentRow extends StatelessWidget {
   const _CommentRow({
     required this.comment,
     required this.dateLabel,
-    required this.onVote,
+    this.onVote,
     this.onDelete,
+    this.onUsernameTap,
   });
 
   final WordComment comment;
   final String dateLabel;
-  final Future<void> Function(int value) onVote;
+  final Future<void> Function(int value)? onVote;
   final VoidCallback? onDelete;
+  final VoidCallback? onUsernameTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final isPending = comment.status == 'pending_review';
-    final meta = [
-      comment.username ?? 'Pengguna terhapus',
+    final isRedacted = !comment.isPublished;
+    final username = comment.username ?? 'Pengguna terhapus';
+    final rest = [
       if (dateLabel.isNotEmpty) dateLabel,
-      if (isPending) 'menunggu moderasi',
+      if (comment.isTakenDown) 'dihapus moderator',
+      if (comment.isDeletedByAuthor) 'dihapus penulis',
     ].join(' · ');
 
     return Padding(
@@ -303,14 +297,50 @@ class _CommentRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  meta,
-                  style: theme.typography.sm.copyWith(
-                    color: theme.colors.mutedForeground,
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: onUsernameTap == null || isRedacted
+                          ? Text(
+                              username,
+                              style: theme.typography.sm.copyWith(
+                                color: theme.colors.mutedForeground,
+                                fontSize: 11,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : Semantics(
+                              button: true,
+                              label: 'Lihat profil $username',
+                              child: GestureDetector(
+                                onTap: onUsernameTap,
+                                child: Text(
+                                  username,
+                                  style: theme.typography.sm.copyWith(
+                                    color: theme.colors.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                    ),
+                    if (rest.isNotEmpty)
+                      Flexible(
+                        child: Text(
+                          ' · $rest',
+                          style: theme.typography.sm.copyWith(
+                            color: theme.colors.mutedForeground,
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (onDelete != null)
@@ -332,15 +362,26 @@ class _CommentRow extends StatelessWidget {
             ],
           ),
           const Gap(2),
-          Text(comment.body, style: theme.typography.sm.copyWith(height: 1.35)),
-          const Gap(4),
-          VoteButtons(
-            upvotes: comment.upvotes,
-            downvotes: comment.downvotes,
-            myVote: comment.myVote,
-            onVote: onVote,
-            compact: true,
+          Text(
+            comment.displayBody,
+            style: theme.typography.sm.copyWith(
+              height: 1.35,
+              fontStyle: isRedacted ? FontStyle.italic : FontStyle.normal,
+              color: isRedacted
+                  ? theme.colors.mutedForeground
+                  : theme.colors.foreground,
+            ),
           ),
+          if (onVote != null) ...[
+            const Gap(4),
+            VoteButtons(
+              upvotes: comment.upvotes,
+              downvotes: comment.downvotes,
+              myVote: comment.myVote,
+              onVote: onVote!,
+              compact: true,
+            ),
+          ],
         ],
       ),
     );

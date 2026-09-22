@@ -81,6 +81,9 @@ void main() {
   }
 
   Future<void> submitForm(WidgetTester tester) async {
+    // Form menolak kirim sampai Definisi dan/atau Terjemahan dicentang.
+    await tester.tap(find.text('Definisi'));
+    await tester.pump();
     await tester.tap(find.text('Kirim Usulan'));
     await tester.pump(const Duration(milliseconds: 400));
   }

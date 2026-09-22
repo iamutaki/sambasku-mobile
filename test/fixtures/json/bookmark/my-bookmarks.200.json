@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "data": [
+    {
+      "word_id": "01JDWORDMAKATN000000000000",
+      "bookmarked_at": "2026-09-20T03:00:00.000Z",
+      "word": {
+        "id": "01JDWORDMAKATN000000000000",
+        "lemma": "makatn",
+        "word_type": "word",
+        "is_verified": true
+      }
+    },
+    {
+      "word_id": "01JDWORDMINUM0000000000000",
+      "bookmarked_at": "2026-09-19T10:12:00.000Z",
+      "word": {
+        "id": "01JDWORDMINUM0000000000000",
+        "lemma": "minum",
+        "word_type": "word",
+        "is_verified": false
+      }
+    }
+  ],
+  "meta": {
+    "limit": 20,
+    "next_cursor": null,
+    "has_more": false
+  }
+}

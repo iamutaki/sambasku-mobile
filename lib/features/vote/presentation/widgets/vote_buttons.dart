@@ -65,8 +65,9 @@ class _VoteButtonsState extends State<VoteButtons> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Reddit-style: panah tebal atas/bawah (bukan thumbs).
           _SideButton(
-            icon: FLucideIcons.thumbsUp,
+            icon: FLucideIcons.arrowBigUp,
             count: widget.upvotes,
             active: widget.myVote == 1,
             activeColor: enabled,
@@ -78,7 +79,7 @@ class _VoteButtonsState extends State<VoteButtons> {
           ),
           Gap(widget.compact ? 6 : 10),
           _SideButton(
-            icon: FLucideIcons.thumbsDown,
+            icon: FLucideIcons.arrowBigDown,
             count: widget.downvotes,
             active: widget.myVote == -1,
             activeColor: enabled,

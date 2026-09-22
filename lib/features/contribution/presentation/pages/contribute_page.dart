@@ -4,14 +4,21 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/network/network_providers.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../domain/failures/contribution_failure.dart';
+import '../../domain/repositories/contribution_repository.dart';
+import '../../domain/usecases/submit_anon_word_use_case.dart';
 import '../models/submit_word_state.dart';
 import '../providers/submit_word_providers.dart';
 import '../widgets/contribute_images_field.dart';
+import '../widgets/contribute_relations_sheet.dart';
+import '../widgets/dialect_picker_sheet.dart';
 import '../widgets/kbbi_definition_sheet.dart';
+import '../widgets/knowledge_toggles.dart';
 import '../widgets/word_class_picker_sheet.dart';
 
 class ContributePage extends ConsumerStatefulWidget {
@@ -30,15 +37,37 @@ class ContributePage extends ConsumerStatefulWidget {
   ConsumerState<ContributePage> createState() => _ContributePageState();
 }
 
+/// State lokal satu blok makna (controller + flag Definisi/Padanan).
+class _MeaningDraft {
+  _MeaningDraft({String? initialPadanan})
+    : defCtrl = TextEditingController(),
+      trCtrl = TextEditingController(text: initialPadanan ?? '');
+
+  final TextEditingController defCtrl;
+  final TextEditingController trCtrl;
+  String? wordClassId;
+  bool wantDefinition = false;
+  bool wantPadanan = false;
+  String savedDefinition = '';
+  String savedTranslation = '';
+
+  bool get modePicked => wantDefinition || wantPadanan;
+
+  void dispose() {
+    defCtrl.dispose();
+    trCtrl.dispose();
+  }
+}
+
 class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _lemmaCtrl;
-  late final TextEditingController _defCtrl;
-  late final TextEditingController _tr1Ctrl;
-  late final TextEditingController _notesCtrl;
-  late final TextEditingController _variantsCtrl;
+  late final List<_MeaningDraft> _meanings;
 
-  String? _wordClassId;
   String? _dialectId;
+  bool _dialectSeeded = false;
+  /// API `word_type`: word | idiom | peribahasa | ungkapan
+  String _wordType = 'word';
+  ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
 
   @override
@@ -48,12 +77,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     _lemmaCtrl = TextEditingController(
       text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
     );
-    _defCtrl = TextEditingController();
-    _tr1Ctrl = TextEditingController(
-      text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
-    );
-    _notesCtrl = TextEditingController();
-    _variantsCtrl = TextEditingController();
+    _meanings = [
+      _MeaningDraft(
+        initialPadanan: isTranslationMiss ? (widget.initialLemma ?? '') : null,
+      ),
+    ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
@@ -64,8 +92,10 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             searchMissId: widget.initialSearchMissId,
           );
       _lemmaCtrl.addListener(_onFieldEdited);
-      _defCtrl.addListener(_onFieldEdited);
-      _tr1Ctrl.addListener(_onFieldEdited);
+      for (final m in _meanings) {
+        m.defCtrl.addListener(_onFieldEdited);
+        m.trCtrl.addListener(_onFieldEdited);
+      }
     });
   }
 
@@ -76,38 +106,47 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   @override
   void dispose() {
     _lemmaCtrl.dispose();
-    _defCtrl.dispose();
-    _tr1Ctrl.dispose();
-    _notesCtrl.dispose();
-    _variantsCtrl.dispose();
+    for (final m in _meanings) {
+      m.dispose();
+    }
     super.dispose();
   }
 
-  List<String> _parsedVariants() => _variantsCtrl.text
+  List<String> _parseCsv(String raw) => raw
       .split(',')
       .map((e) => e.trim())
       .where((e) => e.isNotEmpty)
       .toList(growable: false);
 
-  List<String> _variantErrors() {
-    final errors = <String>[];
-    final variants = _parsedVariants();
-    if (variants.length > 10) {
-      errors.add('Maksimal 10 variasi per usulan');
+  List<SubmitWordRelation> _buildRelatedWords() {
+    final out = <SubmitWordRelation>[];
+    for (final lemma in _parseCsv(_relations.synonymsText)) {
+      out.add(SubmitWordRelation(relationType: 'synonym', lemma: lemma));
     }
-    final lemma = _lemmaCtrl.text.trim().toLowerCase();
-    final seen = <String>[];
-    for (final v in variants) {
-      final lower = v.toLowerCase();
-      if (lemma.isNotEmpty && lower == lemma) {
-        errors.add('"$v" sama dengan kata yang diusulkan');
-      }
-      if (seen.contains(lower)) {
-        errors.add('"$v" tertulis lebih dari sekali');
-      }
-      seen.add(lower);
+    for (final lemma in _parseCsv(_relations.antonymsText)) {
+      out.add(SubmitWordRelation(relationType: 'antonym', lemma: lemma));
     }
-    return errors;
+    return out;
+  }
+
+  void _addMeaning() {
+    if (_meanings.length >= SubmitAnonWordUseCase.maxMeanings) return;
+    _onFieldEdited();
+    setState(() {
+      final draft = _MeaningDraft();
+      draft.defCtrl.addListener(_onFieldEdited);
+      draft.trCtrl.addListener(_onFieldEdited);
+      _meanings.add(draft);
+    });
+  }
+
+  void _removeMeaning(int index) {
+    if (_meanings.length <= 1) return;
+    _onFieldEdited();
+    setState(() {
+      final removed = _meanings.removeAt(index);
+      removed.dispose();
+    });
   }
 
   @override
@@ -121,6 +160,28 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final dialectsAsync = sambasLanguageId == null
         ? const AsyncValue<List<_OptionItem>>.data([])
         : ref.watch(_referenceDialectsProvider(sambasLanguageId));
+
+    // Auto-select dialek is_default (umum) sekali; user tetap bisa ganti.
+    final dialectItems = dialectsAsync.value;
+    if (!_dialectSeeded &&
+        _dialectId == null &&
+        dialectItems != null &&
+        dialectItems.isNotEmpty) {
+      final def =
+          dialectItems.where((e) => e.isDefault).firstOrNull ??
+          dialectItems.where((e) => e.code.toLowerCase() == 'umum').firstOrNull;
+      if (def != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _dialectSeeded || _dialectId != null) return;
+          setState(() {
+            _dialectId = def.id;
+            _dialectSeeded = true;
+          });
+        });
+      } else {
+        _dialectSeeded = true;
+      }
+    }
 
     final state = ref.watch(submitWordProvider);
     final notifier = ref.read(submitWordProvider.notifier);
@@ -205,160 +266,116 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
+          const Gap(12),
+
+          const _FieldCaption('Jenis Entri'),
+          const Gap(6),
+          _WordTypeChips(
+            value: _wordType,
+            onChanged: (v) {
+              _onFieldEdited();
+              setState(() => _wordType = v);
+            },
+          ),
+          _inlineError(notifier.errorFor('word_type')),
           const Gap(8),
 
           const _FieldCaption('Dialek'),
           if (sambasLanguageId == null)
-            Text(
-              'Menunggu bahasa…',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            )
+            const _SelectFieldSkeleton()
           else
             dialectsAsync.when(
-              loading: () => const _FieldLoading(),
+              loading: () => const _SelectFieldSkeleton(),
               error: (e, _) => _BuildReferenceError(
                 message: 'Gagal muat dialek',
                 onRetry: () => ref.invalidate(
                   _referenceDialectsProvider(sambasLanguageId),
                 ),
               ),
-              data: (items) => _BuildOptionsDropdown<_OptionItem>(
-                items: items,
-                selected: _dialectId == null
+              data: (items) {
+                final selected = _dialectId == null
                     ? null
-                    : items.where((e) => e.id == _dialectId).firstOrNull,
-                hint: items.isEmpty ? '-' : 'Opsional',
-                labelFor: (e) => e.name,
-                onChanged: (val) {
-                  _onFieldEdited();
-                  setState(() => _dialectId = val?.id);
-                },
-              ),
+                    : items.where((e) => e.id == _dialectId).firstOrNull;
+                return _SelectField(
+                  selectedLabel: selected?.name,
+                  hint: items.isEmpty ? '-' : 'Pilih dialek…',
+                  onTap: items.isEmpty ? null : () => _openDialectSheet(items),
+                );
+              },
             ),
           _inlineError(notifier.errorFor('dialect_id')),
           _inlineError(notifier.errorFor('language_id')),
 
-          const Gap(12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  widget.initialSearchIn == 'translation'
-                      ? 'Terjemahan Sambas *'
-                      : 'Terjemahan Indonesia *',
-                  style: theme.typography.sm.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: theme.colors.foreground,
-                  ),
-                ),
-              ),
-              // Aksi sekunder di samping label — bukan tombol outline yang
-              // saling bersaing dengan CTA submit.
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _openKbbiSheet,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        FLucideIcons.bookOpen,
-                        size: 14,
-                        color: theme.colors.mutedForeground,
-                      ),
-                      const Gap(4),
-                      Text(
-                        'Ambil dari KBBI',
-                        style: theme.typography.sm.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          const Gap(16),
+          const _FieldCaption(
+            'Makna *',
+            info:
+                'Satu kata bisa punya beberapa makna (polisemi).\n\n'
+                'Tiap blok: centang Definisi dan/atau Terjemahan, isi kelas kata.',
           ),
-          FTextField(
-            control: FTextFieldControl.managed(controller: _tr1Ctrl),
-            hint: widget.initialSearchIn == 'translation'
-                ? 'Padanan dalam bahasa Sambas'
-                : 'Padanan dalam bahasa Indonesia',
-            textInputAction: TextInputAction.next,
-          ),
-          _inlineError(notifier.errorFor('translation_texts')),
           const Gap(8),
-
-          wordClassesAsync.when(
-            loading: () => const _FieldLoading(),
-            error: (e, _) => _BuildReferenceError(
-              message: 'Gagal muat kelas kata',
-              onRetry: () => ref.invalidate(_referenceWordClassesProvider),
+          for (var i = 0; i < _meanings.length; i++) ...[
+            _MeaningBlock(
+              index: i,
+              draft: _meanings[i],
+              canRemove: _meanings.length > 1,
+              isTranslationMiss: widget.initialSearchIn == 'translation',
+              wordClassesAsync: wordClassesAsync,
+              onRetryWordClasses: () =>
+                  ref.invalidate(_referenceWordClassesProvider),
+              onRemove: () => _removeMeaning(i),
+              onWantDefinition: (v) => _setWantDefinition(i, v),
+              onWantPadanan: (v) => _setWantPadanan(i, v),
+              onPickWordClass: (items) => _openWordClassSheet(i, items),
+              onOpenKbbi: () => _openKbbiSheet(i),
+              definitionError: notifier.errorForMeaning(i, 'definition'),
+              padananError: notifier.errorForMeaning(i, 'translation_texts'),
+              wordClassError: notifier.errorForMeaning(i, 'word_class_id'),
             ),
-            data: (items) {
-              final selected = _wordClassId == null
-                  ? null
-                  : items.where((e) => e.id == _wordClassId).firstOrNull;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _FieldCaption('Kelas kata *'),
-                  _WordClassField(
-                    selectedLabel: selected?.displayLabel,
-                    onTap: () => _openWordClassSheet(items),
-                  ),
-                ],
-              );
-            },
-          ),
-          _inlineError(notifier.errorFor('word_class_id')),
+            if (i < _meanings.length - 1) const Gap(12),
+          ],
           const Gap(8),
-
-          const _FieldCaption('Definisi *'),
-          FTextField(
-            control: FTextFieldControl.managed(controller: _defCtrl),
-            hint: 'Jelaskan makna kata ini',
-            keyboardType: TextInputType.multiline,
-            textInputAction: TextInputAction.newline,
-            maxLines: 3,
-            minLines: 2,
-          ),
-          _inlineError(notifier.errorFor('definition')),
-
+          if (_meanings.length < SubmitAnonWordUseCase.maxMeanings)
+            FButton(
+              variant: FButtonVariant.outline,
+              onPress: _addMeaning,
+              prefix: Icon(FLucideIcons.plus, size: 16),
+              child: const Text('Tambah makna'),
+            )
+          else
+            Text(
+              'Maksimal ${SubmitAnonWordUseCase.maxMeanings} makna per usulan.',
+              style: theme.typography.sm.copyWith(
+                color: theme.colors.mutedForeground,
+              ),
+            ),
           const Gap(12),
-          FTextField(
-            control: FTextFieldControl.managed(controller: _variantsCtrl),
-            label: const Text('Variasi penulisan'),
-            hint: "ketex, kettek, kete'",
-            textInputAction: TextInputAction.next,
+
+          const _FieldCaption(
+            'Kelengkapan',
+            info:
+                'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
           ),
-          ..._variantErrors().map(
-            (e) => Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                e,
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.destructive,
-                ),
+          _SelectField(
+            selectedLabel: _relations.isEmpty ? null : _relations.summaryLabel,
+            hint: 'Tambah variasi, sinonim, antonim…',
+            onTap: _openRelationsSheet,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(
+              'Opsional',
+              style: theme.typography.sm.copyWith(
+                color: theme.colors.mutedForeground,
               ),
             ),
           ),
-          const Gap(8),
-          FTextField(
-            control: FTextFieldControl.managed(controller: _notesCtrl),
-            label: const Text('Catatan'),
-            hint: 'Contoh pemakaian, etimologi, dll.',
-            keyboardType: TextInputType.multiline,
-            maxLines: 2,
-            minLines: 1,
+
+          const _FieldCaption(
+            'Gambar',
+            info:
+                'Opsional. Perlu login. Kamera/galeri, upload langsung, maks 3.',
           ),
-          const Gap(8),
-          const _FieldCaption('Gambar'),
           ContributeImagesField(
             enabled: isAuth,
             images: _images,
@@ -369,22 +386,89 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     );
   }
 
-  Future<void> _openWordClassSheet(List<_OptionItem> items) async {
+  void _setWantDefinition(int index, bool next) {
+    final draft = _meanings[index];
+    if (next == draft.wantDefinition) return;
+    _onFieldEdited();
+    setState(() {
+      if (draft.wantDefinition && !next) {
+        draft.savedDefinition = draft.defCtrl.text;
+        draft.defCtrl.text = '-';
+      } else if (!draft.wantDefinition && next) {
+        draft.defCtrl.text =
+            draft.savedDefinition == '-' ? '' : draft.savedDefinition;
+      }
+      draft.wantDefinition = next;
+      if (!draft.wantDefinition &&
+          (draft.defCtrl.text.trim().isEmpty ||
+              draft.defCtrl.text.trim() == '-')) {
+        draft.defCtrl.text = '-';
+      } else if (draft.wantDefinition && draft.defCtrl.text.trim() == '-') {
+        draft.defCtrl.text = '';
+      }
+    });
+  }
+
+  void _setWantPadanan(int index, bool next) {
+    final draft = _meanings[index];
+    if (next == draft.wantPadanan) return;
+    _onFieldEdited();
+    setState(() {
+      if (draft.wantPadanan && !next) {
+        draft.savedTranslation = draft.trCtrl.text;
+        draft.trCtrl.text = '';
+      } else if (!draft.wantPadanan && next) {
+        draft.trCtrl.text = draft.savedTranslation;
+      }
+      draft.wantPadanan = next;
+    });
+  }
+
+  Future<void> _openDialectSheet(List<_OptionItem> items) async {
+    final picked = await showDialectPickerSheet(
+      context,
+      items: [
+        for (final e in items)
+          DialectPickItem(id: e.id, name: e.name, isDefault: e.isDefault),
+      ],
+      selectedId: _dialectId,
+    );
+    if (!mounted || picked == null) return;
+    _onFieldEdited();
+    setState(() {
+      _dialectId = picked.id;
+      _dialectSeeded = true;
+    });
+  }
+
+  Future<void> _openWordClassSheet(int index, List<_OptionItem> items) async {
+    final draft = _meanings[index];
     final picked = await showWordClassPickerSheet(
       context,
       items: [
         for (final e in items)
           WordClassPickItem(id: e.id, name: e.name, alias: e.alias),
       ],
-      selectedId: _wordClassId,
+      selectedId: draft.wordClassId,
     );
     if (!mounted || picked == null) return;
     _onFieldEdited();
-    setState(() => _wordClassId = picked.id);
+    setState(() => draft.wordClassId = picked.id);
   }
 
-  Future<void> _openKbbiSheet() async {
-    // Baca status fresh (bukan snapshot build) — loading/stale previous
+  Future<void> _openRelationsSheet() async {
+    final result = await showContributeRelationsSheet(
+      context,
+      initial: _relations,
+      lemma: _lemmaCtrl.text,
+    );
+    if (!mounted || result == null) return;
+    _onFieldEdited();
+    setState(() => _relations = result);
+  }
+
+  Future<void> _openKbbiSheet(int index) async {
+    // Baca status fresh (bukan snapshot build) - loading/stale previous
     // isAuth:false setelah login sempat bikin toast palsu.
     final auth = await ref.read(authStatusProvider.future);
     if (!mounted) return;
@@ -397,11 +481,12 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       return;
     }
 
+    final draft = _meanings[index];
     final dio = ref.read(dioProvider);
     final picked = await showKbbiDefinitionSheet(
       context,
       dio: dio,
-      initialLemma: _tr1Ctrl.text.trim(),
+      initialLemma: draft.trCtrl.text.trim(),
     );
     if (!mounted || picked == null) return;
 
@@ -415,14 +500,16 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
     _onFieldEdited();
     setState(() {
-      _defCtrl.text = picked.definition;
+      draft.wantDefinition = true;
+      draft.wantPadanan = true;
+      draft.defCtrl.text = picked.definition;
       // Lemma KBBI = padanan Indonesia
       final lemmaId = picked.lemma.trim();
       if (lemmaId.isNotEmpty) {
-        _tr1Ctrl.text = lemmaId;
+        draft.trCtrl.text = lemmaId;
       }
       if (matched != null) {
-        _wordClassId = matched;
+        draft.wordClassId = matched;
       }
     });
 
@@ -436,7 +523,16 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _submitForm() async {
-    if (_variantErrors().isNotEmpty) return;
+    final incomplete = _meanings.indexWhere((m) => !m.modePicked);
+    if (incomplete >= 0) {
+      showFToast(
+        context: context,
+        title: Text(
+          'Makna ${incomplete + 1}: centang dulu Definisi dan/atau Terjemahan',
+        ),
+      );
+      return;
+    }
     if (_images.any((e) => e.uploading)) {
       showFToast(
         context: context,
@@ -461,16 +557,26 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final translationLanguageId =
         languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
+    final notes = _relations.notesText.trim();
     await notifier.submit(
       lemma: _lemmaCtrl.text,
       languageId: languageId,
-      wordClassId: _wordClassId ?? '',
-      definition: _defCtrl.text,
+      meanings: [
+        for (final m in _meanings)
+          SubmitAnonWordMeaningParams(
+            wordClassId: m.wordClassId ?? '',
+            definition: m.wantDefinition ? m.defCtrl.text : '-',
+            isHaveDefinition: m.wantDefinition,
+            isHaveTranslation: m.wantPadanan,
+            translationTexts: m.wantPadanan ? [m.trCtrl.text] : const [],
+          ),
+      ],
       dialectId: _dialectId,
-      translationTexts: [_tr1Ctrl.text],
+      wordType: _wordType,
       categoryIds: [],
-      notes: _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
-      spellingVariants: _parsedVariants(),
+      notes: notes.isEmpty ? null : notes,
+      spellingVariants: _parseCsv(_relations.variantsText),
+      relatedWords: _buildRelatedWords(),
       translationLanguageId: translationLanguageId,
       images: readySubmitImages(_images),
       searchMissId: widget.initialSearchMissId,
@@ -519,17 +625,241 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             },
             child: const Text('Ke beranda'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.invalidate(myContributionsListControllerProvider);
+              context.push('/contributions');
+            },
+            child: const Text('Lihat usulan'),
+          ),
         ],
       ),
     );
   }
 }
 
-class _WordClassField extends StatelessWidget {
-  const _WordClassField({required this.selectedLabel, required this.onTap});
+class _MeaningBlock extends StatelessWidget {
+  const _MeaningBlock({
+    required this.index,
+    required this.draft,
+    required this.canRemove,
+    required this.isTranslationMiss,
+    required this.wordClassesAsync,
+    required this.onRetryWordClasses,
+    required this.onRemove,
+    required this.onWantDefinition,
+    required this.onWantPadanan,
+    required this.onPickWordClass,
+    required this.onOpenKbbi,
+    required this.definitionError,
+    required this.padananError,
+    required this.wordClassError,
+  });
+
+  final int index;
+  final _MeaningDraft draft;
+  final bool canRemove;
+  final bool isTranslationMiss;
+  final AsyncValue<List<_OptionItem>> wordClassesAsync;
+  final VoidCallback onRetryWordClasses;
+  final VoidCallback onRemove;
+  final ValueChanged<bool> onWantDefinition;
+  final ValueChanged<bool> onWantPadanan;
+  final void Function(List<_OptionItem> items) onPickWordClass;
+  final VoidCallback onOpenKbbi;
+  final String? definitionError;
+  final String? padananError;
+  final String? wordClassError;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colors.border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Makna ${index + 1}',
+                    style: theme.typography.sm.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (canRemove)
+                  FButton(
+                    variant: FButtonVariant.ghost,
+                    onPress: onRemove,
+                    child: Text(
+                      'Hapus',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.error,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const Gap(8),
+            const _FieldCaption(
+              'Apa yang kamu ketahui? *',
+              info:
+                  'Centang yang kamu tahu (boleh keduanya).\n\n'
+                  '• Definisi - uraian makna berbahasa Indonesia.\n'
+                  '• Terjemahan - satu kata/frasa setara.\n\n'
+                  'Form di bawah muncul sesuai centangan.',
+            ),
+            const Gap(8),
+            KnowledgeToggles(
+              wantDefinition: draft.wantDefinition,
+              wantPadanan: draft.wantPadanan,
+              onDefinitionChanged: onWantDefinition,
+              onPadananChanged: onWantPadanan,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 4),
+              child: Text(
+                knowledgeHint(
+                  wantDefinition: draft.wantDefinition,
+                  wantPadanan: draft.wantPadanan,
+                ),
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            if (draft.modePicked) ...[
+              if (draft.wantPadanan) ...[
+                const Gap(8),
+                _FieldCaption(
+                  isTranslationMiss
+                      ? 'Terjemahan Sambas *'
+                      : 'Terjemahan Indonesia *',
+                  info: isTranslationMiss
+                      ? 'Satu kata/frasa Sambas yang setara - bukan uraian panjang.'
+                      : 'Satu kata/frasa Indonesia yang setara dengan lemma Sambas.\n\n'
+                            'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
+                ),
+                FTextField(
+                  control: FTextFieldControl.managed(controller: draft.trCtrl),
+                  hint: isTranslationMiss
+                      ? 'Terjemahan dalam bahasa Sambas'
+                      : 'Satu kata/frasa setara di Indonesia',
+                  description: isTranslationMiss
+                      ? null
+                      : const Text(
+                          'Tekan icon buku untuk mencari definisi di KBBI',
+                        ),
+                  textInputAction: TextInputAction.next,
+                  suffixBuilder: (context, style, _) => Padding(
+                    padding: style.clearButtonPadding,
+                    child: FButton.icon(
+                      style: style.clearButtonStyle,
+                      onPress: onOpenKbbi,
+                      child: Icon(
+                        FLucideIcons.bookOpen,
+                        semanticLabel: 'Ambil dari KBBI',
+                      ),
+                    ),
+                  ),
+                ),
+                _MeaningInlineError(padananError),
+              ],
+              const Gap(8),
+              wordClassesAsync.when(
+                loading: () => const _SelectFieldSkeleton(),
+                error: (e, _) => _BuildReferenceError(
+                  message: 'Gagal muat kelas kata',
+                  onRetry: onRetryWordClasses,
+                ),
+                data: (items) {
+                  final selected = draft.wordClassId == null
+                      ? null
+                      : items
+                            .where((e) => e.id == draft.wordClassId)
+                            .firstOrNull;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _FieldCaption(
+                        'Kelas kata *',
+                        info:
+                            'Nomina, verba, adjektiva, dsb. Bisa dibantu isi lewat ikon buku di kolom terjemahan.',
+                      ),
+                      _SelectField(
+                        selectedLabel: selected?.displayLabel,
+                        hint: 'Pilih kelas kata…',
+                        onTap: () => onPickWordClass(items),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              _MeaningInlineError(wordClassError),
+              if (draft.wantDefinition) ...[
+                const Gap(8),
+                const _FieldCaption(
+                  'Definisi *',
+                  info:
+                      'Uraian makna berbahasa Indonesia - bukan terjemahan satu kata.\n\n'
+                      'Contoh: “aktivitas memasukkan makanan ke mulut”.',
+                ),
+                FTextField(
+                  control: FTextFieldControl.managed(controller: draft.defCtrl),
+                  hint: 'Jelaskan makna kata ini',
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  maxLines: 3,
+                  minLines: 2,
+                ),
+                _MeaningInlineError(definitionError),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MeaningInlineError extends StatelessWidget {
+  const _MeaningInlineError(this.message);
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message == null || message!.isEmpty) return const SizedBox.shrink();
+    final theme = context.theme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        message!,
+        style: theme.typography.sm.copyWith(color: theme.colors.error),
+      ),
+    );
+  }
+}
+
+class _SelectField extends StatelessWidget {
+  const _SelectField({
+    required this.selectedLabel,
+    required this.hint,
+    required this.onTap,
+  });
 
   final String? selectedLabel;
-  final VoidCallback onTap;
+  final String hint;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -550,7 +880,7 @@ class _WordClassField extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  hasValue ? selectedLabel! : 'Pilih kelas kata…',
+                  hasValue ? selectedLabel! : hint,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.sm.copyWith(
@@ -574,34 +904,97 @@ class _WordClassField extends StatelessWidget {
 }
 
 class _FieldCaption extends StatelessWidget {
-  const _FieldCaption(this.text);
+  const _FieldCaption(this.text, {this.info});
 
   final String text;
+  final String? info;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        text,
-        style: theme.typography.sm.copyWith(
-          fontWeight: FontWeight.w600,
-          color: theme.colors.foreground,
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              style: theme.typography.sm.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colors.foreground,
+              ),
+            ),
+          ),
+          if (info != null) ...[const Gap(4), _InfoTip(message: info!)],
+        ],
+      ),
+    );
+  }
+}
+
+/// Ikon ⓘ - tap buka penjelasan singkat (FPopover, lebih jelas di touch
+/// daripada FTooltip long-press).
+class _InfoTip extends StatelessWidget {
+  const _InfoTip({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return FPopover(
+      constraints: const FPortalConstraints(maxWidth: 280),
+      popoverBuilder: (context, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Text(message, style: theme.typography.sm.copyWith(height: 1.35)),
+      ),
+      builder: (context, controller, child) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: controller.toggle,
+        child: child,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(
+          FLucideIcons.info,
+          size: 16,
+          color: theme.colors.mutedForeground,
         ),
       ),
     );
   }
 }
 
-class _FieldLoading extends StatelessWidget {
-  const _FieldLoading();
+class _SelectFieldSkeleton extends StatelessWidget {
+  const _SelectFieldSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 40,
-      child: Center(child: FCircularProgress()),
+    final materialBrightness = Theme.of(context).brightness;
+    final isDark = materialBrightness == Brightness.dark;
+    final muted = context.theme.colors.muted;
+    final shimmer = ShimmerEffect(
+      baseColor: isDark
+          ? muted.withValues(alpha: 0.35)
+          : const Color(0xFFE7E7EA),
+      highlightColor: isDark
+          ? muted.withValues(alpha: 0.55)
+          : const Color(0xFFF4F4F5),
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    return SkeletonizerConfig(
+      data: SkeletonizerConfigData(effect: shimmer),
+      child: Skeletonizer(
+        enabled: true,
+        child: IgnorePointer(
+          child: _SelectField(
+            selectedLabel: 'Memuat dialek',
+            hint: 'Pilih dialek…',
+            onTap: null,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -612,11 +1005,13 @@ class _OptionItem {
     required this.name,
     this.code = '',
     this.alias,
+    this.isDefault = false,
   });
   final String id;
   final String name;
   final String code;
   final String? alias;
+  final bool isDefault;
 
   String get displayLabel =>
       (alias == null || alias!.isEmpty) ? name : '$name ($alias)';
@@ -712,111 +1107,13 @@ final _referenceDialectsProvider =
             (e) => _OptionItem(
               id: e['id']?.toString() ?? '',
               name: e['name']?.toString() ?? '(?)',
+              code: e['code']?.toString() ?? '',
+              isDefault: e['is_default'] == true,
             ),
           )
           .where((e) => e.id.isNotEmpty)
           .toList(growable: false);
     });
-
-class _BuildOptionsDropdown<T> extends StatefulWidget {
-  const _BuildOptionsDropdown({
-    required this.items,
-    required this.selected,
-    required this.hint,
-    required this.labelFor,
-    required this.onChanged,
-  });
-
-  final List<T> items;
-  final T? selected;
-  final String hint;
-  final String Function(T item) labelFor;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  State<_BuildOptionsDropdown<T>> createState() =>
-      _BuildOptionsDropdownState<T>();
-}
-
-class _BuildOptionsDropdownState<T> extends State<_BuildOptionsDropdown<T>> {
-  final _controller = ExpansibleController();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    return Material(
-      color: Colors.transparent,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          controller: _controller,
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          childrenPadding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: theme.colors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          collapsedShape: RoundedRectangleBorder(
-            side: BorderSide(color: theme.colors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          title: Text(
-            widget.selected != null
-                ? widget.labelFor(widget.selected as T)
-                : widget.hint,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.typography.sm.copyWith(
-              color: widget.selected != null
-                  ? theme.colors.foreground
-                  : theme.colors.mutedForeground,
-            ),
-          ),
-          children: widget.items.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                    child: Text(
-                      widget.hint,
-                      style: theme.typography.sm.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ),
-                ]
-              : widget.items
-                    .map(
-                      (item) => ListTile(
-                        minTileHeight: 36,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          widget.labelFor(item),
-                          style: theme.typography.sm,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: widget.selected == item
-                            ? Icon(
-                                FLucideIcons.check,
-                                size: 14,
-                                color: theme.colors.primary,
-                              )
-                            : null,
-                        onTap: () {
-                          widget.onChanged(item);
-                          _controller.collapse();
-                        },
-                      ),
-                    )
-                    .toList(growable: false),
-        ),
-      ),
-    );
-  }
-}
 
 class _BuildReferenceError extends StatelessWidget {
   const _BuildReferenceError({required this.message, required this.onRetry});
@@ -842,6 +1139,41 @@ class _BuildReferenceError extends StatelessWidget {
           variant: FButtonVariant.ghost,
           child: const Text('Ulangi'),
         ),
+      ],
+    );
+  }
+}
+
+const _wordTypeOptions = <({String value, String label})>[
+  (value: 'word', label: 'Kata'),
+  (value: 'idiom', label: 'Idiom'),
+  (value: 'peribahasa', label: 'Peribahasa'),
+  (value: 'ungkapan', label: 'Ungkapan'),
+];
+
+/// Picker jenis entri — pola chip sama seperti dialek (rekam) / filter komentar.
+class _WordTypeChips extends StatelessWidget {
+  const _WordTypeChips({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final opt in _wordTypeOptions)
+          GestureDetector(
+            onTap: () => onChanged(opt.value),
+            child: FBadge(
+              variant: value == opt.value
+                  ? FBadgeVariant.primary
+                  : FBadgeVariant.secondary,
+              child: Text(opt.label),
+            ),
+          ),
       ],
     );
   }

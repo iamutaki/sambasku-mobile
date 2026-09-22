@@ -8,6 +8,8 @@ class WordSummary {
     required this.status,
     required this.isVerified,
     this.matchedTranslation,
+    this.sense,
+    this.approvedAt,
   });
 
   final String id;
@@ -20,6 +22,12 @@ class WordSummary {
   /// Relasi terjemahan yang cocok (hanya search_in=translation):
   /// tampilkan sebagai "makan → makatn".
   final String? matchedTranslation;
+
+  /// Satu baris arti untuk kartu feed (definisi atau terjemahan).
+  final String? sense;
+
+  /// Waktu persetujuan / tayang. Hanya feed beranda.
+  final DateTime? approvedAt;
 
   /// Label jenis entri untuk UI.
   String get wordTypeLabel => switch (wordType) {

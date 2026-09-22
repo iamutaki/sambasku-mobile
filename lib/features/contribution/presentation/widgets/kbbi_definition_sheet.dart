@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -25,7 +27,8 @@ class KbbiSuggestion {
 }
 
 /// Bottom sheet: cari lemma Indonesia via API kita, pilih satu definisi.
-/// List di-scroll (bisa 100+ sense) - header tetap, body `Expanded` + ListView.builder.
+/// Pencarian debounce 400 ms (tanpa tombol Cari). List di-scroll (bisa
+/// 100+ sense) - header tetap, body `Expanded` + ListView.builder.
 Future<KbbiSuggestion?> showKbbiDefinitionSheet(
   BuildContext context, {
   required Dio dio,
@@ -56,7 +59,11 @@ class _KbbiDefinitionSheetBody extends StatefulWidget {
 }
 
 class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
+  static const _debounceMs = 400;
+
   late final TextEditingController _lemmaCtrl;
+  Timer? _debounce;
+  int _reqId = 0;
   bool _loading = false;
   String? _error;
   bool _searched = false;
@@ -66,28 +73,46 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
   void initState() {
     super.initState();
     _lemmaCtrl = TextEditingController(text: widget.initialLemma);
+    _lemmaCtrl.addListener(_onLemmaChanged);
     if (widget.initialLemma.trim().isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _search());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleSearch());
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _lemmaCtrl.removeListener(_onLemmaChanged);
     _lemmaCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _search() async {
+  void _onLemmaChanged() => _scheduleSearch();
+
+  void _scheduleSearch() {
+    _debounce?.cancel();
     final q = _lemmaCtrl.text.trim();
     if (q.isEmpty) {
+      _reqId++;
       setState(() {
-        _error = 'Isi lemma bahasa Indonesia dulu';
-        _items = const [];
+        _loading = false;
+        _error = null;
         _searched = false;
+        _items = const [];
       });
       return;
     }
+    _debounce = Timer(
+      const Duration(milliseconds: _debounceMs),
+      _search,
+    );
+  }
 
+  Future<void> _search() async {
+    final q = _lemmaCtrl.text.trim();
+    if (q.isEmpty) return;
+
+    final reqId = ++_reqId;
     setState(() {
       _loading = true;
       _error = null;
@@ -99,6 +124,8 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
         '/api/v1/lemma-definitions/lookup',
         queryParameters: <String, dynamic>{'lemma': q},
       );
+      if (!mounted || reqId != _reqId) return;
+
       final data = resp.data;
       if (data is! Map<String, dynamic>) {
         throw StateError('Response tidak valid');
@@ -135,14 +162,13 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
           );
         }
       }
-      if (!mounted) return;
       setState(() {
         _items = list;
         _loading = false;
         _error = null;
       });
     } on DioException catch (e) {
-      if (!mounted) return;
+      if (!mounted || reqId != _reqId) return;
       final body = e.response?.data;
       String message = 'Gagal mengambil definisi KBBI';
       if (body is Map && body['message'] is String) {
@@ -156,7 +182,7 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
         _items = const [];
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || reqId != _reqId) return;
       setState(() {
         _loading = false;
         _error = e.toString();
@@ -185,7 +211,6 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---- Header tetap (tidak ikut scroll list) ----
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
               child: Row(
@@ -216,7 +241,7 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Text(
-                'Cari lemma Indonesia, lalu pilih definisi untuk mengisi form.',
+                'Ketik lemma Indonesia - hasil muncul otomatis. Pilih satu untuk mengisi form.',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.typography.sm.copyWith(
@@ -226,28 +251,25 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: FTextField(
-                      control: FTextFieldControl.managed(
-                        controller: _lemmaCtrl,
-                      ),
-                      hint: 'mis. makan, rumah',
-                      textInputAction: TextInputAction.search,
-                      onSubmit: (_) => _search(),
-                    ),
-                  ),
-                  const Gap(8),
-                  FButton(
-                    onPress: _loading ? null : _search,
-                    prefix: _loading
-                        ? const FCircularProgress()
-                        : const Icon(FLucideIcons.search, size: 16),
-                    child: const Text('Cari'),
-                  ),
-                ],
+              child: FTextField(
+                control: FTextFieldControl.managed(controller: _lemmaCtrl),
+                hint: 'mis. makan, rumah',
+                textInputAction: TextInputAction.search,
+                // Enter = cari sekarang (skip sisa debounce).
+                onSubmit: (_) {
+                  _debounce?.cancel();
+                  _search();
+                },
+                suffixBuilder: _loading
+                    ? (context, style, _) => Padding(
+                        padding: style.clearButtonPadding,
+                        child: const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: FCircularProgress(),
+                        ),
+                      )
+                    : null,
               ),
             ),
             if (_error != null) ...[
@@ -278,8 +300,6 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
                 ),
               ),
             const Gap(8),
-
-            // ---- Body scrollable: satu-satunya Expanded ----
             Expanded(
               child: _loading
                   ? const Center(child: FCircularProgress())
@@ -288,7 +308,7 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Text(
-                          'Masukkan lemma lalu ketuk Cari',
+                          'Ketik lemma untuk mencari di KBBI',
                           textAlign: TextAlign.center,
                           style: theme.typography.sm.copyWith(
                             color: theme.colors.mutedForeground,
@@ -310,7 +330,6 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
                       ),
                     )
                   : ListView.builder(
-                      // Lazy build - aman untuk 100+ item
                       itemCount: _items.length,
                       padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
                       keyboardDismissBehavior:

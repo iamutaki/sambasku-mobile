@@ -79,32 +79,34 @@ class ActivityPage extends ConsumerWidget {
                 children: [
                   _BlankContributeTile(theme: theme),
                   const Gap(14),
-                  Text(
-                    'Kata yang sering dicari tapi belum ada',
-                    style: theme.typography.sm.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
-                  const Gap(2),
-                  Text(
-                    'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
-                  const Gap(8),
+                  // Header "sedang dicari" hanya saat ada item - empty state
+                  // jangan klaim warga sedang mencari (copy bentrok).
                   if (items.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'Belum ada pencarian kosong. Coba usul kata baru di atas.',
+                        'Belum ada antrian dari pencarian warga. Usul kata baru lewat tombol di atas, atau coba lagi nanti.',
                         style: theme.typography.sm.copyWith(
                           color: theme.colors.mutedForeground,
                         ),
                       ),
                     )
-                  else
+                  else ...[
+                    Text(
+                      'Kata yang sering dicari tapi belum ada',
+                      style: theme.typography.sm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                    const Gap(8),
                     FTileGroup(
                       children: [
                         for (final item in items)
@@ -128,6 +130,7 @@ class ActivityPage extends ConsumerWidget {
                           ),
                       ],
                     ),
+                  ],
                 ],
               ),
             ),

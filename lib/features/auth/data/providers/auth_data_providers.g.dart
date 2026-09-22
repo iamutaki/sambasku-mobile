@@ -97,3 +97,97 @@ final class AuthRepositoryProvider
 }
 
 String _$authRepositoryHash() => r'61a979c6ea9bed12778c02c6ba07969972cf3391';
+
+@ProviderFor(googleSignInPort)
+final googleSignInPortProvider = GoogleSignInPortProvider._();
+
+final class GoogleSignInPortProvider
+    extends
+        $FunctionalProvider<
+          GoogleSignInPort,
+          GoogleSignInPort,
+          GoogleSignInPort
+        >
+    with $Provider<GoogleSignInPort> {
+  GoogleSignInPortProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'googleSignInPortProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$googleSignInPortHash();
+
+  @$internal
+  @override
+  $ProviderElement<GoogleSignInPort> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GoogleSignInPort create(Ref ref) {
+    return googleSignInPort(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GoogleSignInPort value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GoogleSignInPort>(value),
+    );
+  }
+}
+
+String _$googleSignInPortHash() => r'7b5425b027be288b5752dae18083430321dc370b';
+
+@ProviderFor(facebookSignInPort)
+final facebookSignInPortProvider = FacebookSignInPortProvider._();
+
+final class FacebookSignInPortProvider
+    extends
+        $FunctionalProvider<
+          FacebookSignInPort,
+          FacebookSignInPort,
+          FacebookSignInPort
+        >
+    with $Provider<FacebookSignInPort> {
+  FacebookSignInPortProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'facebookSignInPortProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$facebookSignInPortHash();
+
+  @$internal
+  @override
+  $ProviderElement<FacebookSignInPort> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  FacebookSignInPort create(Ref ref) {
+    return facebookSignInPort(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(FacebookSignInPort value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<FacebookSignInPort>(value),
+    );
+  }
+}
+
+String _$facebookSignInPortHash() =>
+    r'd3bffc4af7c66e3b6dd0c06d288f66c1cb76bb68';

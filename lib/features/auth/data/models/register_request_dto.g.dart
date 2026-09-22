@@ -30,6 +30,7 @@ _RegisterResponseDto _$RegisterResponseDtoFromJson(Map<String, dynamic> json) =>
       username: json['username'] as String,
       email: json['email'] as String,
       phone: json['phone'] as String?,
+      verificationRequired: json['verification_required'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$RegisterResponseDtoToJson(
@@ -39,4 +40,5 @@ Map<String, dynamic> _$RegisterResponseDtoToJson(
   'username': instance.username,
   'email': instance.email,
   'phone': instance.phone,
+  'verification_required': instance.verificationRequired,
 };

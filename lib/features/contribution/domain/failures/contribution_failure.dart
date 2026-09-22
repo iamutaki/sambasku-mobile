@@ -26,9 +26,30 @@ class ContributionFailure {
   /// - `meanings.0.word_class_id` → `word_class_id`
   /// - `meanings.0.definition` → `definition`
   /// - `meanings.0.translations.0.language_id` → `translation_texts`
+  ///
+  /// Untuk multi-makna, prefer [errorForMeaning] agar index tidak campur.
   String? errorFor(String field) {
     for (final d in details) {
       if (_displayField(d.field) == field) return d.message;
+    }
+    return null;
+  }
+
+  /// Error inline per indeks makna (`meanings.N.*`).
+  String? errorForMeaning(int index, String field) {
+    final prefix = 'meanings.$index.';
+    for (final d in details) {
+      final path = d.field;
+      if (field == 'translation_texts') {
+        if (path.startsWith('${prefix}translations') ||
+            path == '${prefix}is_have_translation') {
+          return d.message;
+        }
+        continue;
+      }
+      if (path == '$prefix$field' || path.startsWith('$prefix$field.')) {
+        return d.message;
+      }
     }
     return null;
   }

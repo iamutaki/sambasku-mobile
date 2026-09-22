@@ -9,18 +9,41 @@ class SubmitAnonWordUseCase {
 
   final ContributionRepository _repository;
 
+  /// Batas UI + payload: cukup untuk polisemi ringan, hindari form panjang.
+  static const maxMeanings = 5;
+
   Future<Either<ContributionFailure, SubmitWordResult>> call(
     SubmitAnonWordParams params,
   ) {
     final lemma = params.lemma.trim();
-    final definition = params.definition.trim();
     final dialectId = params.dialectId?.trim();
     final notes = params.notes?.trim();
 
-    final translations = params.translationTexts
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
+    final meanings = <SubmitWordMeaning>[];
+    for (final m in params.meanings.take(maxMeanings)) {
+      // Placeholder definisi: hanya definisi sentinel "-" + flag false.
+      // Padanan opsional: isHaveTranslation=false → translations [].
+      // Kedua flag independen (form Definisi/Padanan boleh salah satu saja).
+      final isHaveDefinition = m.isHaveDefinition;
+      final isHaveTranslation = m.isHaveTranslation;
+      final definition = isHaveDefinition ? m.definition.trim() : '-';
+      final translations = isHaveTranslation
+          ? m.translationTexts
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(growable: false)
+          : <String>[];
+
+      meanings.add(
+        SubmitWordMeaning(
+          wordClassId: m.wordClassId.trim(),
+          definition: definition,
+          isHaveDefinition: isHaveDefinition,
+          isHaveTranslation: isHaveTranslation,
+          translationTexts: translations,
+        ),
+      );
+    }
 
     final categoryIds = params.categoryIds
         .map((e) => e.trim())
@@ -33,6 +56,21 @@ class SubmitAnonWordUseCase {
         .where((e) => e.isNotEmpty && e.toLowerCase() != lemma.toLowerCase())
         .where((e) => seenVariants.add(e.toLowerCase()))
         .toList(growable: false);
+
+    // Max 5 Form B per request (API); dedup lemma case-insensitive
+    // (termasuk lemma induk).
+    final seenRelated = <String>{lemma.toLowerCase()};
+    final relatedWords = <SubmitWordRelation>[];
+    for (final rel in params.relatedWords) {
+      final relLemma = rel.lemma.trim();
+      if (relLemma.isEmpty) continue;
+      final key = relLemma.toLowerCase();
+      if (!seenRelated.add(key)) continue;
+      relatedWords.add(
+        SubmitWordRelation(relationType: rel.relationType, lemma: relLemma),
+      );
+      if (relatedWords.length >= 5) break;
+    }
 
     // Pastikan maksimal satu is_primary (mirror validator API).
     var sawPrimary = false;
@@ -59,16 +97,20 @@ class SubmitAnonWordUseCase {
       );
     }
 
+    final wordType = params.wordType.trim().isEmpty
+        ? 'word'
+        : params.wordType.trim();
+
     return _repository.submitAnon(
       lemma: lemma,
       languageId: params.languageId.trim(),
-      wordClassId: params.wordClassId.trim(),
-      definition: definition,
+      meanings: meanings,
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
-      translationTexts: translations,
+      wordType: wordType,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
+      relatedWords: relatedWords,
       translationLanguageId: params.translationLanguageId.trim(),
       images: images,
       searchMissId: params.searchMissId,
@@ -76,32 +118,49 @@ class SubmitAnonWordUseCase {
   }
 }
 
+class SubmitAnonWordMeaningParams {
+  const SubmitAnonWordMeaningParams({
+    required this.wordClassId,
+    required this.definition,
+    this.isHaveDefinition = true,
+    this.isHaveTranslation = true,
+    this.translationTexts = const [],
+  });
+
+  final String wordClassId;
+  final String definition;
+  final bool isHaveDefinition;
+  final bool isHaveTranslation;
+  final List<String> translationTexts;
+}
+
 class SubmitAnonWordParams {
   const SubmitAnonWordParams({
     required this.lemma,
     required this.languageId,
-    required this.wordClassId,
-    required this.definition,
+    required this.meanings,
     required this.translationLanguageId,
     this.dialectId,
-    this.translationTexts = const [],
+    this.wordType = 'word',
     this.categoryIds = const [],
     this.notes,
     this.spellingVariants = const [],
+    this.relatedWords = const [],
     this.images = const [],
     this.searchMissId,
   });
 
   final String lemma;
   final String languageId;
-  final String wordClassId;
-  final String definition;
+  final List<SubmitAnonWordMeaningParams> meanings;
   final String translationLanguageId;
   final String? dialectId;
-  final List<String> translationTexts;
+  /// `word` | `idiom` | `peribahasa` | `ungkapan`
+  final String wordType;
   final List<String> categoryIds;
   final String? notes;
   final List<String> spellingVariants;
+  final List<SubmitWordRelation> relatedWords;
   final List<SubmitWordImage> images;
   final String? searchMissId;
 }

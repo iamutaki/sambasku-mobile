@@ -21,9 +21,10 @@ class WordImageUploadService {
     File file, {
     bool isPrimary = false,
     String? altText,
+    String folder = '/words',
   }) async {
     try {
-      final tokenRes = await _remote.getUploadToken();
+      final tokenRes = await _remote.getUploadToken(folder: folder);
       if (tokenRes.success == false || tokenRes.data == null) {
         return Either.left(
           ContributionFailure(
@@ -36,6 +37,7 @@ class WordImageUploadService {
       final uploaded = await _uploader.upload(
         file: file,
         creds: tokenRes.data!,
+        folder: folder,
       );
 
       return Either.right(
@@ -51,7 +53,8 @@ class WordImageUploadService {
       if (data is Map<String, dynamic>) {
         final code = data['error_code'] as String?;
         final message = data['message'];
-        if (code == 'IMAGE_UPLOAD_UNAVAILABLE' || e.response?.statusCode == 503) {
+        if (code == 'IMAGE_UPLOAD_UNAVAILABLE' ||
+            e.response?.statusCode == 503) {
           return Either.left(
             ContributionFailure(
               message is String && message.isNotEmpty

@@ -18,25 +18,57 @@ class SubmitWordImage {
   final bool isPrimary;
 }
 
+/// Relasi inline (Form B) - sinonim/antonim lemma baru ikut makna induk.
+class SubmitWordRelation {
+  const SubmitWordRelation({
+    required this.relationType,
+    required this.lemma,
+  });
+
+  /// `synonym` | `antonym`
+  final String relationType;
+  final String lemma;
+}
+
+/// Satu makna dalam usulan kata (API `meanings[]`).
+class SubmitWordMeaning {
+  const SubmitWordMeaning({
+    required this.wordClassId,
+    required this.definition,
+    this.isHaveDefinition = true,
+    this.isHaveTranslation = true,
+    this.translationTexts = const [],
+  });
+
+  final String wordClassId;
+  final String definition;
+  final bool isHaveDefinition;
+  final bool isHaveTranslation;
+  final List<String> translationTexts;
+}
+
 /// Kontrak repository submit kata.
 ///
-/// Method `submitAnon` = endpoint publik `POST /api/v1/contributions/words`
-/// (tidak butuh Authorization header). Hasil selalu `pending_review`
-/// (approval gate di backend). User anonim tidak bisa langsung tayang.
+/// Method `submitAnon` = endpoint `POST /api/v1/contributions/words`
+/// (auth opsional). Tanpa token → atribusi anonim; Dio menyisipkan
+/// Bearer saat login → atribusi user real (backend optionalAuthenticate).
+/// Hasil selalu `pending_review` untuk contributor.
 /// `images` opsional - hanya untuk user yang sudah upload via token.
 abstract interface class ContributionRepository {
   Future<Either<ContributionFailure, SubmitWordResult>> submitAnon({
     required String lemma,
     required String languageId,
-    required String wordClassId,
-    required String definition,
+    required List<SubmitWordMeaning> meanings,
     String? dialectId,
-    required List<String> translationTexts,
+    /// `word` | `idiom` | `peribahasa` | `ungkapan` (API `word_type`).
+    String wordType = 'word',
     List<String> categoryIds = const [],
     String? notes,
     // Ejaan alternatif (variasi penulisan, docs/api/11) - dikirim sebagai
     // variants[] variant_type 'alternative'.
     List<String> spellingVariants = const [],
+    // Sinonim/antonim inline Form B (docs/api/04).
+    List<SubmitWordRelation> relatedWords = const [],
     // Bahasa target terjemahan = Indonesia (IDN), di-resolve dari page.
     required String translationLanguageId,
     List<SubmitWordImage> images = const [],

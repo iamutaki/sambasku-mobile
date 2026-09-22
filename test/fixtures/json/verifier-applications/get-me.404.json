@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "error_code": "VERIFIER_APPLICATION_NOT_FOUND",
+  "message": "Pengajuan verifikator tidak ditemukan",
+  "details": null
+}

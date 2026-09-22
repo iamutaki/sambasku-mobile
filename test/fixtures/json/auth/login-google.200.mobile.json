@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+    "expires_in": 900,
+    "refresh_token": "8f3a9c1b5d7e2f4a6c8b0d2e4f6a8c1b3d5e7f9a2c4e6d8f0a2b4c6e8d0f2a4",
+    "user": {
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "username": "Budi Santoso",
+      "role": "contributor"
+    }
+  }
+}

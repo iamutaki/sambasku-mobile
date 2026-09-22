@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CreateWordMeaningDto {
 
-@JsonKey(name: 'word_class_id') String get wordClassId; String get definition;@JsonKey(name: 'order_index') int get orderIndex; List<CreateWordTranslationDto> get translations;
+@JsonKey(name: 'word_class_id') String get wordClassId; String get definition;@JsonKey(name: 'is_have_definition') bool get isHaveDefinition;@JsonKey(name: 'is_have_translation') bool get isHaveTranslation;@JsonKey(name: 'order_index') int get orderIndex; List<CreateWordTranslationDto> get translations;
 /// Create a copy of CreateWordMeaningDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CreateWordMeaningDtoCopyWith<CreateWordMeaningDto> get copyWith => _$CreateWord
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateWordMeaningDto&&(identical(other.wordClassId, wordClassId) || other.wordClassId == wordClassId)&&(identical(other.definition, definition) || other.definition == definition)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other.translations, translations));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateWordMeaningDto&&(identical(other.wordClassId, wordClassId) || other.wordClassId == wordClassId)&&(identical(other.definition, definition) || other.definition == definition)&&(identical(other.isHaveDefinition, isHaveDefinition) || other.isHaveDefinition == isHaveDefinition)&&(identical(other.isHaveTranslation, isHaveTranslation) || other.isHaveTranslation == isHaveTranslation)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other.translations, translations));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wordClassId,definition,orderIndex,const DeepCollectionEquality().hash(translations));
+int get hashCode => Object.hash(runtimeType,wordClassId,definition,isHaveDefinition,isHaveTranslation,orderIndex,const DeepCollectionEquality().hash(translations));
 
 @override
 String toString() {
-  return 'CreateWordMeaningDto(wordClassId: $wordClassId, definition: $definition, orderIndex: $orderIndex, translations: $translations)';
+  return 'CreateWordMeaningDto(wordClassId: $wordClassId, definition: $definition, isHaveDefinition: $isHaveDefinition, isHaveTranslation: $isHaveTranslation, orderIndex: $orderIndex, translations: $translations)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CreateWordMeaningDtoCopyWith<$Res>  {
   factory $CreateWordMeaningDtoCopyWith(CreateWordMeaningDto value, $Res Function(CreateWordMeaningDto) _then) = _$CreateWordMeaningDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'word_class_id') String wordClassId, String definition,@JsonKey(name: 'order_index') int orderIndex, List<CreateWordTranslationDto> translations
+@JsonKey(name: 'word_class_id') String wordClassId, String definition,@JsonKey(name: 'is_have_definition') bool isHaveDefinition,@JsonKey(name: 'is_have_translation') bool isHaveTranslation,@JsonKey(name: 'order_index') int orderIndex, List<CreateWordTranslationDto> translations
 });
 
 
@@ -65,11 +65,13 @@ class _$CreateWordMeaningDtoCopyWithImpl<$Res>
 
 /// Create a copy of CreateWordMeaningDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? wordClassId = null,Object? definition = null,Object? orderIndex = null,Object? translations = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? wordClassId = null,Object? definition = null,Object? isHaveDefinition = null,Object? isHaveTranslation = null,Object? orderIndex = null,Object? translations = null,}) {
   return _then(_self.copyWith(
 wordClassId: null == wordClassId ? _self.wordClassId : wordClassId // ignore: cast_nullable_to_non_nullable
 as String,definition: null == definition ? _self.definition : definition // ignore: cast_nullable_to_non_nullable
-as String,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
+as String,isHaveDefinition: null == isHaveDefinition ? _self.isHaveDefinition : isHaveDefinition // ignore: cast_nullable_to_non_nullable
+as bool,isHaveTranslation: null == isHaveTranslation ? _self.isHaveTranslation : isHaveTranslation // ignore: cast_nullable_to_non_nullable
+as bool,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
 as int,translations: null == translations ? _self.translations : translations // ignore: cast_nullable_to_non_nullable
 as List<CreateWordTranslationDto>,
   ));
@@ -156,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'is_have_definition')  bool isHaveDefinition, @JsonKey(name: 'is_have_translation')  bool isHaveTranslation, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CreateWordMeaningDto() when $default != null:
-return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.translations);case _:
+return $default(_that.wordClassId,_that.definition,_that.isHaveDefinition,_that.isHaveTranslation,_that.orderIndex,_that.translations);case _:
   return orElse();
 
 }
@@ -177,10 +179,10 @@ return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.transl
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'is_have_definition')  bool isHaveDefinition, @JsonKey(name: 'is_have_translation')  bool isHaveTranslation, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordMeaningDto():
-return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.translations);case _:
+return $default(_that.wordClassId,_that.definition,_that.isHaveDefinition,_that.isHaveTranslation,_that.orderIndex,_that.translations);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +199,10 @@ return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.transl
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'word_class_id')  String wordClassId,  String definition, @JsonKey(name: 'is_have_definition')  bool isHaveDefinition, @JsonKey(name: 'is_have_translation')  bool isHaveTranslation, @JsonKey(name: 'order_index')  int orderIndex,  List<CreateWordTranslationDto> translations)?  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordMeaningDto() when $default != null:
-return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.translations);case _:
+return $default(_that.wordClassId,_that.definition,_that.isHaveDefinition,_that.isHaveTranslation,_that.orderIndex,_that.translations);case _:
   return null;
 
 }
@@ -212,11 +214,13 @@ return $default(_that.wordClassId,_that.definition,_that.orderIndex,_that.transl
 @JsonSerializable()
 
 class _CreateWordMeaningDto implements CreateWordMeaningDto {
-  const _CreateWordMeaningDto({@JsonKey(name: 'word_class_id') required this.wordClassId, required this.definition, @JsonKey(name: 'order_index') this.orderIndex = 1, required final  List<CreateWordTranslationDto> translations}): _translations = translations;
+  const _CreateWordMeaningDto({@JsonKey(name: 'word_class_id') required this.wordClassId, required this.definition, @JsonKey(name: 'is_have_definition') this.isHaveDefinition = true, @JsonKey(name: 'is_have_translation') this.isHaveTranslation = true, @JsonKey(name: 'order_index') this.orderIndex = 1, required final  List<CreateWordTranslationDto> translations}): _translations = translations;
   factory _CreateWordMeaningDto.fromJson(Map<String, dynamic> json) => _$CreateWordMeaningDtoFromJson(json);
 
 @override@JsonKey(name: 'word_class_id') final  String wordClassId;
 @override final  String definition;
+@override@JsonKey(name: 'is_have_definition') final  bool isHaveDefinition;
+@override@JsonKey(name: 'is_have_translation') final  bool isHaveTranslation;
 @override@JsonKey(name: 'order_index') final  int orderIndex;
  final  List<CreateWordTranslationDto> _translations;
 @override List<CreateWordTranslationDto> get translations {
@@ -239,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateWordMeaningDto&&(identical(other.wordClassId, wordClassId) || other.wordClassId == wordClassId)&&(identical(other.definition, definition) || other.definition == definition)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other._translations, _translations));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateWordMeaningDto&&(identical(other.wordClassId, wordClassId) || other.wordClassId == wordClassId)&&(identical(other.definition, definition) || other.definition == definition)&&(identical(other.isHaveDefinition, isHaveDefinition) || other.isHaveDefinition == isHaveDefinition)&&(identical(other.isHaveTranslation, isHaveTranslation) || other.isHaveTranslation == isHaveTranslation)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other._translations, _translations));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wordClassId,definition,orderIndex,const DeepCollectionEquality().hash(_translations));
+int get hashCode => Object.hash(runtimeType,wordClassId,definition,isHaveDefinition,isHaveTranslation,orderIndex,const DeepCollectionEquality().hash(_translations));
 
 @override
 String toString() {
-  return 'CreateWordMeaningDto(wordClassId: $wordClassId, definition: $definition, orderIndex: $orderIndex, translations: $translations)';
+  return 'CreateWordMeaningDto(wordClassId: $wordClassId, definition: $definition, isHaveDefinition: $isHaveDefinition, isHaveTranslation: $isHaveTranslation, orderIndex: $orderIndex, translations: $translations)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$CreateWordMeaningDtoCopyWith<$Res> implements $CreateWord
   factory _$CreateWordMeaningDtoCopyWith(_CreateWordMeaningDto value, $Res Function(_CreateWordMeaningDto) _then) = __$CreateWordMeaningDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'word_class_id') String wordClassId, String definition,@JsonKey(name: 'order_index') int orderIndex, List<CreateWordTranslationDto> translations
+@JsonKey(name: 'word_class_id') String wordClassId, String definition,@JsonKey(name: 'is_have_definition') bool isHaveDefinition,@JsonKey(name: 'is_have_translation') bool isHaveTranslation,@JsonKey(name: 'order_index') int orderIndex, List<CreateWordTranslationDto> translations
 });
 
 
@@ -276,11 +280,13 @@ class __$CreateWordMeaningDtoCopyWithImpl<$Res>
 
 /// Create a copy of CreateWordMeaningDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? wordClassId = null,Object? definition = null,Object? orderIndex = null,Object? translations = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? wordClassId = null,Object? definition = null,Object? isHaveDefinition = null,Object? isHaveTranslation = null,Object? orderIndex = null,Object? translations = null,}) {
   return _then(_CreateWordMeaningDto(
 wordClassId: null == wordClassId ? _self.wordClassId : wordClassId // ignore: cast_nullable_to_non_nullable
 as String,definition: null == definition ? _self.definition : definition // ignore: cast_nullable_to_non_nullable
-as String,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
+as String,isHaveDefinition: null == isHaveDefinition ? _self.isHaveDefinition : isHaveDefinition // ignore: cast_nullable_to_non_nullable
+as bool,isHaveTranslation: null == isHaveTranslation ? _self.isHaveTranslation : isHaveTranslation // ignore: cast_nullable_to_non_nullable
+as bool,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
 as int,translations: null == translations ? _self._translations : translations // ignore: cast_nullable_to_non_nullable
 as List<CreateWordTranslationDto>,
   ));

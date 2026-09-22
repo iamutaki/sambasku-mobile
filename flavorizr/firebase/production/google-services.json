@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951617114124",
+    "project_id": "sambasku-production",
+    "storage_bucket": "sambasku-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951617114124:android:986beaa41a6668c6c51e29",
+        "android_client_info": {
+          "package_name": "com.iamutaki.sambasku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAjCc0-8rxC0j1TsKON6D60IZK4_IFyDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

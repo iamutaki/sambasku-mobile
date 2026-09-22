@@ -7,12 +7,16 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../auth/presentation/models/auth_status_state.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../notification/notification_router.dart';
+import '../../../notification/presentation/providers/notification_providers.dart';
+import '../widgets/appearance_tiles.dart';
+import '../widgets/notification_header_action.dart';
 
 /// Tab PROFILE - identity + menu via FTileGroup.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
-  static const _roleLabels = <String, String>{
+  static const roleLabels = <String, String>{
     'root': 'Root',
     'admin': 'Admin',
     'editor': 'Editor',
@@ -20,19 +24,19 @@ class ProfilePage extends ConsumerWidget {
     'contributor': 'Kontributor',
   };
 
-  static void _comingSoon(BuildContext context, String feature) {
-    showFToast(context: context, title: Text('$feature segera hadir'));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authStatus = ref.watch(authStatusProvider);
 
     return Column(
       children: [
-        const FHeader(
-          title: Text('Profil'),
-          suffixes: [ThemeToggleHeaderAction()],
+        FHeader(
+          title: const Text('Profil'),
+          suffixes: [
+            if (authStatus.value?.isAuth ?? false)
+              const NotificationHeaderAction(),
+            const ThemeToggleHeaderAction(),
+          ],
         ),
         Expanded(
           child: authStatus.when(
@@ -47,43 +51,43 @@ class ProfilePage extends ConsumerWidget {
                   FTileGroup(
                     label: const Text('Saya'),
                     children: [
+                      const _NotificationTile(),
                       FTile(
                         prefix: const Icon(FLucideIcons.filePenLine),
                         title: const Text('Kontribusi Saya'),
                         subtitle: const Text('Riwayat & status usulan kata'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        // ponytail: halaman Usulanku belum ada — toast dulu
-                        onPress: () =>
-                            _comingSoon(context, 'Kontribusi Saya'),
+                        onPress: () => context.push('/contributions'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.bookmark),
                         title: const Text('Bookmark'),
-                        subtitle: const Text('Kata tersimpan untuk dibaca lagi'),
+                        subtitle: const Text(
+                          'Kata tersimpan untuk dibaca lagi',
+                        ),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Bookmark'),
+                        onPress: () => context.push('/bookmarks'),
                       ),
                       FTile(
-                        prefix: const Icon(FLucideIcons.thumbsUp),
+                        prefix: const Icon(FLucideIcons.arrowBigUp),
                         title: const Text('Vote'),
                         subtitle: const Text('Kata yang pernah kamu vote'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Vote'),
+                        onPress: () => context.push('/votes'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.messageSquare),
                         title: const Text('Komentar'),
                         subtitle: const Text('Komentar & status moderasi'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Komentar'),
+                        onPress: () => context.push('/comments'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.flag),
                         title: const Text('Laporkan Masalah'),
                         subtitle: const Text('Kirim saran atau laporkan bug'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () =>
-                            _comingSoon(context, 'Laporkan Masalah'),
+                        onPress: () => context.push('/report-bug'),
                       ),
                     ],
                   ),
@@ -91,6 +95,16 @@ class ProfilePage extends ConsumerWidget {
                   FTileGroup(
                     label: const Text('Akun'),
                     children: [
+                      if (status.role == 'contributor')
+                        FTile(
+                          prefix: const Icon(FLucideIcons.badgeCheck),
+                          title: const Text('Jadi verifikator'),
+                          subtitle: const Text(
+                            'Ajukan diri untuk meninjau kontribusi',
+                          ),
+                          suffix: const Icon(FLucideIcons.chevronRight),
+                          onPress: () => context.push('/verifier-application'),
+                        ),
                       FTile(
                         prefix: const Icon(FLucideIcons.keyRound),
                         title: const Text('Ubah Password'),
@@ -118,8 +132,20 @@ class ProfilePage extends ConsumerWidget {
                         suffix: const Icon(FLucideIcons.chevronRight),
                         onPress: () => context.go('/register'),
                       ),
+                      FTile(
+                        prefix: const Icon(FLucideIcons.flag),
+                        title: const Text('Laporkan Masalah'),
+                        subtitle: const Text('Kirim saran atau laporkan bug'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/report-bug'),
+                      ),
                     ],
                   ),
+                const Gap(14),
+                FTileGroup(
+                  label: const Text('Tampilan'),
+                  children: [themeModeTile(ref), paletteTile(ref)],
+                ),
                 const Gap(14),
                 FTileGroup(
                   label: const Text('Tentang'),
@@ -127,7 +153,7 @@ class ProfilePage extends ConsumerWidget {
                     FTile(
                       prefix: const Icon(FLucideIcons.info),
                       title: const Text('Tentang SambasKu'),
-                      subtitle: const Text('Versi aplikasi dan informasi'),
+                      subtitle: const Text('Fitur dan versi aplikasi'),
                       suffix: const Icon(FLucideIcons.chevronRight),
                       onPress: () => context.push('/about'),
                     ),
@@ -164,6 +190,25 @@ class ProfilePage extends ConsumerWidget {
   }
 }
 
+class _NotificationTile extends ConsumerWidget with FTileMixin {
+  const _NotificationTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread =
+        ref.watch(unreadNotificationCountControllerProvider).value ?? 0;
+    return FTile(
+      prefix: const Icon(FLucideIcons.bell),
+      title: const Text('Notifikasi'),
+      subtitle: Text(
+        unread > 0 ? '$unread belum dibaca' : 'Status usulan yang sudah direview',
+      ),
+      suffix: const Icon(FLucideIcons.chevronRight),
+      onPress: () => context.push(NotificationRouter.list.path),
+    );
+  }
+}
+
 class _IdentityTileGroup extends StatelessWidget {
   const _IdentityTileGroup({required this.status});
 
@@ -176,7 +221,7 @@ class _IdentityTileGroup extends StatelessWidget {
         ? (username?.isNotEmpty == true ? username! : 'Pengguna')
         : 'Belum masuk';
     final roleLabel = status.isAuth && status.role != null
-        ? (ProfilePage._roleLabels[status.role!] ?? status.role!)
+        ? (ProfilePage.roleLabels[status.role!] ?? status.role!)
         : null;
     final subtitle = status.isAuth
         ? (roleLabel ?? 'Kelola akun dan keamanan')

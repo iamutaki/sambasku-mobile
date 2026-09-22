@@ -23,6 +23,20 @@ class _FakeRepo implements AuthRepository {
   }
 
   @override
+  Future<Either<AuthFailure, AuthSession>> loginWithGoogle({
+    required String idToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> loginWithFacebook({
+    required String accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Either<AuthFailure, void>> register({
     required String name,
     required String email,
@@ -37,10 +51,44 @@ class _FakeRepo implements AuthRepository {
   Future<Either<AuthFailure, void>> logout() async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<Either<AuthFailure, AuthSession>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, void>> resendOtp({required String email}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, String>> forgotPassword({
+    required String email,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<AuthFailure, String>> resetPassword({
+    String? token,
+    String? email,
+    String? code,
+    required String newPassword,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 void main() {
-  const session = AuthSession(userId: '01U', username: 'budi', role: 'contributor');
+  const session = AuthSession(
+    userId: '01U',
+    username: 'budi',
+    role: 'contributor',
+  );
 
   test('sukses - email di-trim sebelum kirim', () async {
     final repo = _FakeRepo(Either.right(session));
@@ -56,8 +104,12 @@ void main() {
 
   test('gagal - failure diteruskan tanpa diubah', () async {
     final repo = _FakeRepo(
-      Either.left(const AuthFailure('Email atau password salah',
-          errorCode: 'INVALID_CREDENTIALS')),
+      Either.left(
+        const AuthFailure(
+          'Email atau password salah',
+          errorCode: 'INVALID_CREDENTIALS',
+        ),
+      ),
     );
     final usecase = LoginUseCase(repo);
 

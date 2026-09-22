@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,22 +9,23 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth_router.dart';
+import '../providers/auth_login_providers.dart';
 import '../providers/auth_register_providers.dart';
 import '../providers/auth_status_providers.dart';
+import '../widgets/facebook_auth_button.dart';
+import '../widgets/google_auth_button.dart';
 
 /// Prefix negara di-lock dulu ke +62; nanti diganti dinamis (locale/config).
 const kPhoneCountryPrefix = '+62';
 
-/// Register sederhana: nama, email, HP opsional (+62 locked), password.
-/// Auto-verify di backend (tanpa OTP) → sukses langsung login + ke home.
+/// Register: nama, email, HP opsional (+62 locked), password.
+/// Sukses → halaman OTP. Belum auto-login.
 class RegisterPage extends HookConsumerWidget {
   const RegisterPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(authRegisterProvider);
-    final authStatus = ref.watch(authStatusProvider);
-    final alreadyAuth = authStatus.value?.isAuth ?? false;
     final name = useTextEditingController();
     final email = useTextEditingController();
     final phone = useTextEditingController();
@@ -34,45 +37,55 @@ class RegisterPage extends HookConsumerWidget {
     useListenable(password);
     useListenable(confirmPassword);
 
-    // Auto-login sukses → home
-    ref.listen(authStatusProvider, (_, next) {
-      if (next.value?.isAuth == true && context.mounted) context.go('/');
+    ref.listen(authRegisterProvider.select((s) => s.session), (_, next) {
+      if (next != null && context.mounted) context.go('/');
     });
 
-    // Register ok tapi auto-login gagal → login manual
-    ref.listen(
-      authRegisterProvider.select((s) => s.needsManualLogin),
-      (_, needsManual) {
-        if (needsManual != true || !context.mounted) return;
-        showFToast(
-          context: context,
-          title: const Text('Akun dibuat — silakan masuk'),
-        );
-        context.go(AuthRouter.login.path);
-      },
-    );
-
-    if (alreadyAuth) {
-      return const FScaffold(
-        childPad: true,
-        child: Center(child: FCircularProgress()),
+    ref.listen(authRegisterProvider.select((s) => s.errorCode), (_, code) {
+      if (code != 'RATE_LIMITED' || !context.mounted) return;
+      showFToast(
+        context: context,
+        title: Text(state.errorMessage ?? 'Coba lagi nanti'),
       );
-    }
+    });
 
-    final passwordOk = password.text.length >= 8 &&
+    // Register password sukses → OTP. Sesi user lama (kalau ada) di-logout dulu
+    // supaya profil/router tidak tetap menampilkan user A.
+    ref.listen(authRegisterProvider.select((s) => s.success), (_, success) {
+      if (success != true || !context.mounted) return;
+      final pending =
+          ref.read(authRegisterProvider).pendingEmail ?? email.text.trim();
+      unawaited(() async {
+        if (ref.read(authStatusProvider).value?.isAuth == true) {
+          await ref.read(authStatusProvider.notifier).logout();
+        }
+        if (!context.mounted) return;
+        ref.read(authRegisterProvider.notifier).acknowledgeSuccess();
+        context.go(
+          '${AuthRouter.verifyEmail.path}?email=${Uri.encodeComponent(pending)}&cooldown=1',
+        );
+      }());
+    });
+
+    final passwordOk =
+        password.text.length >= 8 &&
         password.text.contains(RegExp(r'[a-zA-Z]')) &&
         password.text.contains(RegExp(r'[0-9]'));
-    final canSubmit = name.text.trim().isNotEmpty &&
+    final canSubmit =
+        name.text.trim().isNotEmpty &&
         email.text.contains('@') &&
         passwordOk &&
         confirmPassword.text == password.text &&
         !state.isSubmitting;
 
-    void submit() => ref.read(authRegisterProvider.notifier).submit(
+    void submit() => ref
+        .read(authRegisterProvider.notifier)
+        .submit(
           name: name.text,
           email: email.text,
-          phoneNationalDigits:
-              phone.text.trim().isEmpty ? null : phone.text.trim(),
+          phoneNationalDigits: phone.text.trim().isEmpty
+              ? null
+              : phone.text.trim(),
           password: password.text,
           confirmPassword: confirmPassword.text,
         );
@@ -108,7 +121,7 @@ class RegisterPage extends HookConsumerWidget {
                 ),
                 const Gap(8),
                 Text(
-                  'Langsung aktif tanpa OTP. Setelah daftar kamu otomatis masuk.',
+                  'Kami kirim kode 8 karakter 0-9A-Z ke email. Verifikasi dulu sebelum masuk.',
                   textAlign: .center,
                   style: theme.typography.sm.copyWith(
                     color: theme.colors.mutedForeground,
@@ -164,7 +177,8 @@ class RegisterPage extends HookConsumerWidget {
                   textInputAction: .done,
                   onSubmit: canSubmit ? (_) => submit() : null,
                 ),
-                if (state.errorMessage != null) ...[
+                if (state.errorMessage != null &&
+                    state.errorCode != 'RATE_LIMITED') ...[
                   const Gap(12),
                   FAlert(
                     variant: .destructive,
@@ -174,13 +188,42 @@ class RegisterPage extends HookConsumerWidget {
                 const Gap(16),
                 FButton(
                   onPress: canSubmit ? submit : null,
-                  prefix: state.isSubmitting
-                      ? const FCircularProgress()
-                      : null,
-                  child: Text(
-                    state.isSubmitting ? 'Memproses...' : 'Daftar',
-                  ),
+                  prefix: state.isSubmitting ? const FCircularProgress() : null,
+                  child: Text(state.isSubmitting ? 'Memproses...' : 'Daftar'),
                 ),
+                if ((ref.watch(googleAuthEnabledProvider) &&
+                        !state.googleUnavailable) ||
+                    (ref.watch(facebookAuthEnabledProvider) &&
+                        !state.facebookUnavailable)) ...[
+                  const Gap(16),
+                  const GoogleAuthDivider(),
+                  if (ref.watch(googleAuthEnabledProvider) &&
+                      !state.googleUnavailable) ...[
+                    const Gap(16),
+                    GoogleAuthButton(
+                      label: 'Daftar dengan Google',
+                      isLoading: state.isSubmitting,
+                      onPress: state.isSubmitting
+                          ? null
+                          : () => ref
+                                .read(authRegisterProvider.notifier)
+                                .submitGoogle(),
+                    ),
+                  ],
+                  if (ref.watch(facebookAuthEnabledProvider) &&
+                      !state.facebookUnavailable) ...[
+                    const Gap(16),
+                    FacebookAuthButton(
+                      label: 'Daftar dengan Facebook',
+                      isLoading: state.isSubmitting,
+                      onPress: state.isSubmitting
+                          ? null
+                          : () => ref
+                                .read(authRegisterProvider.notifier)
+                                .submitFacebook(),
+                    ),
+                  ],
+                ],
                 const Gap(8),
                 FButton(
                   variant: .ghost,

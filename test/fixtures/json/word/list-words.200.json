@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "01JDWORDAPAM00000000000000",
+      "lemma": "apam",
+      "language_id": "01JDSBSLANG000000000000000",
+      "language_code": "SBS",
+      "word_type": "word",
+      "status": "published",
+      "is_verified": true
+    },
+    {
+      "id": "01JDWORDBUDU00000000000000",
+      "lemma": "budu",
+      "language_id": "01JDSBSLANG000000000000000",
+      "language_code": "SBS",
+      "word_type": "word",
+      "status": "published",
+      "is_verified": false
+    }
+  ],
+  "meta": {
+    "limit": 20,
+    "next_cursor": "YnVkdQAwMUpEV09SREJVRFUwMDAwMDAwMDAwMDAwMA",
+    "has_more": true
+  }
+}

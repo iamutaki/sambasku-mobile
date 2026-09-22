@@ -4,7 +4,10 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// Halaman About: identitas app + versi + deskripsi singkat.
+import '../../../../core/widgets/brand_logo.dart';
+import '../../../../flavors.dart';
+
+/// Halaman About: identitas app, lalu tab Tentang dan Tim Kami.
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -32,69 +35,147 @@ class AboutPage extends StatelessWidget {
                 ? '…'
                 : '${info.version} (${info.buildNumber})';
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            return Column(
               children: [
-                Center(
-                  child: Column(
-                    children: [
-                      FAvatar.raw(
-                        size: 64,
-                        style: .delta(
-                          backgroundColor:
-                              theme.colors.primary.withValues(alpha: 0.12),
-                        ),
-                        child: Icon(
-                          FLucideIcons.bookOpen,
-                          size: 28,
-                          color: theme.colors.primary,
-                        ),
-                      ),
-                      const Gap(12),
-                      Text(
-                        'SambasKu',
-                        style: theme.typography.xl.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: theme.colors.foreground,
-                        ),
-                      ),
-                      const Gap(4),
-                      Text(
-                        'Kamus Digital Sambas–Indonesia',
-                        textAlign: TextAlign.center,
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                      const Gap(6),
-                      Text(
-                        'Versi $versionLabel',
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    ],
+                const Gap(4),
+                const BrandLogo(size: 72),
+                const Gap(8),
+                Text(
+                  F.title,
+                  textAlign: TextAlign.center,
+                  style: theme.typography.lg.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                    color: theme.colors.foreground,
                   ),
                 ),
-                const Gap(24),
-                _AboutBlock(
-                  title: 'Apa itu SambasKu?',
-                  body:
-                      'Kamus komunitas untuk mencari dan mengusulkan kosakata '
-                      'Sambas serta terjemahannya ke bahasa Indonesia.',
+                const Gap(2),
+                Text(
+                  'Kamus Digital Sambas-Indonesia',
+                  textAlign: TextAlign.center,
+                  style: theme.typography.xs.copyWith(
+                    height: 1.2,
+                    color: theme.colors.mutedForeground,
+                  ),
                 ),
-                const Gap(16),
-                _AboutBlock(
-                  title: 'Kontribusi',
-                  body:
-                      'Warga bisa mengusulkan kata baru. Usulan masuk antrean '
-                      'verifikasi sebelum ditayangkan di kamus.',
+                const Gap(2),
+                Text(
+                  'Versi $versionLabel',
+                  textAlign: TextAlign.center,
+                  style: theme.typography.xs.copyWith(
+                    height: 1.2,
+                    color: theme.colors.mutedForeground,
+                  ),
                 ),
+                const Gap(12),
+                const Expanded(child: _AboutTabs()),
               ],
             );
           },
         ),
       ),
+    );
+  }
+}
+
+class _AboutTabs extends StatelessWidget {
+  const _AboutTabs();
+
+  @override
+  Widget build(BuildContext context) {
+    return FTabs(
+      expands: true,
+      children: const [
+        FTabEntry.entry(label: Text('Tentang'), child: _AboutTab()),
+        FTabEntry.entry(label: Text('Tim Kami'), child: _TeamTab()),
+      ],
+    );
+  }
+}
+
+class _AboutTab extends StatelessWidget {
+  const _AboutTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+      children: const [
+        _AboutBlock(
+          title: 'Apa itu SambasKu?',
+          body:
+              'Kamus digital Sambas-Indonesia. Cari arti, baca contoh, '
+              'usulkan kata, bookmark, dan bagikan kartu. Entri tayang '
+              'setelah verifikasi.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Cari kosakata',
+          body:
+              'Ketik lemma atau terjemahan. Setiap entri menampilkan '
+              'kelas kata, definisi, contoh kalimat, dan variasi '
+              'penulisan.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Simpan',
+          body:
+              'Bookmark kata dari halaman detail, lalu buka lagi '
+              'dari Profil.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Usulkan',
+          body:
+              'Warga mengusulkan kata baru atau perbaikan. Usulan '
+              'masuk antrean verifikasi sebelum tayang di kamus. '
+              'Kontributor bisa mengajukan diri jadi verifikator.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Bagikan kartu',
+          body:
+              'Dari detail kata, atur gaya dan latar (foto, video, '
+              'atau warna polos), lalu Simpan ke galeri atau Bagikan '
+              'ke aplikasi lain.',
+        ),
+      ],
+    );
+  }
+}
+
+class _TeamTab extends StatelessWidget {
+  const _TeamTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+      children: const [
+        _AboutBlock(
+          title: 'Bersama warga Sambas',
+          body:
+              'Kamus ini dirawat orang-orang yang mengusulkan kata, '
+              'memeriksa entri, dan merekam pelafalan.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Pengusul',
+          body:
+              'Mengirim kata baru atau perbaikan. Entri tayang setelah '
+              'verifikasi.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Verifikator',
+          body: 'Memeriksa usulan sebelum masuk kamus.',
+        ),
+        Gap(16),
+        _AboutBlock(
+          title: 'Kontributor pelafalan',
+          body: 'Merekam cara mengucapkan kata agar bisa didengar.',
+        ),
+      ],
     );
   }
 }

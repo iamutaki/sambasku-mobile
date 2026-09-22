@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/services/device_registration_holder.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
 import '../models/auth_status_state.dart';
@@ -28,7 +29,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
   }
 
   /// Dipanggil langsung setelah login sukses (token sudah di storage).
-  /// Hindari invalidate: reload async masih bawa previous isAuth:false
+  /// Hindari invalidate auth: reload async masih bawa previous isAuth:false
   /// → form KBBI/gambar sempat mengira user masih tamu.
   void markLoggedIn(AuthSession session) {
     state = AsyncData(
@@ -39,14 +40,20 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
         userId: session.userId,
       ),
     );
+    // Sama seperti logout: list keepAlive watch authStatus, cukup rebuild.
   }
 
   Future<void> logout() async {
     final current = state.value ?? const AuthStatusState();
     state = AsyncData(current.copyWith(isLoggingOut: true));
 
+    // Detach FCM device dulu (butuh access token masih valid).
+    await DeviceRegistrationHolder.instance?.revokeBestEffort();
+
     await ref.read(authLogoutUseCaseProvider).call();
 
     state = const AsyncData(AuthStatusState(isAuth: false));
+    // Jangan invalidate bookmark/kontribusi/notifikasi: mereka sudah
+    // `watch` authStatus. Invalidate saat rebuild → circular Riverpod 3.
   }
 }

@@ -16,7 +16,13 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String,
       isVerified: json['is_verified'] as bool,
       isCorrected: json['is_corrected'] as bool? ?? false,
+      selfVerified: json['self_verified'] as bool? ?? false,
       verifiedAt: json['verified_at'] as String?,
+      verifiedBy: json['verified_by'] == null
+          ? null
+          : WordVerifierDto.fromJson(
+              json['verified_by'] as Map<String, dynamic>,
+            ),
       meanings:
           (json['meanings'] as List<dynamic>?)
               ?.map((e) => MeaningDto.fromJson(e as Map<String, dynamic>))
@@ -30,6 +36,11 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
       pronunciations:
           (json['pronunciations'] as List<dynamic>?)
               ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      audios:
+          (json['audios'] as List<dynamic>?)
+              ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       images:
@@ -52,6 +63,8 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
               ?.map((e) => WordVariantDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      date: json['date'] as String?,
+      isNewThisWeek: json['is_new_this_week'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
@@ -64,15 +77,29 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'status': instance.status,
       'is_verified': instance.isVerified,
       'is_corrected': instance.isCorrected,
+      'self_verified': instance.selfVerified,
       'verified_at': instance.verifiedAt,
+      'verified_by': instance.verifiedBy,
       'meanings': instance.meanings,
       'categories': instance.categories,
       'pronunciations': instance.pronunciations,
+      'audios': instance.audios,
       'images': instance.images,
       'related_words': instance.relatedWords,
       'appears_in': instance.appearsIn,
       'variants': instance.variants,
+      'date': instance.date,
+      'is_new_this_week': instance.isNewThisWeek,
     };
+
+_WordVerifierDto _$WordVerifierDtoFromJson(Map<String, dynamic> json) =>
+    _WordVerifierDto(
+      username: json['username'] as String,
+      role: json['role'] as String,
+    );
+
+Map<String, dynamic> _$WordVerifierDtoToJson(_WordVerifierDto instance) =>
+    <String, dynamic>{'username': instance.username, 'role': instance.role};
 
 _MeaningDto _$MeaningDtoFromJson(Map<String, dynamic> json) => _MeaningDto(
   id: json['id'] as String,
@@ -141,9 +168,14 @@ _ExampleDto _$ExampleDtoFromJson(Map<String, dynamic> json) => _ExampleDto(
   id: json['id'] as String,
   sourceLanguageId: json['source_language_id'] as String,
   sourceSentence: json['source_sentence'] as String,
-  targetLanguageId: json['target_language_id'] as String,
-  targetSentence: json['target_sentence'] as String,
-  sourceType: json['source_type'] as String,
+  targetLanguageId: nullableStringFromJson(json['target_language_id']),
+  targetSentence: nullableStringFromJson(json['target_sentence']),
+  sourceType: nullableStringFromJson(json['source_type']),
+  audios:
+      (json['audios'] as List<dynamic>?)
+          ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$ExampleDtoToJson(_ExampleDto instance) =>
@@ -154,6 +186,7 @@ Map<String, dynamic> _$ExampleDtoToJson(_ExampleDto instance) =>
       'target_language_id': instance.targetLanguageId,
       'target_sentence': instance.targetSentence,
       'source_type': instance.sourceType,
+      'audios': instance.audios,
     };
 
 _CategoryDto _$CategoryDtoFromJson(Map<String, dynamic> json) =>

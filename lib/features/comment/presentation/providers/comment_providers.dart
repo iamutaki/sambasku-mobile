@@ -87,7 +87,7 @@ class CommentListController extends _$CommentListController {
     );
   }
 
-  /// Kirim komentar (pre-moderation: langsung `pending_review`).
+  /// Kirim komentar — langsung published; invalidate list agar sync API.
   Future<CommentFailure?> create(String body) async {
     final current = state.value;
     if (current == null) return null;
@@ -106,15 +106,9 @@ class CommentListController extends _$CommentListController {
         state = AsyncData(s.copyWith(isSubmitting: false, submitFailure: failure));
         return failure;
       },
-      (comment) {
-        final s = state.value ?? current;
-        state = AsyncData(
-          s.copyWith(
-            isSubmitting: false,
-            items: [comment, ...s.items],
-            clearSubmitFailure: true,
-          ),
-        );
+      (_) {
+        // Invalidate container: refetch list (status/body akurat dari server).
+        ref.invalidateSelf();
         return null;
       },
     );
@@ -129,9 +123,15 @@ class CommentListController extends _$CommentListController {
       (failure) => failure,
       (_) {
         final s = state.value ?? current;
+        // Tetap di list: tandai deleted_by_author (placeholder di UI).
         state = AsyncData(
           s.copyWith(
-            items: s.items.where((c) => c.id != comment.id).toList(growable: false),
+            items: [
+              for (final c in s.items)
+                c.id == comment.id
+                    ? c.copyWith(status: 'deleted_by_author', body: null)
+                    : c,
+            ],
           ),
         );
         return null;
