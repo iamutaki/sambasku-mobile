@@ -22,11 +22,14 @@ class LatestWordsNotifier extends _$LatestWordsNotifier {
 
   @override
   LatestWordsState build() {
+    // Riverpod 3: jangan baca/tulis `state` di dalam lifecycle — defer.
     ref.onResume(() {
-      if (!ref.mounted) return;
-      if (state.isLoading && !_isLoadingSync) {
-        scheduleMicrotask(load);
-      }
+      scheduleMicrotask(() {
+        if (!ref.mounted) return;
+        if (state.isLoading && !_isLoadingSync) {
+          load();
+        }
+      });
     });
 
     scheduleMicrotask(load);

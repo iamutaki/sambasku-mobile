@@ -42,11 +42,14 @@ class WordListNotifier extends _$WordListNotifier {
 
     // keepAlive: listener hilang saat pop, kembali saat push. Jika state
     // tersisa isLoading tanpa Future (race stale/dispose lama), pulihkan.
+    // Riverpod 3: jangan baca/tulis `state` di dalam lifecycle — defer.
     ref.onResume(() {
-      if (!ref.mounted) return;
-      if (state.isLoading && !_isLoadingSync) {
-        scheduleMicrotask(load);
-      }
+      scheduleMicrotask(() {
+        if (!ref.mounted) return;
+        if (state.isLoading && !_isLoadingSync) {
+          load();
+        }
+      });
     });
 
     // Muat halaman pertama segera (juga setelah invalidate/pull-to-refresh).
