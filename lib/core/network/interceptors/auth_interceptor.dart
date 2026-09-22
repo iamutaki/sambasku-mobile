@@ -1,12 +1,20 @@
 import 'package:dio/dio.dart';
 
 import '../auth_token_storage.dart';
-import '../../services/device_registration_holder.dart';
+
+/// Key di [RequestOptions.extra] untuk melewati refresh+retry pada 401.
+const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 
 /// Interceptor auth (pola jnn_mobile, varian sambasku):
 /// - onRequest: sisipkan Bearer access token
 /// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry;
-///   gagal refresh → best-effort revoke FCM lalu clear token
+///   gagal refresh → clear token saja (tanpa revoke FCM — revoke butuh
+///   Bearer valid dan akan loop jika dipanggil di sini)
+///
+/// Path yang di-skip (tidak trigger refresh):
+/// - `/auth/login|refresh|register|verify-email|resend-otp`
+/// - `/device/revoke` (detach FCM; 401 di sini tidak boleh memicu refresh)
+/// - request dengan `extra[kSkipAuthRefreshExtra] == true`
 ///
 /// Refresh memakai varian mobile (`docs/api/00-api-auth.md`):
 /// `POST /api/v1/auth/refresh` body `{ refresh_token }`
@@ -35,6 +43,7 @@ class AuthInterceptor extends Interceptor {
   final AuthTokenStorage _tokenStorage;
   final Dio _refreshDio;
   Future<bool>? _refreshFuture;
+  bool _clearingSession = false;
 
   @override
   void onRequest(
@@ -54,21 +63,14 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final path = err.requestOptions.path;
-    final isAuthEndpoint =
-        path.contains('/auth/login') ||
-        path.contains('/auth/refresh') ||
-        path.contains('/auth/register') ||
-        path.contains('/auth/verify-email') ||
-        path.contains('/auth/resend-otp');
-    if (err.response?.statusCode != 401 || isAuthEndpoint) {
+    if (err.response?.statusCode != 401 || _shouldSkipAuthRefresh(err.requestOptions)) {
       return handler.next(err);
     }
 
     try {
       final refreshed = await _refreshToken();
       if (!refreshed) {
-        await _clearSessionWithDeviceDetach();
+        await _clearSession();
         return handler.next(err);
       }
 
@@ -81,16 +83,36 @@ class AuthInterceptor extends Interceptor {
       final response = await _refreshDio.fetch(options);
       return handler.resolve(response);
     } on DioException catch (e) {
-      await _clearSessionWithDeviceDetach();
+      await _clearSession();
       return handler.next(e);
     } catch (_) {
       return handler.next(err);
     }
   }
 
-  Future<void> _clearSessionWithDeviceDetach() async {
-    await DeviceRegistrationHolder.instance?.revokeBestEffort();
-    await _tokenStorage.clearTokens();
+  bool _shouldSkipAuthRefresh(RequestOptions options) {
+    if (options.extra[kSkipAuthRefreshExtra] == true) return true;
+    final path = options.path;
+    return path.contains('/auth/login') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/verify-email') ||
+        path.contains('/auth/resend-otp') ||
+        path.contains('/device/revoke');
+  }
+
+  /// Hapus sesi lokal. Tidak memanggil revoke FCM: endpoint revoke wajib
+  /// Bearer valid, jadi memanggilnya di sini (access/refresh sudah mati)
+  /// memicu 401 → refresh → revoke → infinite loop.
+  /// Detach FCM tetap di logout eksplisit ([AuthStatusNotifier.logout]).
+  Future<void> _clearSession() async {
+    if (_clearingSession) return;
+    _clearingSession = true;
+    try {
+      await _tokenStorage.clearTokens();
+    } finally {
+      _clearingSession = false;
+    }
   }
 
   /// Single-flight: beberapa 401 bersamaan berbagi satu panggilan refresh.

@@ -69,13 +69,40 @@ enum ShareBgSource { stock, device, wordImage, none }
 
 enum ShareMediaKind { photo, video }
 
+/// Satu baris makna pada kartu share (`[n] → kumis` + definisi).
+class ShareSenseLine {
+  const ShareSenseLine({
+    this.wordClassCode,
+    this.padanan,
+    this.definition,
+  });
+
+  final String? wordClassCode;
+  final String? padanan;
+  final String? definition;
+
+  String? get wordClassBracket {
+    final code = wordClassCode?.trim();
+    if (code == null || code.isEmpty) return null;
+    return '[${code.toLowerCase()}]';
+  }
+
+  bool get hasBody {
+    final pad = padanan?.trim() ?? '';
+    final def = definition?.trim() ?? '';
+    return pad.isNotEmpty || def.isNotEmpty;
+  }
+}
+
 /// Data teks yang digambar ke kartu share.
 class ShareCardData {
   const ShareCardData({
     required this.lemma,
     this.wordClassName,
+    this.wordClassCode,
     this.definition,
     this.padanan,
+    this.senses = const [],
     this.exampleSentence,
     this.photographer,
     this.provider,
@@ -85,13 +112,25 @@ class ShareCardData {
 
   final String lemma;
   final String? wordClassName;
+
+  /// Kode kelas kata makna aktif (`n`, `v`, …).
+  final String? wordClassCode;
   final String? definition;
   final String? padanan;
+
+  /// Satu atau beberapa makna. Kosong = fallback ke [padanan]/[definition].
+  final List<ShareSenseLine> senses;
   final String? exampleSentence;
   final String? photographer;
   final String? provider;
   final bool isVideo;
   final String? variantsLine;
+
+  String? get wordClassBracket {
+    final code = wordClassCode?.trim();
+    if (code == null || code.isEmpty) return null;
+    return '[${code.toLowerCase()}]';
+  }
 
   /// Baris atribusi stok. Kosong jika tidak ada nama fotografer.
   String? get creditLine {
@@ -117,14 +156,30 @@ class ShareCardData {
     if (variantsLine != null && variantsLine!.isNotEmpty) {
       buf.write('\n${variantsLine!}');
     }
-    if (wordClassName != null && wordClassName!.isNotEmpty) {
-      buf.write(' ($wordClassName)');
-    }
-    if (definition != null && definition!.isNotEmpty) {
-      buf.write('\n$definition');
-    }
-    if (padanan != null && padanan!.isNotEmpty) {
-      buf.write('\n→ $padanan');
+    final lines = senses.isNotEmpty
+        ? senses
+        : [
+            ShareSenseLine(
+              wordClassCode: wordClassCode,
+              padanan: padanan,
+              definition: definition,
+            ),
+          ];
+    for (var i = 0; i < lines.length; i++) {
+      final sense = lines[i];
+      if (!sense.hasBody && sense.wordClassBracket == null) continue;
+      final prefix = lines.length > 1 ? '${i + 1} ' : '';
+      final bracket = sense.wordClassBracket;
+      final head = [
+        ?bracket,
+        if (sense.padanan?.trim() case final pad? when pad.isNotEmpty)
+          '→ $pad',
+      ].join(' ');
+      if (head.isNotEmpty) buf.write('\n$prefix$head');
+      final def = sense.definition?.trim();
+      if (def != null && def.isNotEmpty) {
+        buf.write(head.isEmpty ? '\n$prefix$def' : '\n$def');
+      }
     }
     if (exampleSentence != null && exampleSentence!.isNotEmpty) {
       buf.write('\n"$exampleSentence"');
@@ -264,6 +319,7 @@ class ShareEditorSettings {
     this.showPadanan = true,
     this.showDefinition = true,
     this.showExample = false,
+    this.showAllMeanings = false,
     this.showWatermark = true,
     this.lemmaLayout = ShareTextLayout.zero,
     this.padananLayout = ShareTextLayout.zero,
@@ -285,6 +341,9 @@ class ShareEditorSettings {
   final bool showPadanan;
   final bool showDefinition;
   final bool showExample;
+
+  /// Tampilkan hingga 3 makna sekaligus (daftar bernomor + `[n]`).
+  final bool showAllMeanings;
   final bool showWatermark;
   final ShareTextLayout lemmaLayout;
   final ShareTextLayout padananLayout;
@@ -342,6 +401,7 @@ class ShareEditorSettings {
     bool? showPadanan,
     bool? showDefinition,
     bool? showExample,
+    bool? showAllMeanings,
     bool? showWatermark,
     ShareTextLayout? lemmaLayout,
     ShareTextLayout? padananLayout,
@@ -363,6 +423,7 @@ class ShareEditorSettings {
       showPadanan: showPadanan ?? this.showPadanan,
       showDefinition: showDefinition ?? this.showDefinition,
       showExample: showExample ?? this.showExample,
+      showAllMeanings: showAllMeanings ?? this.showAllMeanings,
       showWatermark: showWatermark ?? this.showWatermark,
       lemmaLayout: lemmaLayout ?? this.lemmaLayout,
       padananLayout: padananLayout ?? this.padananLayout,
@@ -386,7 +447,19 @@ enum ShareTemplateId {
 }
 
 enum ShareRatioId {
+  /// Instagram / TikTok Stories — 9:16
   story,
+
+  /// Potret klasik foto — 2:3
+  portrait23,
+
+  /// Potret umum ponsel — 3:4
+  portrait34,
+
+  /// Instagram feed potret — 4:5
+  portrait45,
+
+  /// Kotak — 1:1
   post,
 }
 
@@ -395,13 +468,29 @@ extension ShareRatioIdX on ShareRatioId {
 
   double get height => switch (this) {
     ShareRatioId.story => 1920,
+    ShareRatioId.portrait23 => 1620,
+    ShareRatioId.portrait34 => 1440,
+    ShareRatioId.portrait45 => 1350,
     ShareRatioId.post => 1080,
   };
 
   String get label => switch (this) {
     ShareRatioId.story => '9:16',
+    ShareRatioId.portrait23 => '2:3',
+    ShareRatioId.portrait34 => '3:4',
+    ShareRatioId.portrait45 => '4:5',
     ShareRatioId.post => '1:1',
   };
+
+  /// Query stok foto: potret / kotak / lanskap.
+  String get stockOrientation {
+    if (height > width) return 'portrait';
+    if (height < width) return 'landscape';
+    return 'square';
+  }
+
+  /// Template Sisi: media|teks berdampingan bila hampir kotak.
+  bool get prefersSideSplit => height / width <= 1.05;
 }
 
 extension ShareTemplateIdX on ShareTemplateId {

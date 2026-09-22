@@ -294,6 +294,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
           (m) => WordMeaning(
             id: m.id,
             wordClassId: m.wordClass?.id,
+            wordClassCode: m.wordClass?.code,
             // ponytail: format di mapper biar UI cukup pakai wordClassName
             wordClassName: m.wordClass == null
                 ? null

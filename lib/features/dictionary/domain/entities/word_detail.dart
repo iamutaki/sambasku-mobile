@@ -71,6 +71,7 @@ class WordMeaning {
   const WordMeaning({
     required this.id,
     this.wordClassId,
+    this.wordClassCode,
     this.wordClassName,
     this.definition,
     required this.orderIndex,
@@ -80,11 +81,21 @@ class WordMeaning {
 
   final String id;
   final String? wordClassId;
+
+  /// Kode singkat kelas kata dari API (`n`, `v`, `adj`, …) untuk format `[n]`.
+  final String? wordClassCode;
   final String? wordClassName;
   final String? definition;
   final int orderIndex;
   final List<WordTranslation> translations;
   final List<WordExample> examples;
+
+  /// Label bracket kamus, mis. `[n]`. Kosong jika kode tidak ada.
+  String? get wordClassBracket {
+    final code = wordClassCode?.trim();
+    if (code == null || code.isEmpty) return null;
+    return '[${code.toLowerCase()}]';
+  }
 }
 
 class WordTranslation {
