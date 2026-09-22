@@ -40,6 +40,9 @@ class BookmarkToggleController extends _$BookmarkToggleController {
       (failure) => failure,
       (status) {
         state = AsyncData(status);
+        // List dari Profil → Bookmark keepAlive; tanpa invalidate, item
+        // baru/hilang tidak muncul sampai pull-to-refresh / cold start.
+        ref.invalidate(bookmarkListControllerProvider);
         return null;
       },
     );

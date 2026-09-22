@@ -252,9 +252,14 @@ class _WordTile extends StatelessWidget with FTileMixin {
 
   @override
   Widget build(BuildContext context) {
+    final gloss = item.sense?.trim();
+    final subtitle = (gloss != null && gloss.isNotEmpty)
+        ? gloss
+        : (item.wordType != 'word' ? item.wordTypeLabel : null);
+
     return FTile(
       title: Text(item.lemma),
-      subtitle: item.wordType != 'word' ? Text(item.wordTypeLabel) : null,
+      subtitle: subtitle != null ? Text(subtitle) : null,
       suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();

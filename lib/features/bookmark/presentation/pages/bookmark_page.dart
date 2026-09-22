@@ -77,6 +77,11 @@ class _GuestState extends StatelessWidget {
 class _BookmarkList extends ConsumerWidget {
   const _BookmarkList();
 
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(bookmarkListControllerProvider);
+    await ref.read(bookmarkListControllerProvider.future);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
@@ -127,61 +132,81 @@ class _BookmarkList extends ConsumerWidget {
 
     final state = async.requireValue;
     if (state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              FLucideIcons.bookmark,
-              size: 40,
-              color: theme.colors.mutedForeground,
-            ),
-            const Gap(10),
-            Text(
-              'Belum ada kata tersimpan.',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
+      // AlwaysScrollable supaya pull-to-refresh tetap jalan di empty state
+      // (cache keepAlive bisa basi setelah toggle dari detail kata).
+      return RefreshIndicator(
+        onRefresh: () => _refresh(ref),
+        child: LayoutBuilder(
+          builder: (context, constraints) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        FLucideIcons.bookmark,
+                        size: 40,
+                        color: theme.colors.mutedForeground,
+                      ),
+                      const Gap(10),
+                      Text(
+                        'Belum ada kata tersimpan.',
+                        style: theme.typography.sm.copyWith(
+                          color: theme.colors.mutedForeground,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const Gap(4),
+                      Text(
+                        'Tekan ikon bookmark di halaman detail kata.',
+                        style: theme.typography.sm.copyWith(
+                          color: theme.colors.mutedForeground,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const Gap(4),
-            Text(
-              'Tekan ikon bookmark di halaman detail kata.',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
     // Compact list (mobile-base-stack §5a): FTile + Gap kecil, bukan FCard.
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-      itemCount: state.items.length + (state.hasMore ? 1 : 0),
-      separatorBuilder: (_, _) => const Gap(6),
-      itemBuilder: (context, index) {
-        if (index >= state.items.length) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: FButton(
-              variant: FButtonVariant.ghost,
-              onPress: state.isLoadingMore
-                  ? null
-                  : () => ref
-                      .read(bookmarkListControllerProvider.notifier)
-                      .loadMore(),
-              prefix: state.isLoadingMore ? const FCircularProgress() : null,
-              child: Text(
-                state.isLoadingMore ? 'Memuat...' : 'Muat lainnya',
+    return RefreshIndicator(
+      onRefresh: () => _refresh(ref),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+        itemCount: state.items.length + (state.hasMore ? 1 : 0),
+        separatorBuilder: (_, _) => const Gap(6),
+        itemBuilder: (context, index) {
+          if (index >= state.items.length) {
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: FButton(
+                variant: FButtonVariant.ghost,
+                onPress: state.isLoadingMore
+                    ? null
+                    : () => ref
+                        .read(bookmarkListControllerProvider.notifier)
+                        .loadMore(),
+                prefix: state.isLoadingMore ? const FCircularProgress() : null,
+                child: Text(
+                  state.isLoadingMore ? 'Memuat...' : 'Muat lainnya',
+                ),
               ),
-            ),
-          );
-        }
-        return _BookmarkRow(item: state.items[index]);
-      },
+            );
+          }
+          return _BookmarkRow(item: state.items[index]);
+        },
+      ),
     );
   }
 }

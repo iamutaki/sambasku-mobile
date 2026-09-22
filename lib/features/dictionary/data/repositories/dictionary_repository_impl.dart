@@ -122,6 +122,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   wordType: dto.wordType,
                   status: dto.status,
                   isVerified: dto.isVerified,
+                  sense: dto.sense,
                 ),
               )
               .toList(),
