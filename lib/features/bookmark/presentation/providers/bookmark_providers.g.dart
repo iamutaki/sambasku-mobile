@@ -133,7 +133,8 @@ abstract class _$BookmarkToggleController
 /// optimistik + restore saat gagal.
 ///
 /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
-/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+/// Watch authStatus: login/logout otomatis rebuild (jangan invalidate dari
+/// AuthStatusNotifier — circular di Riverpod 3).
 
 @ProviderFor(BookmarkListController)
 final bookmarkListControllerProvider = BookmarkListControllerProvider._();
@@ -143,7 +144,8 @@ final bookmarkListControllerProvider = BookmarkListControllerProvider._();
 /// optimistik + restore saat gagal.
 ///
 /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
-/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+/// Watch authStatus: login/logout otomatis rebuild (jangan invalidate dari
+/// AuthStatusNotifier — circular di Riverpod 3).
 final class BookmarkListControllerProvider
     extends $AsyncNotifierProvider<BookmarkListController, BookmarkListState> {
   /// State halaman Bookmark (list milik user login, cursor pagination).
@@ -151,7 +153,8 @@ final class BookmarkListControllerProvider
   /// optimistik + restore saat gagal.
   ///
   /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
-  /// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+  /// Watch authStatus: login/logout otomatis rebuild (jangan invalidate dari
+  /// AuthStatusNotifier — circular di Riverpod 3).
   BookmarkListControllerProvider._()
     : super(
         from: null,
@@ -179,7 +182,8 @@ String _$bookmarkListControllerHash() =>
 /// optimistik + restore saat gagal.
 ///
 /// keepAlive: cache daftar tersimpan saat keluar halaman lalu kembali.
-/// Invalidate eksplisit di login/logout (lihat AuthStatusNotifier).
+/// Watch authStatus: login/logout otomatis rebuild (jangan invalidate dari
+/// AuthStatusNotifier — circular di Riverpod 3).
 
 abstract class _$BookmarkListController
     extends $AsyncNotifier<BookmarkListState> {

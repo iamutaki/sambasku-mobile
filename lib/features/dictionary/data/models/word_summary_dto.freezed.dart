@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$WordSummaryDto {
 
  String get id; String get lemma;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'language_code') String get languageCode;@JsonKey(name: 'word_type') String get wordType; String get status;@JsonKey(name: 'is_verified') bool get isVerified;/// Hanya terisi saat search_in=translation (Indonesia→Sambas).
-@JsonKey(name: 'matched_translation') String? get matchedTranslation;
+@JsonKey(name: 'matched_translation') String? get matchedTranslation;/// Satu baris arti. Hanya GET /api/v1/words/latest.
+ String? get sense;/// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
+@JsonKey(name: 'approved_at') String? get approvedAt;
 /// Create a copy of WordSummaryDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +31,16 @@ $WordSummaryDtoCopyWith<WordSummaryDto> get copyWith => _$WordSummaryDtoCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WordSummaryDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.languageCode, languageCode) || other.languageCode == languageCode)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.status, status) || other.status == status)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.matchedTranslation, matchedTranslation) || other.matchedTranslation == matchedTranslation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WordSummaryDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.languageCode, languageCode) || other.languageCode == languageCode)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.status, status) || other.status == status)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.matchedTranslation, matchedTranslation) || other.matchedTranslation == matchedTranslation)&&(identical(other.sense, sense) || other.sense == sense)&&(identical(other.approvedAt, approvedAt) || other.approvedAt == approvedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,lemma,languageId,languageCode,wordType,status,isVerified,matchedTranslation);
+int get hashCode => Object.hash(runtimeType,id,lemma,languageId,languageCode,wordType,status,isVerified,matchedTranslation,sense,approvedAt);
 
 @override
 String toString() {
-  return 'WordSummaryDto(id: $id, lemma: $lemma, languageId: $languageId, languageCode: $languageCode, wordType: $wordType, status: $status, isVerified: $isVerified, matchedTranslation: $matchedTranslation)';
+  return 'WordSummaryDto(id: $id, lemma: $lemma, languageId: $languageId, languageCode: $languageCode, wordType: $wordType, status: $status, isVerified: $isVerified, matchedTranslation: $matchedTranslation, sense: $sense, approvedAt: $approvedAt)';
 }
 
 
@@ -49,7 +51,7 @@ abstract mixin class $WordSummaryDtoCopyWith<$Res>  {
   factory $WordSummaryDtoCopyWith(WordSummaryDto value, $Res Function(WordSummaryDto) _then) = _$WordSummaryDtoCopyWithImpl;
 @useResult
 $Res call({
- String id, String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'language_code') String languageCode,@JsonKey(name: 'word_type') String wordType, String status,@JsonKey(name: 'is_verified') bool isVerified,@JsonKey(name: 'matched_translation') String? matchedTranslation
+ String id, String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'language_code') String languageCode,@JsonKey(name: 'word_type') String wordType, String status,@JsonKey(name: 'is_verified') bool isVerified,@JsonKey(name: 'matched_translation') String? matchedTranslation, String? sense,@JsonKey(name: 'approved_at') String? approvedAt
 });
 
 
@@ -66,7 +68,7 @@ class _$WordSummaryDtoCopyWithImpl<$Res>
 
 /// Create a copy of WordSummaryDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? lemma = null,Object? languageId = null,Object? languageCode = null,Object? wordType = null,Object? status = null,Object? isVerified = null,Object? matchedTranslation = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? lemma = null,Object? languageId = null,Object? languageCode = null,Object? wordType = null,Object? status = null,Object? isVerified = null,Object? matchedTranslation = freezed,Object? sense = freezed,Object? approvedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,lemma: null == lemma ? _self.lemma : lemma // ignore: cast_nullable_to_non_nullable
@@ -76,6 +78,8 @@ as String,wordType: null == wordType ? _self.wordType : wordType // ignore: cast
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
 as bool,matchedTranslation: freezed == matchedTranslation ? _self.matchedTranslation : matchedTranslation // ignore: cast_nullable_to_non_nullable
+as String?,sense: freezed == sense ? _self.sense : sense // ignore: cast_nullable_to_non_nullable
+as String?,approvedAt: freezed == approvedAt ? _self.approvedAt : approvedAt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -161,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation,  String? sense, @JsonKey(name: 'approved_at')  String? approvedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WordSummaryDto() when $default != null:
-return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation);case _:
+return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation,_that.sense,_that.approvedAt);case _:
   return orElse();
 
 }
@@ -182,10 +186,10 @@ return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.w
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation,  String? sense, @JsonKey(name: 'approved_at')  String? approvedAt)  $default,) {final _that = this;
 switch (_that) {
 case _WordSummaryDto():
-return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation);case _:
+return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation,_that.sense,_that.approvedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +206,10 @@ return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.w
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'language_code')  String languageCode, @JsonKey(name: 'word_type')  String wordType,  String status, @JsonKey(name: 'is_verified')  bool isVerified, @JsonKey(name: 'matched_translation')  String? matchedTranslation,  String? sense, @JsonKey(name: 'approved_at')  String? approvedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _WordSummaryDto() when $default != null:
-return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation);case _:
+return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.wordType,_that.status,_that.isVerified,_that.matchedTranslation,_that.sense,_that.approvedAt);case _:
   return null;
 
 }
@@ -217,7 +221,7 @@ return $default(_that.id,_that.lemma,_that.languageId,_that.languageCode,_that.w
 @JsonSerializable()
 
 class _WordSummaryDto implements WordSummaryDto {
-  const _WordSummaryDto({required this.id, required this.lemma, @JsonKey(name: 'language_id') required this.languageId, @JsonKey(name: 'language_code') required this.languageCode, @JsonKey(name: 'word_type') required this.wordType, required this.status, @JsonKey(name: 'is_verified') required this.isVerified, @JsonKey(name: 'matched_translation') this.matchedTranslation});
+  const _WordSummaryDto({required this.id, required this.lemma, @JsonKey(name: 'language_id') required this.languageId, @JsonKey(name: 'language_code') required this.languageCode, @JsonKey(name: 'word_type') required this.wordType, required this.status, @JsonKey(name: 'is_verified') required this.isVerified, @JsonKey(name: 'matched_translation') this.matchedTranslation, this.sense, @JsonKey(name: 'approved_at') this.approvedAt});
   factory _WordSummaryDto.fromJson(Map<String, dynamic> json) => _$WordSummaryDtoFromJson(json);
 
 @override final  String id;
@@ -229,6 +233,10 @@ class _WordSummaryDto implements WordSummaryDto {
 @override@JsonKey(name: 'is_verified') final  bool isVerified;
 /// Hanya terisi saat search_in=translation (Indonesia→Sambas).
 @override@JsonKey(name: 'matched_translation') final  String? matchedTranslation;
+/// Satu baris arti. Hanya GET /api/v1/words/latest.
+@override final  String? sense;
+/// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
+@override@JsonKey(name: 'approved_at') final  String? approvedAt;
 
 /// Create a copy of WordSummaryDto
 /// with the given fields replaced by the non-null parameter values.
@@ -243,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WordSummaryDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.languageCode, languageCode) || other.languageCode == languageCode)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.status, status) || other.status == status)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.matchedTranslation, matchedTranslation) || other.matchedTranslation == matchedTranslation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WordSummaryDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.languageCode, languageCode) || other.languageCode == languageCode)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.status, status) || other.status == status)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.matchedTranslation, matchedTranslation) || other.matchedTranslation == matchedTranslation)&&(identical(other.sense, sense) || other.sense == sense)&&(identical(other.approvedAt, approvedAt) || other.approvedAt == approvedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,lemma,languageId,languageCode,wordType,status,isVerified,matchedTranslation);
+int get hashCode => Object.hash(runtimeType,id,lemma,languageId,languageCode,wordType,status,isVerified,matchedTranslation,sense,approvedAt);
 
 @override
 String toString() {
-  return 'WordSummaryDto(id: $id, lemma: $lemma, languageId: $languageId, languageCode: $languageCode, wordType: $wordType, status: $status, isVerified: $isVerified, matchedTranslation: $matchedTranslation)';
+  return 'WordSummaryDto(id: $id, lemma: $lemma, languageId: $languageId, languageCode: $languageCode, wordType: $wordType, status: $status, isVerified: $isVerified, matchedTranslation: $matchedTranslation, sense: $sense, approvedAt: $approvedAt)';
 }
 
 
@@ -263,7 +271,7 @@ abstract mixin class _$WordSummaryDtoCopyWith<$Res> implements $WordSummaryDtoCo
   factory _$WordSummaryDtoCopyWith(_WordSummaryDto value, $Res Function(_WordSummaryDto) _then) = __$WordSummaryDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'language_code') String languageCode,@JsonKey(name: 'word_type') String wordType, String status,@JsonKey(name: 'is_verified') bool isVerified,@JsonKey(name: 'matched_translation') String? matchedTranslation
+ String id, String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'language_code') String languageCode,@JsonKey(name: 'word_type') String wordType, String status,@JsonKey(name: 'is_verified') bool isVerified,@JsonKey(name: 'matched_translation') String? matchedTranslation, String? sense,@JsonKey(name: 'approved_at') String? approvedAt
 });
 
 
@@ -280,7 +288,7 @@ class __$WordSummaryDtoCopyWithImpl<$Res>
 
 /// Create a copy of WordSummaryDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? lemma = null,Object? languageId = null,Object? languageCode = null,Object? wordType = null,Object? status = null,Object? isVerified = null,Object? matchedTranslation = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? lemma = null,Object? languageId = null,Object? languageCode = null,Object? wordType = null,Object? status = null,Object? isVerified = null,Object? matchedTranslation = freezed,Object? sense = freezed,Object? approvedAt = freezed,}) {
   return _then(_WordSummaryDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,lemma: null == lemma ? _self.lemma : lemma // ignore: cast_nullable_to_non_nullable
@@ -290,6 +298,8 @@ as String,wordType: null == wordType ? _self.wordType : wordType // ignore: cast
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
 as bool,matchedTranslation: freezed == matchedTranslation ? _self.matchedTranslation : matchedTranslation // ignore: cast_nullable_to_non_nullable
+as String?,sense: freezed == sense ? _self.sense : sense // ignore: cast_nullable_to_non_nullable
+as String?,approvedAt: freezed == approvedAt ? _self.approvedAt : approvedAt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

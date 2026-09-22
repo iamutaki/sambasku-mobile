@@ -40,11 +40,17 @@ class _WordOfDayBody extends StatelessWidget {
     final sense = item.firstSense;
     final dateLabel = formatDateYmd(item.date);
 
+    final accent = theme.colors.primary;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: theme.colors.secondary,
-        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: accent.withValues(alpha: 0.35)),
+        ),
         child: InkWell(
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
@@ -52,61 +58,89 @@ class _WordOfDayBody extends StatelessWidget {
               DictionaryRouter.detail.path.replaceFirst(':id', item.word.id),
             );
           },
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Kata Hari Ini',
-                      style: theme.typography.sm.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                    if (dateLabel.isNotEmpty) ...[
-                      const Gap(8),
-                      Expanded(
-                        child: Text(
-                          dateLabel,
-                          textAlign: TextAlign.end,
-                          style: theme.typography.sm.copyWith(
+                ColoredBox(color: accent, child: const SizedBox(width: 4)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(5),
+                                child: Icon(
+                                  FLucideIcons.sun,
+                                  size: 14,
+                                  color: accent,
+                                ),
+                              ),
+                            ),
+                            const Gap(8),
+                            Expanded(
+                              child: Text(
+                                'Kata hari ini',
+                                style: theme.typography.xs.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: accent,
+                                ),
+                              ),
+                            ),
+                            if (dateLabel.isNotEmpty)
+                              Text(
+                                dateLabel,
+                                style: theme.typography.xs.copyWith(
+                                  color: theme.colors.mutedForeground,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const Gap(6),
+                        Text(
+                          item.word.lemma,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.typography.lg.copyWith(
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                            color: theme.colors.foreground,
+                          ),
+                        ),
+                        if (sense.isNotEmpty) ...[
+                          const Gap(2),
+                          Text(
+                            sense,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.typography.sm.copyWith(
+                              color: theme.colors.mutedForeground,
+                            ),
+                          ),
+                        ],
+                        const Gap(4),
+                        Text(
+                          item.isNewThisWeek
+                              ? 'Ditampilkan hari ini · baru minggu ini'
+                              : 'Ditampilkan hari ini, berganti setiap hari',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.typography.xs.copyWith(
                             color: theme.colors.mutedForeground,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-                const Gap(6),
-                Text(
-                  item.word.lemma,
-                  style: theme.typography.xl.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colors.foreground,
-                  ),
-                ),
-                if (sense.isNotEmpty) ...[
-                  const Gap(4),
-                  Text(
-                    sense,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
+                      ],
                     ),
                   ),
-                ],
-                if (item.isNewThisWeek) ...[
-                  const Gap(8),
-                  FBadge(
-                    variant: FBadgeVariant.secondary,
-                    child: const Text('Kata baru minggu ini'),
-                  ),
-                ],
+                ),
               ],
             ),
           ),
@@ -134,8 +168,10 @@ class _WordOfDaySkeleton extends StatelessWidget {
       duration: const Duration(milliseconds: 1500),
     );
 
+    final accent = context.theme.colors.primary;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: SkeletonizerConfig(
         data: SkeletonizerConfigData(effect: shimmer),
         child: IgnorePointer(
@@ -143,17 +179,23 @@ class _WordOfDaySkeleton extends StatelessWidget {
             enabled: true,
             child: Material(
               color: context.theme.colors.secondary,
-              borderRadius: BorderRadius.circular(14),
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: accent.withValues(alpha: 0.35)),
+              ),
               child: const Padding(
-                padding: EdgeInsets.all(14),
+                padding: EdgeInsets.fromLTRB(14, 8, 10, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Kata Hari Ini  21 Sep 2026'),
+                    Text('Kata hari ini'),
                     Gap(6),
-                    Text('lemma contoh panjang'),
+                    Text('lemma contoh'),
+                    Gap(2),
+                    Text('arti pertama satu baris'),
                     Gap(4),
-                    Text('arti pertama satu baris skeleton'),
+                    Text('Ditampilkan hari ini, berganti setiap hari'),
                   ],
                 ),
               ),

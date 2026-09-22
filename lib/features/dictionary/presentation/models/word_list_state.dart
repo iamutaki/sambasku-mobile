@@ -1,11 +1,13 @@
 import '../../domain/entities/word_summary.dart';
 
-/// State halaman Daftar Kata A-Z - akumulasi item cursor-based lewat
-/// loadMore (pola DictionarySearchState, tanpa searchIn/hasSearched:
-/// list selalu tampil sejak buka, q = filter).
+/// State halaman Daftar Kata. q kosong + Sambas = browsing A-Z.
+/// q terisi, atau mode Indonesia, memakai pencarian (`viaSearch`) supaya
+/// hasil kosong tercatat sebagai search-miss.
 class WordListState {
   const WordListState({
     this.q = '',
+    this.searchIn = 'lemma',
+    this.viaSearch = false,
     this.items = const [],
     this.nextCursor,
     this.hasMore = false,
@@ -15,6 +17,13 @@ class WordListState {
   });
 
   final String q;
+
+  /// `lemma` = Sambas, `translation` = Indonesia.
+  final String searchIn;
+
+  /// Halaman ini datang dari `/words/search` (cursor id), bukan list A-Z.
+  final bool viaSearch;
+
   final List<WordSummary> items;
   final String? nextCursor;
   final bool hasMore;
@@ -24,6 +33,8 @@ class WordListState {
 
   WordListState copyWith({
     String? q,
+    String? searchIn,
+    bool? viaSearch,
     List<WordSummary>? items,
     String? nextCursor,
     bool clearNextCursor = false,
@@ -35,13 +46,16 @@ class WordListState {
   }) {
     return WordListState(
       q: q ?? this.q,
+      searchIn: searchIn ?? this.searchIn,
+      viaSearch: viaSearch ?? this.viaSearch,
       items: items ?? this.items,
       nextCursor: clearNextCursor ? null : nextCursor ?? this.nextCursor,
       hasMore: hasMore ?? this.hasMore,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      errorMessage:
-          clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
     );
   }
 }

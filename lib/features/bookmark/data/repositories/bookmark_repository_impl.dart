@@ -126,6 +126,7 @@ class BookmarkRepositoryImpl implements BookmarkRepository {
           lemma: dto.word.lemma,
           wordType: dto.word.wordType,
           isVerified: dto.word.isVerified,
+          available: dto.word.available,
         ),
       );
 

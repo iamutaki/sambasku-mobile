@@ -20,10 +20,7 @@ void main() {
         theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
         localizationsDelegates: FLocalizations.localizationsDelegates,
         supportedLocales: FLocalizations.supportedLocales,
-        home: FTheme(
-          data: FThemes.zinc.light.touch,
-          child: const AboutPage(),
-        ),
+        home: FTheme(data: FThemes.zinc.light.touch, child: const AboutPage()),
       ),
     );
     await tester.pump();
@@ -31,21 +28,35 @@ void main() {
 
     expect(find.text('Pengembang'), findsNothing);
     expect(find.text('Ibnul Mutaki'), findsNothing);
+    expect(find.text('Tentang'), findsWidgets);
+    expect(find.text('Tim Kami'), findsOneWidget);
     expect(find.text('Apa itu SambasKu?'), findsOneWidget);
     expect(find.text('Cari kosakata'), findsOneWidget);
     expect(find.text('Simpan'), findsOneWidget);
 
+    final aboutList = find.descendant(
+      of: find.byType(TabBarView),
+      matching: find.byType(Scrollable),
+    );
     await tester.scrollUntilVisible(
       find.text('Usulkan'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: aboutList.last,
     );
     expect(find.text('Usulkan'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Bagikan kartu'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: aboutList.last,
     );
     expect(find.text('Bagikan kartu'), findsOneWidget);
+
+    await tester.tap(find.text('Tim Kami'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bersama warga Sambas'), findsOneWidget);
+    expect(find.text('Pengusul'), findsOneWidget);
+    expect(find.text('Verifikator'), findsOneWidget);
+    expect(find.text('Kontributor pelafalan'), findsOneWidget);
   });
 }

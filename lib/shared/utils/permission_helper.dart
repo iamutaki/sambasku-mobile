@@ -41,3 +41,32 @@ void showPermissionDeniedDialog(BuildContext context) {
     },
   );
 }
+
+/// Dialog khusus saat izin mikrofon ditolak permanen (buka Pengaturan).
+void showMicrophonePermissionDeniedDialog(BuildContext context) {
+  showDialog<void>(
+    context: context,
+    builder: (innerContext) {
+      return AlertDialog(
+        title: const Text('Izin mikrofon diperlukan'),
+        content: const Text(
+          'Akses mikrofon dimatikan untuk SambasKu. Aktifkan di Pengaturan '
+          'perangkat agar bisa merekam pelafalan kata.',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(innerContext).pop(),
+          ),
+          TextButton(
+            child: const Text('Pengaturan'),
+            onPressed: () {
+              openAppSettings();
+              Navigator.of(innerContext).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}

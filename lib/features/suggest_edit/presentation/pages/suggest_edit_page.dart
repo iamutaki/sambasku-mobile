@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../../contribution/presentation/widgets/contribute_images_field.dart';
@@ -576,14 +577,12 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
-                          child: Image.network(
-                            img.url,
+                          child: SizedBox(
                             width: 40,
                             height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => ColoredBox(
-                              color: theme.colors.secondary,
-                              child: const SizedBox(width: 40, height: 40),
+                            child: CachedNetworkImageWithFallback(
+                              imageUrl: img.url,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),

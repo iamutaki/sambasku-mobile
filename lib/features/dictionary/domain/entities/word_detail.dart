@@ -15,6 +15,7 @@ class WordDetail {
     this.meanings = const [],
     this.categories = const [],
     this.pronunciations = const [],
+    this.audios = const [],
     this.images = const [],
     this.relatedWords = const [],
     this.appearsIn = const [],
@@ -35,6 +36,7 @@ class WordDetail {
   final List<WordMeaning> meanings;
   final List<WordCategory> categories;
   final List<WordPronunciation> pronunciations;
+  final List<WordAudio> audios;
   final List<WordImage> images;
   final List<RelatedWord> relatedWords;
   final List<RelatedWord> appearsIn;
@@ -105,12 +107,62 @@ class WordTranslation {
 
 class WordExample {
   const WordExample({
+    required this.id,
     required this.sourceSentence,
-    required this.targetSentence,
+    String? this.targetSentence,
+    this.audios = const [],
   });
 
+  final String id;
   final String sourceSentence;
-  final String targetSentence;
+
+  /// Null bila contoh belum punya terjemahan kalimat (`target_sentence`).
+  final String? targetSentence;
+  final List<WordAudio> audios;
+}
+
+/// Audio pelafalan (kata atau contoh kalimat).
+class WordAudio {
+  const WordAudio({
+    required this.id,
+    required this.url,
+    this.dialectId,
+    this.speakerName,
+    this.durationMs,
+    this.isPrimary = false,
+    this.mimeType,
+  });
+
+  final String id;
+  final String url;
+  final String? dialectId;
+  final String? speakerName;
+  final int? durationMs;
+  final bool isPrimary;
+  final String? mimeType;
+
+  String get displaySpeaker {
+    final name = speakerName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return 'Anonim';
+  }
+
+  String? get formattedDuration {
+    final ms = durationMs;
+    if (ms == null || ms <= 0) return null;
+    final totalSec = (ms / 1000).round();
+    final min = totalSec ~/ 60;
+    final sec = totalSec % 60;
+    return '$min:${sec.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Urutkan: primary dulu, sisanya urutan API.
+List<WordAudio> sortWordAudios(List<WordAudio> audios) {
+  if (audios.length <= 1) return audios;
+  final primary = audios.where((a) => a.isPrimary).toList(growable: false);
+  final rest = audios.where((a) => !a.isPrimary).toList(growable: false);
+  return [...primary, ...rest];
 }
 
 class WordCategory {

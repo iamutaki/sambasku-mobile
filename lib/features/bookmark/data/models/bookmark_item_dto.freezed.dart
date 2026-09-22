@@ -302,7 +302,7 @@ $BookmarkWordDtoCopyWith<$Res> get word {
 /// @nodoc
 mixin _$BookmarkWordDto {
 
- String get id; String get lemma;@JsonKey(name: 'word_type') String get wordType;@JsonKey(name: 'is_verified') bool get isVerified;
+ String get id; String get lemma;@JsonKey(name: 'word_type') String get wordType;@JsonKey(name: 'is_verified') bool get isVerified; bool get available;
 /// Create a copy of BookmarkWordDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -315,16 +315,16 @@ $BookmarkWordDtoCopyWith<BookmarkWordDto> get copyWith => _$BookmarkWordDtoCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BookmarkWordDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BookmarkWordDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.available, available) || other.available == available));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,lemma,wordType,isVerified);
+int get hashCode => Object.hash(runtimeType,id,lemma,wordType,isVerified,available);
 
 @override
 String toString() {
-  return 'BookmarkWordDto(id: $id, lemma: $lemma, wordType: $wordType, isVerified: $isVerified)';
+  return 'BookmarkWordDto(id: $id, lemma: $lemma, wordType: $wordType, isVerified: $isVerified, available: $available)';
 }
 
 
@@ -335,7 +335,7 @@ abstract mixin class $BookmarkWordDtoCopyWith<$Res>  {
   factory $BookmarkWordDtoCopyWith(BookmarkWordDto value, $Res Function(BookmarkWordDto) _then) = _$BookmarkWordDtoCopyWithImpl;
 @useResult
 $Res call({
- String id, String lemma,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'is_verified') bool isVerified
+ String id, String lemma,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'is_verified') bool isVerified, bool available
 });
 
 
@@ -352,12 +352,13 @@ class _$BookmarkWordDtoCopyWithImpl<$Res>
 
 /// Create a copy of BookmarkWordDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? lemma = null,Object? wordType = null,Object? isVerified = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? lemma = null,Object? wordType = null,Object? isVerified = null,Object? available = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,lemma: null == lemma ? _self.lemma : lemma // ignore: cast_nullable_to_non_nullable
 as String,wordType: null == wordType ? _self.wordType : wordType // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
+as bool,available: null == available ? _self.available : available // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -443,10 +444,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified,  bool available)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BookmarkWordDto() when $default != null:
-return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
+return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified,_that.available);case _:
   return orElse();
 
 }
@@ -464,10 +465,10 @@ return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified,  bool available)  $default,) {final _that = this;
 switch (_that) {
 case _BookmarkWordDto():
-return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
+return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified,_that.available);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -484,10 +485,10 @@ return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String lemma, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'is_verified')  bool isVerified,  bool available)?  $default,) {final _that = this;
 switch (_that) {
 case _BookmarkWordDto() when $default != null:
-return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
+return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified,_that.available);case _:
   return null;
 
 }
@@ -499,13 +500,14 @@ return $default(_that.id,_that.lemma,_that.wordType,_that.isVerified);case _:
 @JsonSerializable()
 
 class _BookmarkWordDto implements BookmarkWordDto {
-  const _BookmarkWordDto({required this.id, required this.lemma, @JsonKey(name: 'word_type') this.wordType = 'word', @JsonKey(name: 'is_verified') this.isVerified = false});
+  const _BookmarkWordDto({required this.id, required this.lemma, @JsonKey(name: 'word_type') this.wordType = 'word', @JsonKey(name: 'is_verified') this.isVerified = false, this.available = true});
   factory _BookmarkWordDto.fromJson(Map<String, dynamic> json) => _$BookmarkWordDtoFromJson(json);
 
 @override final  String id;
 @override final  String lemma;
 @override@JsonKey(name: 'word_type') final  String wordType;
 @override@JsonKey(name: 'is_verified') final  bool isVerified;
+@override@JsonKey() final  bool available;
 
 /// Create a copy of BookmarkWordDto
 /// with the given fields replaced by the non-null parameter values.
@@ -520,16 +522,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BookmarkWordDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BookmarkWordDto&&(identical(other.id, id) || other.id == id)&&(identical(other.lemma, lemma) || other.lemma == lemma)&&(identical(other.wordType, wordType) || other.wordType == wordType)&&(identical(other.isVerified, isVerified) || other.isVerified == isVerified)&&(identical(other.available, available) || other.available == available));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,lemma,wordType,isVerified);
+int get hashCode => Object.hash(runtimeType,id,lemma,wordType,isVerified,available);
 
 @override
 String toString() {
-  return 'BookmarkWordDto(id: $id, lemma: $lemma, wordType: $wordType, isVerified: $isVerified)';
+  return 'BookmarkWordDto(id: $id, lemma: $lemma, wordType: $wordType, isVerified: $isVerified, available: $available)';
 }
 
 
@@ -540,7 +542,7 @@ abstract mixin class _$BookmarkWordDtoCopyWith<$Res> implements $BookmarkWordDto
   factory _$BookmarkWordDtoCopyWith(_BookmarkWordDto value, $Res Function(_BookmarkWordDto) _then) = __$BookmarkWordDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String lemma,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'is_verified') bool isVerified
+ String id, String lemma,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'is_verified') bool isVerified, bool available
 });
 
 
@@ -557,12 +559,13 @@ class __$BookmarkWordDtoCopyWithImpl<$Res>
 
 /// Create a copy of BookmarkWordDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? lemma = null,Object? wordType = null,Object? isVerified = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? lemma = null,Object? wordType = null,Object? isVerified = null,Object? available = null,}) {
   return _then(_BookmarkWordDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,lemma: null == lemma ? _self.lemma : lemma // ignore: cast_nullable_to_non_nullable
 as String,wordType: null == wordType ? _self.wordType : wordType // ignore: cast_nullable_to_non_nullable
 as String,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
+as bool,available: null == available ? _self.available : available // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

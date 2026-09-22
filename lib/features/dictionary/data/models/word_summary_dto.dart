@@ -16,6 +16,10 @@ abstract class WordSummaryDto with _$WordSummaryDto {
     @JsonKey(name: 'is_verified') required bool isVerified,
     /// Hanya terisi saat search_in=translation (Indonesia→Sambas).
     @JsonKey(name: 'matched_translation') String? matchedTranslation,
+    /// Satu baris arti. Hanya GET /api/v1/words/latest.
+    String? sense,
+    /// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
+    @JsonKey(name: 'approved_at') String? approvedAt,
   }) = _WordSummaryDto;
 
   factory WordSummaryDto.fromJson(Map<String, dynamic> json) =>

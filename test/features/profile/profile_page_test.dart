@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -207,5 +208,80 @@ void main() {
     expect(find.text('Masuk / Login'), findsOneWidget);
     expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
+  });
+
+  testWidgets('sudah login - tile Vote dan Komentar membuka route', (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'isAuth': true,
+      'sessionUsername': 'budi',
+      'sessionRole': 'contributor',
+    });
+    FlutterSecureStorage.setMockInitialValues({
+      'accessToken': 'test-access',
+      'refreshToken': 'test-refresh',
+    });
+
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const ProfilePage()),
+        GoRoute(path: '/votes', builder: (context, state) => const Text('halaman vote')),
+        GoRoute(
+          path: '/comments',
+          builder: (context, state) => const Text('halaman komentar'),
+        ),
+        GoRoute(path: '/login', builder: (context, state) => const SizedBox()),
+        GoRoute(path: '/contributions', builder: (context, state) => const SizedBox()),
+        GoRoute(path: '/bookmarks', builder: (context, state) => const SizedBox()),
+        GoRoute(path: '/report-bug', builder: (context, state) => const SizedBox()),
+        GoRoute(path: '/notifications', builder: (context, state) => const SizedBox()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dioProvider.overrideWithValue(Dio()..httpClientAdapter = _ThrowingAdapter()),
+          authTokenStorageProvider.overrideWithValue(AuthTokenStorage()),
+          authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+          notificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
+          localizationsDelegates: FLocalizations.localizationsDelegates,
+          supportedLocales: FLocalizations.supportedLocales,
+          routerConfig: router,
+          builder: (context, child) => FTheme(
+            data: FThemes.zinc.light.touch,
+            child: child!,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Vote'), findsOneWidget);
+    await tester.tap(find.text('Vote'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('halaman vote'), findsOneWidget);
+    expect(find.textContaining('segera hadir'), findsNothing);
+
+    router.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Komentar'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('halaman komentar'), findsOneWidget);
   });
 }

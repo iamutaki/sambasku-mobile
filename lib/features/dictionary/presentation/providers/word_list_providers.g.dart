@@ -10,31 +10,43 @@ part of 'word_list_providers.dart';
 // ignore_for_file: type=lint, type=warning
 /// Notifier halaman Daftar Kata A-Z (18-api-list-words.md). Meniru
 /// DictionarySearchNotifier: debounce, req id guard anti stale response,
-/// sync lock anti double-fire, mute setelah dispose. Bedanya: halaman 1
-/// dimuat sejak build (bukan idle menunggu query), q kosong = full A-Z.
+/// sync lock anti double-fire. Bedanya: halaman 1 dimuat sejak build
+/// (bukan idle menunggu query), q kosong = full A-Z.
 ///
 /// keepAlive: cache list + posisi fetch tetap saat keluar ke detail /
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
+///
+/// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
+/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 
 @ProviderFor(WordListNotifier)
 final wordListProvider = WordListNotifierProvider._();
 
 /// Notifier halaman Daftar Kata A-Z (18-api-list-words.md). Meniru
 /// DictionarySearchNotifier: debounce, req id guard anti stale response,
-/// sync lock anti double-fire, mute setelah dispose. Bedanya: halaman 1
-/// dimuat sejak build (bukan idle menunggu query), q kosong = full A-Z.
+/// sync lock anti double-fire. Bedanya: halaman 1 dimuat sejak build
+/// (bukan idle menunggu query), q kosong = full A-Z.
 ///
 /// keepAlive: cache list + posisi fetch tetap saat keluar ke detail /
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
+///
+/// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
+/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 final class WordListNotifierProvider
     extends $NotifierProvider<WordListNotifier, WordListState> {
   /// Notifier halaman Daftar Kata A-Z (18-api-list-words.md). Meniru
   /// DictionarySearchNotifier: debounce, req id guard anti stale response,
-  /// sync lock anti double-fire, mute setelah dispose. Bedanya: halaman 1
-  /// dimuat sejak build (bukan idle menunggu query), q kosong = full A-Z.
+  /// sync lock anti double-fire. Bedanya: halaman 1 dimuat sejak build
+  /// (bukan idle menunggu query), q kosong = full A-Z.
   ///
   /// keepAlive: cache list + posisi fetch tetap saat keluar ke detail /
   /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
+  ///
+  /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
+  /// `isLoading: true` tanpa in-flight request — itu biang infinite
+  /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
   WordListNotifierProvider._()
     : super(
         from: null,
@@ -62,15 +74,19 @@ final class WordListNotifierProvider
   }
 }
 
-String _$wordListNotifierHash() => r'b39bb26179fb5e115d4d8d769f5cd5fc310e05a8';
+String _$wordListNotifierHash() => r'a8e3a856e73af9c5711905918fe280693e077df7';
 
 /// Notifier halaman Daftar Kata A-Z (18-api-list-words.md). Meniru
 /// DictionarySearchNotifier: debounce, req id guard anti stale response,
-/// sync lock anti double-fire, mute setelah dispose. Bedanya: halaman 1
-/// dimuat sejak build (bukan idle menunggu query), q kosong = full A-Z.
+/// sync lock anti double-fire. Bedanya: halaman 1 dimuat sejak build
+/// (bukan idle menunggu query), q kosong = full A-Z.
 ///
 /// keepAlive: cache list + posisi fetch tetap saat keluar ke detail /
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
+///
+/// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
+/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 
 abstract class _$WordListNotifier extends $Notifier<WordListState> {
   WordListState build();

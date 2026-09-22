@@ -60,6 +60,8 @@ abstract interface class ContributionRepository {
     required String languageId,
     required List<SubmitWordMeaning> meanings,
     String? dialectId,
+    /// `word` | `idiom` | `peribahasa` | `ungkapan` (API `word_type`).
+    String wordType = 'word',
     List<String> categoryIds = const [],
     String? notes,
     // Ejaan alternatif (variasi penulisan, docs/api/11) - dikirim sebagai

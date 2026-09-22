@@ -245,6 +245,13 @@ class _NotificationTile extends ConsumerWidget with FTileMixin {
           ref.read(unreadNotificationCountControllerProvider.notifier).decrement();
         }
         if (!context.mounted) return;
+        if (item.targetKind == 'word') {
+          showFToast(
+            context: context,
+            title: Text(item.body),
+          );
+          return;
+        }
         if (item.targetId.isEmpty) return;
         await context.push(
           MyContributionsRouter.detailPath(

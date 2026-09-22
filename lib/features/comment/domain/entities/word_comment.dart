@@ -1,15 +1,14 @@
 import '../../../vote/domain/entities/vote_target.dart';
 
-/// Komentar pada lemma (09-api-comment.md). Sudah memuat vote counts per
-/// komentar (list endpoint mengembalikannya) + my_vote yang di-seed
-/// controller dari GET /votes/my.
+/// Komentar pada lemma (09-api-comment.md). Post-moderation:
+/// published | taken_down | deleted_by_author.
 class WordComment {
   const WordComment({
     required this.id,
     required this.wordId,
     required this.userId,
     this.username,
-    required this.body,
+    this.body,
     this.createdAt,
     this.status,
     this.upvotes = 0,
@@ -21,28 +20,47 @@ class WordComment {
   final String wordId;
   final String userId;
 
-  /// Nama penulis; null kalau penulis dihapus (client tampilkan
-  /// "pengguna terhapus").
+  /// Nama penulis; null kalau penulis dihapus.
   final String? username;
-  final String body;
 
-  /// ISO-8601 dari server (diformat saat render).
+  /// Null jika taken_down / deleted_by_author (redact server).
+  final String? body;
+
   final String? createdAt;
 
-  /// pending_review | published | rejected (hanya komentar sendiri).
+  /// published | taken_down | deleted_by_author
   final String? status;
   final int upvotes;
   final int downvotes;
-
-  /// 1 | -1 | null (milik user login; null = belum memilih).
   final int? myVote;
 
   VoteTarget get voteTarget => VoteTarget(type: 'comment', id: id);
 
   bool isOwner(String? actorId) => actorId != null && actorId == userId;
 
+  bool get isPublished =>
+      status == 'published' || (status == null && body != null);
+
+  bool get isTakenDown => status == 'taken_down';
+
+  bool get isDeletedByAuthor => status == 'deleted_by_author';
+
+  String get displayBody {
+    if (isTakenDown) {
+      return 'Komentar ini dihapus karena tidak memenuhi standar komunitas.';
+    }
+    if (isDeletedByAuthor) {
+      return 'Komentar ini dihapus oleh penulis.';
+    }
+    // body null tanpa status jelas → treat sebagai redacted aman
+    if (body == null) {
+      return 'Komentar ini tidak tersedia.';
+    }
+    return body!;
+  }
+
   WordComment copyWith({
-    String? body,
+    Object? body = _unset,
     String? status,
     int? upvotes,
     int? downvotes,
@@ -53,7 +71,7 @@ class WordComment {
       wordId: wordId,
       userId: userId,
       username: username,
-      body: body ?? this.body,
+      body: identical(body, _unset) ? this.body : body as String?,
       createdAt: createdAt,
       status: status ?? this.status,
       upvotes: upvotes ?? this.upvotes,

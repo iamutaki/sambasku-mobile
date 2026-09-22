@@ -37,7 +37,9 @@ class DictionaryRouter {
       path: list.path,
       name: list.name,
       parentNavigatorKey: AppRouter.rootNavigatorKey,
-      builder: (context, state) => const WordListPage(),
+      builder: (context, state) => WordListPage(
+        autofocus: state.uri.queryParameters['focus'] == '1',
+      ),
     ),
     // Spesifik dulu supaya '/words/:id/history' tidak tertelan detail.
     GoRoute(

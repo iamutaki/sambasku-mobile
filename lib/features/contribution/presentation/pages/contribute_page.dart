@@ -65,6 +65,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   String? _dialectId;
   bool _dialectSeeded = false;
+  /// API `word_type`: word | idiom | peribahasa | ungkapan
+  String _wordType = 'word';
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
 
@@ -264,6 +266,18 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
+          const Gap(12),
+
+          const _FieldCaption('Jenis Entri'),
+          const Gap(6),
+          _WordTypeChips(
+            value: _wordType,
+            onChanged: (v) {
+              _onFieldEdited();
+              setState(() => _wordType = v);
+            },
+          ),
+          _inlineError(notifier.errorFor('word_type')),
           const Gap(8),
 
           const _FieldCaption('Dialek'),
@@ -558,6 +572,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           ),
       ],
       dialectId: _dialectId,
+      wordType: _wordType,
       categoryIds: [],
       notes: notes.isEmpty ? null : notes,
       spellingVariants: _parseCsv(_relations.variantsText),
@@ -1124,6 +1139,41 @@ class _BuildReferenceError extends StatelessWidget {
           variant: FButtonVariant.ghost,
           child: const Text('Ulangi'),
         ),
+      ],
+    );
+  }
+}
+
+const _wordTypeOptions = <({String value, String label})>[
+  (value: 'word', label: 'Kata'),
+  (value: 'idiom', label: 'Idiom'),
+  (value: 'peribahasa', label: 'Peribahasa'),
+  (value: 'ungkapan', label: 'Ungkapan'),
+];
+
+/// Picker jenis entri — pola chip sama seperti dialek (rekam) / filter komentar.
+class _WordTypeChips extends StatelessWidget {
+  const _WordTypeChips({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final opt in _wordTypeOptions)
+          GestureDetector(
+            onTap: () => onChanged(opt.value),
+            child: FBadge(
+              variant: value == opt.value
+                  ? FBadgeVariant.primary
+                  : FBadgeVariant.secondary,
+              child: Text(opt.label),
+            ),
+          ),
       ],
     );
   }

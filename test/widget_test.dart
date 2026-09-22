@@ -9,6 +9,13 @@ import 'package:sambasku_mobile/core/theme/theme_mode_controller.dart';
 import 'package:sambasku_mobile/features/onboarding/data/onboarding_prefs.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/entities/search_miss.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/failures/search_miss_failure.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/providers/dictionary_domain_providers.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/usecases/list_latest_words_use_case.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/entities/word_detail.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/entities/word_of_day.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/entities/word_summary.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/failures/dictionary_failure.dart';
+import 'package:sambasku_mobile/features/dictionary/domain/repositories/dictionary_repository.dart';
 import 'package:sambasku_mobile/features/dictionary/presentation/providers/word_of_day_providers.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/providers/search_miss_domain_providers.dart';
 import 'package:sambasku_mobile/features/search_miss/domain/usecases/list_search_misses_use_case.dart';
@@ -22,6 +29,56 @@ class _FakeListSearchMissesUseCase implements ListSearchMissesUseCase {
     ListSearchMissesParams params,
   ) async =>
       Either.right(<SearchMiss>[]);
+}
+
+class _EmptyLatestUseCase extends ListLatestWordsUseCase {
+  _EmptyLatestUseCase() : super(const _EmptyLatestRepository());
+
+  @override
+  Future<Either<DictionaryFailure, WordSearchPage>> call(
+    ListLatestWordsParams params,
+  ) async =>
+      const Right(
+        WordSearchPage(items: [], nextCursor: null, hasMore: false),
+      );
+}
+
+class _EmptyLatestRepository implements DictionaryRepository {
+  const _EmptyLatestRepository();
+
+  @override
+  Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
+    required int limit,
+    String? cursor,
+  }) async =>
+      const Right(
+        WordSearchPage(items: [], nextCursor: null, hasMore: false),
+      );
+
+  @override
+  Future<Either<DictionaryFailure, WordSearchPage>> listWords({
+    required String q,
+    required int limit,
+    String? cursor,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordDetail>> getWordById(String id) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordSearchPage>> searchWords({
+    required String query,
+    required int limit,
+    String? cursor,
+    String searchIn = 'lemma',
+  }) async =>
+      throw UnimplementedError();
 }
 
 void main() {
@@ -48,6 +105,9 @@ void main() {
           // Kata hari ini juga hit Dio; tanpa stub, connectTimeout
           // menyisakan pending Timer di fake-async.
           wordOfDayProvider.overrideWith((ref) async => null),
+          listLatestWordsUseCaseProvider.overrideWithValue(
+            _EmptyLatestUseCase(),
+          ),
         ],
         child: const App(),
       ),

@@ -6,12 +6,16 @@ class BookmarkWord {
     required this.lemma,
     required this.wordType,
     this.isVerified = false,
+    this.available = true,
   });
 
   final String id;
   final String lemma;
   final String wordType;
   final bool isVerified;
+
+  /// false bila entri ditarik atau tidak lagi tayang.
+  final bool available;
 
   String get wordTypeLabel => switch (wordType) {
         'idiom' => 'Idiom',

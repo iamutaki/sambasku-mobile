@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/share_models.dart';
+import 'share_layout_edit_layer.dart';
 import 'share_video_layer.dart';
 
 /// Template kartu share (preview + PNG overlay).
@@ -46,6 +47,28 @@ class ShareCardCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!layoutEditMode) return _buildCard(null);
+    return ShareLayoutEditLayer(
+      width: ratio.width,
+      height: ratio.height,
+      selected: selectedElement,
+      mediaSelected: mediaSelected,
+      mediaAlignment: settings.mediaAlignment,
+      contentFloor: _textClearanceBottom(
+        showWatermark: settings.showWatermark,
+        hasCredit: data.creditLine != null,
+        designBottom: 0,
+        anchorBottom: template == ShareTemplateId.sisi ? 40 : 48,
+      ),
+      onSelectElement: onSelectElement,
+      onPanElement: onPanElement,
+      onSelectMedia: onSelectMedia,
+      onPanMedia: onPanMedia,
+      cardBuilder: _buildCard,
+    );
+  }
+
+  Widget _buildCard(ShareCardHitKeyFor? hitKeyFor) {
     final layout = _LayoutCallbacks(
       editMode: layoutEditMode,
       selected: selectedElement,
@@ -59,6 +82,7 @@ class ShareCardCanvas extends StatelessWidget {
       mediaSelected: mediaSelected,
       onSelectMedia: onSelectMedia,
       onPanMedia: onPanMedia,
+      hitKeyFor: hitKeyFor,
     );
     return SizedBox(
       width: ratio.width,
@@ -149,6 +173,7 @@ class _LayoutCallbacks {
     this.mediaSelected = false,
     this.onSelectMedia,
     this.onPanMedia,
+    this.hitKeyFor,
   });
 
   final bool editMode;
@@ -160,6 +185,9 @@ class _LayoutCallbacks {
   final bool mediaSelected;
   final VoidCallback? onSelectMedia;
   final void Function(Offset canvasDelta)? onPanMedia;
+
+  /// Kotak visual elemen, dipakai hit-test editor di atas gambar.
+  final ShareCardHitKeyFor? hitKeyFor;
 }
 
 TextStyle _lemmaStyle({
@@ -265,27 +293,27 @@ Widget _photoOrGradient({
     );
   }
   if (layout == null || !layout.mediaEdit) return child;
+  final framed = DecoratedBox(
+    decoration: layout.mediaSelected
+        ? BoxDecoration(
+            border: Border.all(color: const Color(0xFF38BDF8), width: 6),
+          )
+        : const BoxDecoration(),
+    position: DecorationPosition.foreground,
+    child: child,
+  );
+  // Mode edit: ketukan ditangani lapisan di atas kartu, supaya teks menang
+  // dari gambar yang menutupi seluruh latar.
+  if (layout.hitKeyFor != null) return framed;
   return GestureDetector(
     onTap: layout.onSelectMedia,
     onPanStart: (_) => layout.onSelectMedia?.call(),
     onPanUpdate: (d) => layout.onPanMedia?.call(d.delta),
-    child: DecoratedBox(
-      decoration: layout.mediaSelected
-          ? BoxDecoration(
-              border: Border.all(color: const Color(0xFF38BDF8), width: 6),
-            )
-          : const BoxDecoration(),
-      position: DecorationPosition.foreground,
-      child: child,
-    ),
+    child: framed,
   );
 }
 
-Widget _classPill(
-  String? label,
-  Color fg, {
-  required ShareFontPair pair,
-}) {
+Widget _classPill(String? label, Color fg, {required ShareFontPair pair}) {
   if (label == null || label.isEmpty) return const SizedBox.shrink();
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -294,7 +322,10 @@ Widget _classPill(
       borderRadius: BorderRadius.circular(999),
       border: Border.all(color: fg.withValues(alpha: 0.35)),
     ),
-    child: Text(label, style: _bodyStyle(pair: pair, size: 22, color: fg)),
+    child: Text(
+      label,
+      style: _bodyStyle(pair: pair, size: 22, color: fg),
+    ),
   );
 }
 
@@ -331,7 +362,7 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
     child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.28),
           borderRadius: radius,
@@ -341,28 +372,14 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'SambasKu',
-              style: _bodyStyle(pair: pair, size: 26, color: Colors.white)
-                  .copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x66000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-                  ),
-            ),
+            const _WatermarkLogo(),
             if (credit != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 credit,
                 style: _bodyStyle(
                   pair: pair,
-                  size: 15,
+                  size: 22,
                   color: Colors.white.withValues(alpha: 0.82),
                 ),
               ),
@@ -374,11 +391,64 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
   );
 }
 
+/// Wordmark di watermark. Aset 4167², logo hanya di pita tengah
+/// (alpha 611,1654–3595,2513); sisa piksel transparan.
+class _WatermarkLogo extends StatelessWidget {
+  const _WatermarkLogo();
+
+  static const _asset = 'assets/icons/sambasku_placeholder_horizontal.png';
+  static const _widthFactor = 2984 / 4167;
+  static const _heightFactor = 859 / 4167;
+  static const _visibleHeight = 58.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = _visibleHeight / _heightFactor;
+    return ClipRect(
+      child: Align(
+        alignment: const Alignment(0.03, 0),
+        widthFactor: _widthFactor,
+        heightFactor: _heightFactor,
+        child: Image.asset(
+          _asset,
+          width: side,
+          height: side,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+}
+
+/// Jarak dari tepi bawah kartu yang harus bebas teks.
+///
+/// Chip watermark (logo + kredit) menempel di kanan bawah. Tanpa sela ini,
+/// baris terakhir menempati area yang sama.
+double _textClearanceBottom({
+  required bool showWatermark,
+  required bool hasCredit,
+  required double designBottom,
+  double anchorBottom = 48,
+}) {
+  if (!showWatermark) return designBottom;
+  const padV = 16.0;
+  const creditGap = 8.0;
+  const creditLine = 22.0 * 1.35;
+  final chipHeight =
+      padV * 2 +
+      _WatermarkLogo._visibleHeight +
+      (hasCredit ? creditGap + creditLine : 0) +
+      2;
+  const gap = 28.0;
+  return math.max(designBottom, anchorBottom + chipHeight + gap);
+}
+
 /// Bungkus elemen agar bisa di-drag saat mode atur posisi.
 ///
-/// Transform harus membungkus GestureDetector (bukan sebaliknya): hit-test
-/// mengikuti posisi visual. Kalau GestureDetector di luar, setelah digeser
-/// target sentuhan masih di slot layout asli → elemen “macet”.
+/// Transform membungkus konten supaya posisi visual ikut offset. Di mode edit,
+/// ketukan ditangani lapisan di atas kartu lewat [GlobalKey] di dalam transform,
+/// jadi teks yang bertumpuk dengan gambar tetap yang terpilih.
 Widget _laidOut({
   required ShareTextElementId id,
   required ShareEditorSettings settings,
@@ -414,13 +484,7 @@ Widget _laidOut({
     offset: l.offset,
     child: Transform.rotate(
       angle: l.rotationDeg * math.pi / 180,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => layout.onSelect?.call(id),
-        onPanStart: (_) => layout.onSelect?.call(id),
-        onPanUpdate: (d) => layout.onPan?.call(id, d.delta),
-        child: inner,
-      ),
+      child: KeyedSubtree(key: layout.hitKeyFor?.call(id), child: inner),
     ),
   );
 }
@@ -485,106 +549,115 @@ class _UnsplashCard extends StatelessWidget {
         IgnorePointer(
           ignoring: layout.mediaSelected,
           child: Padding(
-          padding: const EdgeInsets.fromLTRB(72, 160, 72, 140),
-          child: ClipRect(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (settings.showWordClass)
-                _laidOut(
-                  id: ShareTextElementId.wordClass,
-                  settings: settings,
-                  layout: layout,
-                  child: _classPill(
-                    data.wordClassName,
-                    lemmaColor,
-                    pair: pair,
+            padding: EdgeInsets.fromLTRB(
+              72,
+              160,
+              72,
+              _textClearanceBottom(
+                showWatermark: settings.showWatermark,
+                hasCredit: data.creditLine != null,
+                designBottom: 140,
+              ),
+            ),
+            child: ClipRect(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (settings.showWordClass)
+                    _laidOut(
+                      id: ShareTextElementId.wordClass,
+                      settings: settings,
+                      layout: layout,
+                      child: _classPill(
+                        data.wordClassName,
+                        lemmaColor,
+                        pair: pair,
+                      ),
+                    ),
+                  const Spacer(),
+                  _laidOut(
+                    id: ShareTextElementId.lemma,
+                    settings: settings,
+                    layout: layout,
+                    child: Text(
+                      data.lemma,
+                      style: _lemmaStyle(
+                        pair: pair,
+                        size: lemmaSize,
+                        color: lemmaColor,
+                      ),
+                    ),
                   ),
-                ),
-              const Spacer(),
-              _laidOut(
-                id: ShareTextElementId.lemma,
-                settings: settings,
-                layout: layout,
-                child: Text(
-                  data.lemma,
-                  style: _lemmaStyle(
+                  _variantsUnderLemma(
+                    data: data,
                     pair: pair,
-                    size: lemmaSize,
                     color: lemmaColor,
+                    size: 28 * settings.bodyFontScale,
                   ),
-                ),
-              ),
-              _variantsUnderLemma(
-                data: data,
-                pair: pair,
-                color: lemmaColor,
-                size: 28 * settings.bodyFontScale,
-              ),
-              if (settings.showPadanan &&
-                  data.padanan != null &&
-                  data.padanan!.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _laidOut(
-                  id: ShareTextElementId.padanan,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    '→ ${data.padanan}',
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 44 * settings.bodyFontScale,
-                      color: lemmaColor,
+                  if (settings.showPadanan &&
+                      data.padanan != null &&
+                      data.padanan!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _laidOut(
+                      id: ShareTextElementId.padanan,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        '→ ${data.padanan}',
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 44 * settings.bodyFontScale,
+                          color: lemmaColor,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-              if (settings.showDefinition &&
-                  data.definition != null &&
-                  data.definition!.isNotEmpty) ...[
-                const SizedBox(height: 28),
-                _laidOut(
-                  id: ShareTextElementId.definition,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    data.definition!,
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: bodySize,
-                      color: bodyColor,
+                  ],
+                  if (settings.showDefinition &&
+                      data.definition != null &&
+                      data.definition!.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    _laidOut(
+                      id: ShareTextElementId.definition,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        data.definition!,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: bodySize,
+                          color: bodyColor,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-              if (settings.showExample &&
-                  data.exampleSentence != null &&
-                  data.exampleSentence!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _laidOut(
-                  id: ShareTextElementId.example,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    '"${data.exampleSentence}"',
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 32 * settings.bodyFontScale,
-                      color: bodyColor,
-                    ).copyWith(fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ],
-            ],
+                  ],
+                  if (settings.showExample &&
+                      data.exampleSentence != null &&
+                      data.exampleSentence!.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _laidOut(
+                      id: ShareTextElementId.example,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        '"${data.exampleSentence}"',
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 32 * settings.bodyFontScale,
+                          color: bodyColor,
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-          ),
-        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -635,153 +708,166 @@ class _KamusEditorialCard extends StatelessWidget {
         ColoredBox(
           color: bg,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(72, 140, 72, 120),
+            padding: EdgeInsets.fromLTRB(
+              72,
+              140,
+              72,
+              _textClearanceBottom(
+                showWatermark: settings.showWatermark,
+                hasCredit: data.creditLine != null,
+                designBottom: 120,
+              ),
+            ),
             child: ClipRect(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'KAMUS SAMBAS',
-                            style: _bodyStyle(
-                              pair: pair,
-                              size: 20,
-                              color: mutedHeader,
-                            ).copyWith(
-                              letterSpacing: 3,
-                              fontWeight: FontWeight.w700,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'KAMUS SAMBAS',
+                              style:
+                                  _bodyStyle(
+                                    pair: pair,
+                                    size: 20,
+                                    color: mutedHeader,
+                                  ).copyWith(
+                                    letterSpacing: 3,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
-                          ),
-                          const SizedBox(height: 28),
-                          _laidOut(
-                            id: ShareTextElementId.lemma,
-                            settings: settings,
-                            layout: layout,
-                            child: Text(
-                              data.lemma,
-                              style: _lemmaStyle(
-                                pair: pair,
-                                size: lemmaSize,
-                                color: lemmaColor,
-                              ),
-                            ),
-                          ),
-                          _variantsUnderLemma(
-                            data: data,
-                            pair: pair,
-                            color: lemmaColor,
-                            size: 26 * settings.bodyFontScale,
-                          ),
-                          if (settings.showWordClass &&
-                              data.wordClassName != null &&
-                              data.wordClassName!.isNotEmpty) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 28),
                             _laidOut(
-                              id: ShareTextElementId.wordClass,
+                              id: ShareTextElementId.lemma,
                               settings: settings,
                               layout: layout,
                               child: Text(
-                                data.wordClassName!,
-                                style: _bodyStyle(
+                                data.lemma,
+                                style: _lemmaStyle(
                                   pair: pair,
-                                  size: 30 * settings.bodyFontScale,
-                                  color: bodyColor,
-                                ).copyWith(fontStyle: FontStyle.italic),
+                                  size: lemmaSize,
+                                  color: lemmaColor,
+                                ),
                               ),
                             ),
+                            _variantsUnderLemma(
+                              data: data,
+                              pair: pair,
+                              color: lemmaColor,
+                              size: 26 * settings.bodyFontScale,
+                            ),
+                            if (settings.showWordClass &&
+                                data.wordClassName != null &&
+                                data.wordClassName!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              _laidOut(
+                                id: ShareTextElementId.wordClass,
+                                settings: settings,
+                                layout: layout,
+                                child: Text(
+                                  data.wordClassName!,
+                                  style: _bodyStyle(
+                                    pair: pair,
+                                    size: 30 * settings.bodyFontScale,
+                                    color: bodyColor,
+                                  ).copyWith(fontStyle: FontStyle.italic),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ),
-                    if (imageProvider != null ||
-                        (videoUrl != null && videoUrl!.isNotEmpty) ||
-                        transparentBackdrop)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 220,
-                          height: 220,
-                          child: _photoOrGradient(
-                            imageProvider: imageProvider,
-                            gradient: const [Color(0x22000000), Color(0x22000000)],
-                            videoUrl: videoUrl,
-                            videoIsFile: videoIsFile,
-                            transparentBackdrop: transparentBackdrop,
-          layout: layout,
-                          ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 36),
-                Container(height: 2, color: bodyColor.withValues(alpha: 0.2)),
-                const SizedBox(height: 36),
-                if (settings.showDefinition &&
-                    data.definition != null &&
-                    data.definition!.isNotEmpty)
-                  _laidOut(
-                    id: ShareTextElementId.definition,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      data.definition!,
-                      maxLines: 6,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 42 * settings.bodyFontScale,
-                        color: bodyColor,
+                      if (imageProvider != null ||
+                          (videoUrl != null && videoUrl!.isNotEmpty) ||
+                          transparentBackdrop)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 220,
+                            height: 220,
+                            child: _photoOrGradient(
+                              imageProvider: imageProvider,
+                              gradient: const [
+                                Color(0x22000000),
+                                Color(0x22000000),
+                              ],
+                              videoUrl: videoUrl,
+                              videoIsFile: videoIsFile,
+                              transparentBackdrop: transparentBackdrop,
+                              layout: layout,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 36),
+                  Container(height: 2, color: bodyColor.withValues(alpha: 0.2)),
+                  const SizedBox(height: 36),
+                  if (settings.showDefinition &&
+                      data.definition != null &&
+                      data.definition!.isNotEmpty)
+                    _laidOut(
+                      id: ShareTextElementId.definition,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        data.definition!,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 42 * settings.bodyFontScale,
+                          color: bodyColor,
+                        ),
                       ),
                     ),
-                  ),
-                if (settings.showPadanan &&
-                    data.padanan != null &&
-                    data.padanan!.isNotEmpty) ...[
-                  const SizedBox(height: 28),
-                  _laidOut(
-                    id: ShareTextElementId.padanan,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      'Terjemahan: ${data.padanan}',
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 36 * settings.bodyFontScale,
-                        color: lemmaColor,
-                      ).copyWith(fontWeight: FontWeight.w700),
+                  if (settings.showPadanan &&
+                      data.padanan != null &&
+                      data.padanan!.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    _laidOut(
+                      id: ShareTextElementId.padanan,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        'Terjemahan: ${data.padanan}',
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 36 * settings.bodyFontScale,
+                          color: lemmaColor,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                ],
-                if (settings.showExample &&
-                    data.exampleSentence != null &&
-                    data.exampleSentence!.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _laidOut(
-                    id: ShareTextElementId.example,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      '"${data.exampleSentence}"',
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 32 * settings.bodyFontScale,
-                        color: bodyColor,
-                      ).copyWith(fontStyle: FontStyle.italic),
+                  ],
+                  if (settings.showExample &&
+                      data.exampleSentence != null &&
+                      data.exampleSentence!.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _laidOut(
+                      id: ShareTextElementId.example,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        '"${data.exampleSentence}"',
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 32 * settings.bodyFontScale,
+                          color: bodyColor,
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
+              ),
             ),
           ),
         ),
@@ -828,86 +914,95 @@ class _PosterHurufCard extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(64, 160, 64, 140),
-          child: ClipRect(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (settings.showWordClass)
-                _laidOut(
-                  id: ShareTextElementId.wordClass,
-                  settings: settings,
-                  layout: layout,
-                  child: _classPill(
-                    data.wordClassName,
-                    lemmaColor,
-                    pair: pair,
-                  ),
-                ),
-              const Spacer(flex: 2),
-              _laidOut(
-                id: ShareTextElementId.lemma,
-                settings: settings,
-                layout: layout,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    data.lemma,
-                    style: _lemmaStyle(
-                      pair: pair,
-                      size: lemmaSize,
-                      color: lemmaColor,
-                    ),
-                  ),
-                ),
-              ),
-              _variantsUnderLemma(
-                data: data,
-                pair: pair,
-                color: lemmaColor,
-                size: 32 * settings.bodyFontScale,
-              ),
-              const Spacer(),
-              if (settings.showPadanan &&
-                  data.padanan != null &&
-                  data.padanan!.isNotEmpty)
-                _laidOut(
-                  id: ShareTextElementId.padanan,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    data.padanan!,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 48 * settings.bodyFontScale,
-                      color: lemmaColor,
-                    ),
-                  ),
-                ),
-              if (settings.showDefinition &&
-                  data.definition != null &&
-                  data.definition!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _laidOut(
-                  id: ShareTextElementId.definition,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    data.definition!,
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 34 * settings.bodyFontScale,
-                      color: bodyColor,
-                    ),
-                  ),
-                ),
-              ],
-            ],
+          padding: EdgeInsets.fromLTRB(
+            64,
+            160,
+            64,
+            _textClearanceBottom(
+              showWatermark: settings.showWatermark,
+              hasCredit: data.creditLine != null,
+              designBottom: 140,
+            ),
           ),
+          child: ClipRect(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (settings.showWordClass)
+                  _laidOut(
+                    id: ShareTextElementId.wordClass,
+                    settings: settings,
+                    layout: layout,
+                    child: _classPill(
+                      data.wordClassName,
+                      lemmaColor,
+                      pair: pair,
+                    ),
+                  ),
+                const Spacer(flex: 2),
+                _laidOut(
+                  id: ShareTextElementId.lemma,
+                  settings: settings,
+                  layout: layout,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      data.lemma,
+                      style: _lemmaStyle(
+                        pair: pair,
+                        size: lemmaSize,
+                        color: lemmaColor,
+                      ),
+                    ),
+                  ),
+                ),
+                _variantsUnderLemma(
+                  data: data,
+                  pair: pair,
+                  color: lemmaColor,
+                  size: 32 * settings.bodyFontScale,
+                ),
+                const Spacer(),
+                if (settings.showPadanan &&
+                    data.padanan != null &&
+                    data.padanan!.isNotEmpty)
+                  _laidOut(
+                    id: ShareTextElementId.padanan,
+                    settings: settings,
+                    layout: layout,
+                    child: Text(
+                      data.padanan!,
+                      style: _bodyStyle(
+                        pair: pair,
+                        size: 48 * settings.bodyFontScale,
+                        color: lemmaColor,
+                      ),
+                    ),
+                  ),
+                if (settings.showDefinition &&
+                    data.definition != null &&
+                    data.definition!.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _laidOut(
+                    id: ShareTextElementId.definition,
+                    settings: settings,
+                    layout: layout,
+                    child: Text(
+                      data.definition!,
+                      maxLines: 6,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      style: _bodyStyle(
+                        pair: pair,
+                        size: 34 * settings.bodyFontScale,
+                        color: bodyColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         if (settings.showWatermark)
@@ -956,125 +1051,134 @@ class _PolaroidCard extends StatelessWidget {
         ColoredBox(
           color: pageBg,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(80, 140, 80, 120),
+            padding: EdgeInsets.fromLTRB(
+              80,
+              140,
+              80,
+              _textClearanceBottom(
+                showWatermark: settings.showWatermark,
+                hasCredit: data.creditLine != null,
+                designBottom: 120,
+              ),
+            ),
             child: ClipRect(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(36, 36, 36, 28),
-                    decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF1C1917) : Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 28,
-                          offset: const Offset(0, 14),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: ClipRect(
-                            child: _photoOrGradient(
-                              imageProvider: imageProvider,
-                              gradient: gradient,
-                              videoUrl: videoUrl,
-                              videoIsFile: videoIsFile,
-                              transparentBackdrop: transparentBackdrop,
-          layout: layout,
-                            ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(36, 36, 36, 28),
+                      decoration: BoxDecoration(
+                        color: dark ? const Color(0xFF1C1917) : Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 28,
+                            offset: const Offset(0, 14),
                           ),
-                        ),
-                        const SizedBox(height: 36),
-                        _laidOut(
-                          id: ShareTextElementId.lemma,
-                          settings: settings,
-                          layout: layout,
-                          child: Text(
-                            data.lemma,
-                            textAlign: TextAlign.center,
-                            style: _lemmaStyle(
-                              pair: pair,
-                              size: lemmaSize,
-                              color: lemmaColor,
-                            ),
-                          ),
-                        ),
-                        _variantsUnderLemma(
-                          data: data,
-                          pair: pair,
-                          color: lemmaColor,
-                          size: 24 * settings.bodyFontScale,
-                          align: TextAlign.center,
-                        ),
-                        if (settings.showPadanan &&
-                            data.padanan != null &&
-                            data.padanan!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _laidOut(
-                            id: ShareTextElementId.padanan,
-                            settings: settings,
-                            layout: layout,
-                            child: Text(
-                              data.padanan!,
-                              textAlign: TextAlign.center,
-                              style: _bodyStyle(
-                                pair: pair,
-                                size: 34 * settings.bodyFontScale,
-                                color: bodyColor,
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRect(
+                              child: _photoOrGradient(
+                                imageProvider: imageProvider,
+                                gradient: gradient,
+                                videoUrl: videoUrl,
+                                videoIsFile: videoIsFile,
+                                transparentBackdrop: transparentBackdrop,
+                                layout: layout,
                               ),
                             ),
                           ),
-                        ],
-                        if (settings.showWordClass &&
-                            data.wordClassName != null &&
-                            data.wordClassName!.isNotEmpty) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 36),
                           _laidOut(
-                            id: ShareTextElementId.wordClass,
+                            id: ShareTextElementId.lemma,
                             settings: settings,
                             layout: layout,
                             child: Text(
-                              data.wordClassName!,
+                              data.lemma,
                               textAlign: TextAlign.center,
-                              style: _bodyStyle(
+                              style: _lemmaStyle(
                                 pair: pair,
-                                size: 26 * settings.bodyFontScale,
-                                color: bodyColor.withValues(alpha: 0.85),
-                              ).copyWith(fontStyle: FontStyle.italic),
+                                size: lemmaSize,
+                                color: lemmaColor,
+                              ),
                             ),
                           ),
+                          _variantsUnderLemma(
+                            data: data,
+                            pair: pair,
+                            color: lemmaColor,
+                            size: 24 * settings.bodyFontScale,
+                            align: TextAlign.center,
+                          ),
+                          if (settings.showPadanan &&
+                              data.padanan != null &&
+                              data.padanan!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _laidOut(
+                              id: ShareTextElementId.padanan,
+                              settings: settings,
+                              layout: layout,
+                              child: Text(
+                                data.padanan!,
+                                textAlign: TextAlign.center,
+                                style: _bodyStyle(
+                                  pair: pair,
+                                  size: 34 * settings.bodyFontScale,
+                                  color: bodyColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (settings.showWordClass &&
+                              data.wordClassName != null &&
+                              data.wordClassName!.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            _laidOut(
+                              id: ShareTextElementId.wordClass,
+                              settings: settings,
+                              layout: layout,
+                              child: Text(
+                                data.wordClassName!,
+                                textAlign: TextAlign.center,
+                                style: _bodyStyle(
+                                  pair: pair,
+                                  size: 26 * settings.bodyFontScale,
+                                  color: bodyColor.withValues(alpha: 0.85),
+                                ).copyWith(fontStyle: FontStyle.italic),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 36),
-                if (settings.showDefinition &&
-                    data.definition != null &&
-                    data.definition!.isNotEmpty)
-                  _laidOut(
-                    id: ShareTextElementId.definition,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      data.definition!,
-                      textAlign: TextAlign.center,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 32 * settings.bodyFontScale,
-                        color: bodyColor,
                       ),
                     ),
                   ),
-              ],
-            ),
+                  const SizedBox(height: 36),
+                  if (settings.showDefinition &&
+                      data.definition != null &&
+                      data.definition!.isNotEmpty)
+                    _laidOut(
+                      id: ShareTextElementId.definition,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        data.definition!,
+                        textAlign: TextAlign.center,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 32 * settings.bodyFontScale,
+                          color: bodyColor,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1130,18 +1234,28 @@ class _SisiCard extends StatelessWidget {
     final text = ColoredBox(
       color: panel,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(56, 64, 56, 120),
-        child: ClipRect(
-        child: _stackedCopy(
-          data: data,
-          settings: settings,
-          layout: layout,
-          pair: pair,
-          lemmaColor: lemmaColor,
-          bodyColor: bodyColor,
-          lemmaSize: 88 * settings.lemmaFontScale,
-          align: CrossAxisAlignment.start,
+        padding: EdgeInsets.fromLTRB(
+          56,
+          64,
+          56,
+          _textClearanceBottom(
+            showWatermark: settings.showWatermark,
+            hasCredit: data.creditLine != null,
+            designBottom: 120,
+            anchorBottom: 40,
+          ),
         ),
+        child: ClipRect(
+          child: _stackedCopy(
+            data: data,
+            settings: settings,
+            layout: layout,
+            pair: pair,
+            lemmaColor: lemmaColor,
+            bodyColor: bodyColor,
+            lemmaSize: 88 * settings.lemmaFontScale,
+            align: CrossAxisAlignment.start,
+          ),
         ),
       ),
     );
@@ -1230,40 +1344,51 @@ class _KacaCard extends StatelessWidget {
         IgnorePointer(
           ignoring: layout.mediaSelected,
           child: Padding(
-          padding: const EdgeInsets.fromLTRB(56, 80, 56, 120),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(36),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.22 + 0.28 * overlay),
-                    borderRadius: BorderRadius.circular(36),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.16),
+            padding: EdgeInsets.fromLTRB(
+              56,
+              80,
+              56,
+              _textClearanceBottom(
+                showWatermark: settings.showWatermark,
+                hasCredit: data.creditLine != null,
+                designBottom: 120,
+              ),
+            ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(48, 44, 48, 44),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(
+                        alpha: 0.22 + 0.28 * overlay,
+                      ),
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.16),
+                      ),
                     ),
-                  ),
-                  child: ClipRect(
-                  child: _stackedCopy(
-                    data: data,
-                    settings: settings,
-                    layout: layout,
-                    pair: pair,
-                    lemmaColor: lemmaColor,
-                    bodyColor: bodyColor,
-                    lemmaSize: 96 * settings.lemmaFontScale,
-                    align: CrossAxisAlignment.start,
-                  ),
+                    child: ClipRect(
+                      child: _stackedCopy(
+                        data: data,
+                        settings: settings,
+                        layout: layout,
+                        pair: pair,
+                        lemmaColor: lemmaColor,
+                        bodyColor: bodyColor,
+                        lemmaSize: 96 * settings.lemmaFontScale,
+                        align: CrossAxisAlignment.start,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -1323,117 +1448,126 @@ class _KutipanCard extends StatelessWidget {
         IgnorePointer(
           ignoring: layout.mediaSelected,
           child: Padding(
-          padding: const EdgeInsets.fromLTRB(72, 160, 72, 160),
-          child: ClipRect(
-          child: Column(
-            children: [
-              Text(
-                '"',
-                style: _lemmaStyle(
-                  pair: pair,
-                  size: 160,
-                  color: lemmaColor.withValues(alpha: 0.55),
-                ).copyWith(height: 0.7),
+            padding: EdgeInsets.fromLTRB(
+              72,
+              160,
+              72,
+              _textClearanceBottom(
+                showWatermark: settings.showWatermark,
+                hasCredit: data.creditLine != null,
+                designBottom: 160,
               ),
-              const Spacer(),
-              _laidOut(
-                id: ShareTextElementId.lemma,
-                settings: settings,
-                layout: layout,
-                child: Text(
-                  data.lemma,
-                  textAlign: TextAlign.center,
-                  style: _lemmaStyle(
-                    pair: pair,
-                    size: 108 * settings.lemmaFontScale,
-                    color: lemmaColor,
-                  ),
-                ),
-              ),
-              _variantsUnderLemma(
-                data: data,
-                pair: pair,
-                color: lemmaColor,
-                size: 28 * settings.bodyFontScale,
-                align: TextAlign.center,
-              ),
-              if (settings.showPadanan &&
-                  data.padanan != null &&
-                  data.padanan!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _laidOut(
-                  id: ShareTextElementId.padanan,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    data.padanan!,
-                    textAlign: TextAlign.center,
-                    style: _bodyStyle(
+            ),
+            child: ClipRect(
+              child: Column(
+                children: [
+                  Text(
+                    '"',
+                    style: _lemmaStyle(
                       pair: pair,
-                      size: 42 * settings.bodyFontScale,
-                      color: lemmaColor,
-                    ).copyWith(fontStyle: FontStyle.italic),
+                      size: 160,
+                      color: lemmaColor.withValues(alpha: 0.55),
+                    ).copyWith(height: 0.7),
                   ),
-                ),
-              ],
-              if (settings.showDefinition &&
-                  data.definition != null &&
-                  data.definition!.isNotEmpty) ...[
-                const SizedBox(height: 28),
-                _laidOut(
-                  id: ShareTextElementId.definition,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    data.definition!,
-                    textAlign: TextAlign.center,
-                    maxLines: 5,
-                    overflow: TextOverflow.ellipsis,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 34 * settings.bodyFontScale,
-                      color: bodyColor,
+                  const Spacer(),
+                  _laidOut(
+                    id: ShareTextElementId.lemma,
+                    settings: settings,
+                    layout: layout,
+                    child: Text(
+                      data.lemma,
+                      textAlign: TextAlign.center,
+                      style: _lemmaStyle(
+                        pair: pair,
+                        size: 108 * settings.lemmaFontScale,
+                        color: lemmaColor,
+                      ),
                     ),
                   ),
-                ),
-              ],
-              const Spacer(),
-              if (settings.showWordClass)
-                _laidOut(
-                  id: ShareTextElementId.wordClass,
-                  settings: settings,
-                  layout: layout,
-                  child: _classPill(
-                    data.wordClassName,
-                    lemmaColor,
+                  _variantsUnderLemma(
+                    data: data,
                     pair: pair,
+                    color: lemmaColor,
+                    size: 28 * settings.bodyFontScale,
+                    align: TextAlign.center,
                   ),
-                ),
-              if (settings.showExample &&
-                  data.exampleSentence != null &&
-                  data.exampleSentence!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _laidOut(
-                  id: ShareTextElementId.example,
-                  settings: settings,
-                  layout: layout,
-                  child: Text(
-                    '"${data.exampleSentence}"',
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: _bodyStyle(
-                      pair: pair,
-                      size: 28 * settings.bodyFontScale,
-                      color: bodyColor.withValues(alpha: 0.9),
-                    ).copyWith(fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ],
-            ],
+                  if (settings.showPadanan &&
+                      data.padanan != null &&
+                      data.padanan!.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _laidOut(
+                      id: ShareTextElementId.padanan,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        data.padanan!,
+                        textAlign: TextAlign.center,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 42 * settings.bodyFontScale,
+                          color: lemmaColor,
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+                  if (settings.showDefinition &&
+                      data.definition != null &&
+                      data.definition!.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    _laidOut(
+                      id: ShareTextElementId.definition,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        data.definition!,
+                        textAlign: TextAlign.center,
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 34 * settings.bodyFontScale,
+                          color: bodyColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (settings.showWordClass)
+                    _laidOut(
+                      id: ShareTextElementId.wordClass,
+                      settings: settings,
+                      layout: layout,
+                      child: _classPill(
+                        data.wordClassName,
+                        lemmaColor,
+                        pair: pair,
+                      ),
+                    ),
+                  if (settings.showExample &&
+                      data.exampleSentence != null &&
+                      data.exampleSentence!.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _laidOut(
+                      id: ShareTextElementId.example,
+                      settings: settings,
+                      layout: layout,
+                      child: Text(
+                        '"${data.exampleSentence}"',
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: _bodyStyle(
+                          pair: pair,
+                          size: 28 * settings.bodyFontScale,
+                          color: bodyColor.withValues(alpha: 0.9),
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-          ),
-        ),
         ),
         if (settings.showWatermark)
           Positioned(
@@ -1490,113 +1624,122 @@ class _KartuCard extends StatelessWidget {
                     videoUrl: videoUrl,
                     videoIsFile: videoIsFile,
                     transparentBackdrop: transparentBackdrop,
-          layout: layout,
+                    layout: layout,
                   ),
                 ),
               ),
               Expanded(
                 flex: 11,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(64, 48, 64, 120),
+                  padding: EdgeInsets.fromLTRB(
+                    64,
+                    48,
+                    64,
+                    _textClearanceBottom(
+                      showWatermark: settings.showWatermark,
+                      hasCredit: data.creditLine != null,
+                      designBottom: 120,
+                    ),
+                  ),
                   child: ClipRect(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (settings.showWordClass)
-                        _laidOut(
-                          id: ShareTextElementId.wordClass,
-                          settings: settings,
-                          layout: layout,
-                          child: _classPill(
-                            data.wordClassName,
-                            lemmaColor,
-                            pair: pair,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (settings.showWordClass)
+                          _laidOut(
+                            id: ShareTextElementId.wordClass,
+                            settings: settings,
+                            layout: layout,
+                            child: _classPill(
+                              data.wordClassName,
+                              lemmaColor,
+                              pair: pair,
+                            ),
                           ),
-                        ),
-                      const SizedBox(height: 20),
-                      _laidOut(
-                        id: ShareTextElementId.lemma,
-                        settings: settings,
-                        layout: layout,
-                        child: Text(
-                          data.lemma,
-                          style: _lemmaStyle(
-                            pair: pair,
-                            size: 92 * settings.lemmaFontScale,
-                            color: lemmaColor,
-                          ),
-                        ),
-                      ),
-                      _variantsUnderLemma(
-                        data: data,
-                        pair: pair,
-                        color: lemmaColor,
-                        size: 26 * settings.bodyFontScale,
-                      ),
-                      if (settings.showPadanan &&
-                          data.padanan != null &&
-                          data.padanan!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
                         _laidOut(
-                          id: ShareTextElementId.padanan,
+                          id: ShareTextElementId.lemma,
                           settings: settings,
                           layout: layout,
                           child: Text(
-                            data.padanan!,
-                            style: _bodyStyle(
+                            data.lemma,
+                            style: _lemmaStyle(
                               pair: pair,
-                              size: 36 * settings.bodyFontScale,
+                              size: 92 * settings.lemmaFontScale,
                               color: lemmaColor,
-                            ).copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      Container(
-                        height: 2,
-                        color: bodyColor.withValues(alpha: 0.22),
-                      ),
-                      const SizedBox(height: 24),
-                      if (settings.showDefinition &&
-                          data.definition != null &&
-                          data.definition!.isNotEmpty)
-                        _laidOut(
-                          id: ShareTextElementId.definition,
-                          settings: settings,
-                          layout: layout,
-                          child: Text(
-                            data.definition!,
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                    style: _bodyStyle(
-                              pair: pair,
-                              size: 36 * settings.bodyFontScale,
-                              color: bodyColor,
                             ),
                           ),
                         ),
-                      if (settings.showExample &&
-                          data.exampleSentence != null &&
-                          data.exampleSentence!.isNotEmpty) ...[
-                        const Spacer(),
-                        _laidOut(
-                          id: ShareTextElementId.example,
-                          settings: settings,
-                          layout: layout,
-                          child: Text(
-                            data.exampleSentence!,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: _bodyStyle(
-                              pair: pair,
-                              size: 28 * settings.bodyFontScale,
-                              color: bodyColor.withValues(alpha: 0.85),
-                            ).copyWith(fontStyle: FontStyle.italic),
-                          ),
+                        _variantsUnderLemma(
+                          data: data,
+                          pair: pair,
+                          color: lemmaColor,
+                          size: 26 * settings.bodyFontScale,
                         ),
+                        if (settings.showPadanan &&
+                            data.padanan != null &&
+                            data.padanan!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _laidOut(
+                            id: ShareTextElementId.padanan,
+                            settings: settings,
+                            layout: layout,
+                            child: Text(
+                              data.padanan!,
+                              style: _bodyStyle(
+                                pair: pair,
+                                size: 36 * settings.bodyFontScale,
+                                color: lemmaColor,
+                              ).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Container(
+                          height: 2,
+                          color: bodyColor.withValues(alpha: 0.22),
+                        ),
+                        const SizedBox(height: 24),
+                        if (settings.showDefinition &&
+                            data.definition != null &&
+                            data.definition!.isNotEmpty)
+                          _laidOut(
+                            id: ShareTextElementId.definition,
+                            settings: settings,
+                            layout: layout,
+                            child: Text(
+                              data.definition!,
+                              maxLines: 6,
+                              overflow: TextOverflow.ellipsis,
+                              style: _bodyStyle(
+                                pair: pair,
+                                size: 36 * settings.bodyFontScale,
+                                color: bodyColor,
+                              ),
+                            ),
+                          ),
+                        if (settings.showExample &&
+                            data.exampleSentence != null &&
+                            data.exampleSentence!.isNotEmpty) ...[
+                          const Spacer(),
+                          _laidOut(
+                            id: ShareTextElementId.example,
+                            settings: settings,
+                            layout: layout,
+                            child: Text(
+                              data.exampleSentence!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: _bodyStyle(
+                                pair: pair,
+                                size: 28 * settings.bodyFontScale,
+                                color: bodyColor.withValues(alpha: 0.85),
+                              ).copyWith(fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
                   ),
                 ),
               ),
@@ -1715,4 +1858,3 @@ Widget _stackedCopy({
     ],
   );
 }
-

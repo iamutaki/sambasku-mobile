@@ -24,6 +24,7 @@ abstract class BookmarkWordDto with _$BookmarkWordDto {
     required String lemma,
     @JsonKey(name: 'word_type') @Default('word') String wordType,
     @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
+    @Default(true) bool available,
   }) = _BookmarkWordDto;
 
   factory BookmarkWordDto.fromJson(Map<String, dynamic> json) =>

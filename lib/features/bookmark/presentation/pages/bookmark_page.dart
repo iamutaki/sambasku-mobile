@@ -193,9 +193,12 @@ class _BookmarkRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final unavailable = !item.word.available;
     return FTile(
       title: Text(item.word.lemma),
-      subtitle: Text(item.word.wordTypeLabel),
+      subtitle: Text(
+        unavailable ? 'Entri tidak lagi tersedia' : item.word.wordTypeLabel,
+      ),
       suffix: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -206,7 +209,14 @@ class _BookmarkRow extends ConsumerWidget {
           _RemoveButton(wordId: item.wordId),
         ],
       ),
-      onPress: () => context.push('/words/${item.wordId}'),
+      onPress: unavailable
+          ? () {
+              showFToast(
+                context: context,
+                title: const Text('Entri tidak lagi tersedia'),
+              );
+            }
+          : () => context.push('/words/${item.wordId}'),
     );
   }
 }

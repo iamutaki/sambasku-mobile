@@ -11,7 +11,7 @@ _CommentDto _$CommentDtoFromJson(Map<String, dynamic> json) => _CommentDto(
   wordId: json['word_id'] as String,
   userId: json['user_id'] as String,
   username: json['username'] as String?,
-  body: json['body'] as String,
+  body: json['body'] as String?,
   createdAt: json['created_at'] as String?,
   upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
   downvotes: (json['downvotes'] as num?)?.toInt() ?? 0,

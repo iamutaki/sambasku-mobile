@@ -248,8 +248,8 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               canPanMedia
-                  ? 'Ketuk Latar lalu geser gambar · ketuk teks untuk geser / putar'
-                  : 'Geser teks bertanda border · ketuk untuk pilih · putar di bawah',
+                  ? 'Ketuk teks untuk menggesernya. Area kosong menggeser gambar. Garis putus-putus = tengah.'
+                  : 'Ketuk teks berborder untuk menggeser. Garis putus-putus = tengah.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.65),
                 fontSize: 13,
@@ -302,7 +302,7 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (canPanMedia)
+                if (canPanMedia) ...[
                   Align(
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
@@ -318,6 +318,8 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                ],
                 if (_selected != null) ...[
                   Text(
                     'Rotasi ${_selected!.label}',
@@ -351,10 +353,7 @@ class _LayoutEditorPageState extends State<_LayoutEditorPage> {
                 ] else if (_mediaSelected)
                   const Text(
                     'Geser di kartu untuk mengatur crop gambar atau video',
-                    style: TextStyle(
-                      color: Color(0x8AFFFFFF),
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Color(0x8AFFFFFF), fontSize: 13),
                   )
                 else
                   Text(

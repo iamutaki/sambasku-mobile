@@ -40,9 +40,6 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
     super.dispose();
   }
 
-  static bool _isVerifier(String? role) =>
-      role == 'admin' || role == 'root' || role == 'reviewer';
-
   bool _isAuth() => ref.read(authStatusProvider).value?.isAuth ?? false;
 
   void _promptLogin() {
@@ -67,7 +64,7 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
       _bodyCtrl.clear();
       showFToast(
         context: context,
-        title: const Text('Komentar terkirim, menunggu moderasi'),
+        title: const Text('Komentar terkirim'),
         variant: FToastVariant.primary,
       );
     } else {
@@ -101,7 +98,7 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus komentar?'),
         content: const Text(
-          'Komentar ini akan disembunyikan dari semua orang.',
+          'Komentar akan ditandai sebagai dihapus oleh penulis.',
         ),
         actions: [
           TextButton(
@@ -194,11 +191,14 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                     ...state.items.map((c) {
                       final canDelete =
                           auth != null &&
-                          (c.isOwner(auth.userId) || _isVerifier(auth.role));
+                          c.isPublished &&
+                          c.isOwner(auth.userId);
                       return _CommentRow(
                         comment: c,
                         dateLabel: formatDateTimeIso(c.createdAt),
-                        onVote: (value) => _toggleVote(c, value),
+                        onVote: c.isPublished
+                            ? (value) => _toggleVote(c, value)
+                            : null,
                         onDelete: canDelete ? () => _deleteComment(c) : null,
                         onUsernameTap: c.username == null
                             ? null
@@ -267,25 +267,26 @@ class _CommentRow extends StatelessWidget {
   const _CommentRow({
     required this.comment,
     required this.dateLabel,
-    required this.onVote,
+    this.onVote,
     this.onDelete,
     this.onUsernameTap,
   });
 
   final WordComment comment;
   final String dateLabel;
-  final Future<void> Function(int value) onVote;
+  final Future<void> Function(int value)? onVote;
   final VoidCallback? onDelete;
   final VoidCallback? onUsernameTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final isPending = comment.status == 'pending_review';
+    final isRedacted = !comment.isPublished;
     final username = comment.username ?? 'Pengguna terhapus';
     final rest = [
       if (dateLabel.isNotEmpty) dateLabel,
-      if (isPending) 'menunggu moderasi',
+      if (comment.isTakenDown) 'dihapus moderator',
+      if (comment.isDeletedByAuthor) 'dihapus penulis',
     ].join(' · ');
 
     return Padding(
@@ -299,7 +300,7 @@ class _CommentRow extends StatelessWidget {
                 child: Row(
                   children: [
                     Flexible(
-                      child: onUsernameTap == null
+                      child: onUsernameTap == null || isRedacted
                           ? Text(
                               username,
                               style: theme.typography.sm.copyWith(
@@ -361,15 +362,26 @@ class _CommentRow extends StatelessWidget {
             ],
           ),
           const Gap(2),
-          Text(comment.body, style: theme.typography.sm.copyWith(height: 1.35)),
-          const Gap(4),
-          VoteButtons(
-            upvotes: comment.upvotes,
-            downvotes: comment.downvotes,
-            myVote: comment.myVote,
-            onVote: onVote,
-            compact: true,
+          Text(
+            comment.displayBody,
+            style: theme.typography.sm.copyWith(
+              height: 1.35,
+              fontStyle: isRedacted ? FontStyle.italic : FontStyle.normal,
+              color: isRedacted
+                  ? theme.colors.mutedForeground
+                  : theme.colors.foreground,
+            ),
           ),
+          if (onVote != null) ...[
+            const Gap(4),
+            VoteButtons(
+              upvotes: comment.upvotes,
+              downvotes: comment.downvotes,
+              myVote: comment.myVote,
+              onVote: onVote!,
+              compact: true,
+            ),
+          ],
         ],
       ),
     );

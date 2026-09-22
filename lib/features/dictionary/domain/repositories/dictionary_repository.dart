@@ -29,4 +29,10 @@ abstract interface class DictionaryRepository {
     required int limit,
     String? cursor,
   });
+
+  /// Feed beranda: kata published urut waktu persetujuan.
+  Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
+    required int limit,
+    String? cursor,
+  });
 }

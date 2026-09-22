@@ -12,22 +12,35 @@ import '../../domain/entities/word_summary.dart';
 import '../models/word_list_state.dart';
 import '../providers/word_list_providers.dart';
 
-/// Daftar semua kata A-Z (GET /api/v1/words, 18-api-list-words.md).
-/// Browsing dengan filter q server-side (bukan pencarian - tanpa
-/// search-miss). Urutan dari server: lower(lemma) ASC (case-insensitive).
+/// Daftar kata. q kosong di mode Sambas = A-Z (`GET /words`).
+/// q terisi, atau mode Indonesia, memakai `GET /words/search` supaya
+/// hasil kosong tercatat sebagai search-miss dan bisa diusulkan.
 class WordListPage extends HookConsumerWidget {
-  const WordListPage({super.key});
+  const WordListPage({super.key, this.autofocus = false});
+
+  /// true saat dibuka dari kolom cari beranda (`?focus=1`).
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wordListProvider);
     final notifier = ref.read(wordListProvider.notifier);
     final controller = useTextEditingController(text: state.q);
+    final focusNode = useFocusNode();
     final scroll = useScrollController();
 
     useEffect(() {
+      if (!autofocus) return null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        focusNode.requestFocus();
+      });
+      return null;
+    }, [autofocus]);
+
+    useEffect(() {
       void listener() {
-        if (scroll.position.pixels >= scroll.position.maxScrollExtent - 200) {
+        if (!scroll.hasClients) return;
+        if (scroll.position.maxScrollExtent - scroll.position.pixels < 200) {
           notifier.loadMore();
         }
       }
@@ -35,6 +48,33 @@ class WordListPage extends HookConsumerWidget {
       scroll.addListener(listener);
       return () => scroll.removeListener(listener);
     }, [scroll]);
+
+    // Halaman pertama yang lebih pendek dari layar tidak memicu scroll,
+    // jadi sisa halaman tidak pernah dimuat.
+    useEffect(
+      () {
+        if (state.isLoading ||
+            state.isLoadingMore ||
+            !state.hasMore ||
+            state.errorMessage != null) {
+          return null;
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!scroll.hasClients) return;
+          if (scroll.position.maxScrollExtent - scroll.position.pixels < 200) {
+            notifier.loadMore();
+          }
+        });
+        return null;
+      },
+      [
+        state.items.length,
+        state.hasMore,
+        state.isLoading,
+        state.isLoadingMore,
+        state.errorMessage,
+      ],
+    );
 
     final theme = context.theme;
 
@@ -47,22 +87,50 @@ class WordListPage extends HookConsumerWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 4, 0, 2),
-            child: FTextField(
-              control: FTextFieldControl.managed(
-                controller: controller,
-                onChange: (value) => notifier.onQueryChanged(value.text),
-              ),
-              hint: 'Saring daftar kata...',
-              clearable: (value) => value.text.isNotEmpty,
-              prefixBuilder: (context, style, variants) =>
-                  FTextField.prefixIconBuilder(
-                    context,
-                    style,
-                    variants,
-                    const Icon(FLucideIcons.search),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: FButton(
+                    size: .sm,
+                    variant: state.searchIn == 'lemma'
+                        ? FButtonVariant.primary
+                        : FButtonVariant.outline,
+                    onPress: () => notifier.onSearchInChanged('lemma'),
+                    child: const Text('Sambas'),
                   ),
+                ),
+                const Gap(8),
+                Expanded(
+                  child: FButton(
+                    size: .sm,
+                    variant: state.searchIn == 'translation'
+                        ? FButtonVariant.primary
+                        : FButtonVariant.outline,
+                    onPress: () => notifier.onSearchInChanged('translation'),
+                    child: const Text('Indonesia'),
+                  ),
+                ),
+              ],
             ),
+          ),
+          FTextField(
+            control: FTextFieldControl.managed(
+              controller: controller,
+              onChange: (value) => notifier.onQueryChanged(value.text),
+            ),
+            focusNode: focusNode,
+            hint: state.searchIn == 'translation'
+                ? 'Cari kata Indonesia...'
+                : 'Cari atau saring kata Sambas...',
+            clearable: (value) => value.text.isNotEmpty,
+            prefixBuilder: (context, style, variants) =>
+                FTextField.prefixIconBuilder(
+                  context,
+                  style,
+                  variants,
+                  const Icon(FLucideIcons.search),
+                ),
           ),
           if (state.errorMessage != null)
             Padding(
@@ -93,6 +161,8 @@ class WordListPage extends HookConsumerWidget {
     }
 
     if (state.items.isEmpty) {
+      final query = state.q.trim();
+      final askIndonesia = state.searchIn == 'translation' && query.isEmpty;
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -100,37 +170,54 @@ class WordListPage extends HookConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                FLucideIcons.list,
+                askIndonesia ? FLucideIcons.search : FLucideIcons.list,
                 size: 40,
                 color: theme.colors.mutedForeground,
               ),
               const Gap(8),
               Text(
-                state.q.trim().isEmpty
+                askIndonesia
+                    ? 'Ketik kata Indonesia untuk mencari padanannya di Sambas.'
+                    : query.isEmpty
                     ? 'Belum ada kata terbit.'
-                    : 'Tidak ada kata untuk "${state.q}"',
+                    : 'Tidak ada kata untuk "$query"',
                 textAlign: TextAlign.center,
                 style: theme.typography.md.copyWith(
                   color: theme.colors.foreground,
                 ),
               ),
-              if (state.q.trim().isNotEmpty) ...[
+              if (query.isNotEmpty) ...[
                 const Gap(4),
                 Text(
-                  'Hapus saringan untuk melihat semua kata.',
+                  'Belum ada di kamus. Usulkan supaya bisa dicari orang lain.',
                   textAlign: TextAlign.center,
                   style: theme.typography.sm.copyWith(
                     color: theme.colors.mutedForeground,
                   ),
                 ),
+                const Gap(12),
+                FButton(
+                  onPress: () {
+                    final params = Uri(
+                      queryParameters: {
+                        'lemma': query,
+                        'search_in': state.searchIn,
+                      },
+                    ).query;
+                    context.push('/contribute?$params');
+                  },
+                  child: const Text('Usul kata ini'),
+                ),
               ],
-              const Gap(12),
-              FButton(
-                onPress: () => ref.read(wordListProvider.notifier).load(),
-                variant: FButtonVariant.outline,
-                prefix: const Icon(FLucideIcons.rotateCcw),
-                child: const Text('Coba lagi'),
-              ),
+              if (!askIndonesia) ...[
+                const Gap(8),
+                FButton(
+                  onPress: () => ref.read(wordListProvider.notifier).load(),
+                  variant: FButtonVariant.outline,
+                  prefix: const Icon(FLucideIcons.rotateCcw),
+                  child: const Text('Coba lagi'),
+                ),
+              ],
             ],
           ),
         ),
@@ -149,9 +236,7 @@ class WordListPage extends HookConsumerWidget {
         children: [
           FTileGroup(
             physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final item in state.items) _WordTile(item: item),
-            ],
+            children: [for (final item in state.items) _WordTile(item: item)],
           ),
           if (state.isLoadingMore) const _LoadingMoreFooter(),
         ],

@@ -32,6 +32,8 @@ class InboxNotification {
       case 'contribution_corrected':
       case 'suggestion_corrected':
         return 'Dikoreksi';
+      case 'word_taken_down':
+        return 'Ditarik';
       default:
         return 'Pembaruan';
     }

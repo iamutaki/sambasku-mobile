@@ -7,6 +7,7 @@ import '../../domain/entities/word_summary.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../../domain/repositories/dictionary_repository.dart';
 import '../datasources/dictionary_remote_datasource.dart';
+import '../models/word_audio_dto.dart';
 import '../models/word_detail_dto.dart';
 
 class DictionaryRepositoryImpl implements DictionaryRepository {
@@ -138,6 +139,68 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
   }
 
   @override
+  Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
+    required int limit,
+    String? cursor,
+  }) async {
+    try {
+      final response = await _remoteDatasource.listLatestWords({
+        'limit': limit,
+        'cursor': ?cursor,
+      });
+
+      if (response.success == false) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Feed gagal dimuat',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+
+      final items = response.data;
+      if (items == null) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Feed gagal dimuat',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+
+      final meta = response.meta;
+      return Either.right(
+        WordSearchPage(
+          items: items
+              .map(
+                (dto) => WordSummary(
+                  id: dto.id,
+                  lemma: dto.lemma,
+                  languageCode: dto.languageCode,
+                  wordType: dto.wordType,
+                  status: dto.status,
+                  isVerified: dto.isVerified,
+                  sense: dto.sense,
+                  approvedAt: dto.approvedAt == null
+                      ? null
+                      : DateTime.tryParse(dto.approvedAt!),
+                ),
+              )
+              .toList(),
+          nextCursor: meta?['next_cursor'] as String?,
+          hasMore: meta?['has_more'] as bool? ?? false,
+        ),
+      );
+    } on DioException catch (error) {
+      return Either.left(
+        _mapDio(error, fallback: 'Feed gagal dimuat, periksa koneksi'),
+      );
+    } catch (error) {
+      return Either.left(DictionaryFailure(error.toString()));
+    }
+  }
+
+  @override
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id) async {
     try {
       final response = await _remoteDatasource.getWordById(id);
@@ -250,8 +313,10 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             examples: m.examples
                 .map(
                   (e) => WordExample(
+                    id: e.id,
                     sourceSentence: e.sourceSentence,
                     targetSentence: e.targetSentence,
+                    audios: e.audios.map(_mapAudio).toList(),
                   ),
                 )
                 .toList(),
@@ -264,6 +329,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
     pronunciations: dto.pronunciations
         .map((p) => WordPronunciation(notation: p.notation, value: p.value))
         .toList(),
+    audios: sortWordAudios(dto.audios.map(_mapAudio).toList()),
     images: dto.images
         .map(
           (i) => WordImage(
@@ -303,6 +369,16 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
           ),
         )
         .toList(),
+  );
+
+  WordAudio _mapAudio(WordAudioDto dto) => WordAudio(
+    id: dto.id,
+    url: dto.url,
+    dialectId: dto.dialectId,
+    speakerName: dto.speakerName,
+    durationMs: dto.durationMs,
+    isPrimary: dto.isPrimary,
+    mimeType: dto.mimeType,
   );
 
   DictionaryFailure _mapDio(

@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
 import 'widgets/share_skeleton.dart';
@@ -378,16 +379,9 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  item.thumbUrl,
+                CachedNetworkImageWithFallback(
+                  imageUrl: item.thumbUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => ColoredBox(
-                    color: theme.colors.secondary,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
                 ),
                 if (item.isVideo)
                   const Align(

@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../domain/entities/word_summary.dart';
+import '../../domain/failures/dictionary_failure.dart';
 import '../../domain/providers/dictionary_domain_providers.dart';
 import '../../domain/usecases/list_words_use_case.dart';
+import '../../domain/usecases/search_words_use_case.dart';
 import '../models/word_list_state.dart';
 
 part 'word_list_providers.g.dart';
@@ -51,12 +54,22 @@ class WordListNotifier extends _$WordListNotifier {
     return const WordListState(isLoading: true);
   }
 
+  /// Batalkan request yang masih di udara. Dipakai saat mode atau q
+  /// berubah supaya jawaban lama tidak menimpa state yang baru.
+  void _dropInFlight() {
+    _loadReqId++;
+    _loadMoreReqId++;
+    _isLoadingSync = false;
+    _isLoadingMoreSync = false;
+  }
+
   /// Filter q berubah (dari search box halaman list). Debounce 400 ms →
   /// reset + fetch halaman pertama dengan q baru (server-side). q kosong
-  /// → kembali full A-Z tanpa menunggu debounce.
+  /// di mode Sambas → kembali full A-Z tanpa menunggu debounce.
   void onQueryChanged(String q) {
     final nextEmpty = q.trim().isEmpty;
-    final alreadyIdleEmpty = nextEmpty &&
+    final alreadyIdleEmpty =
+        nextEmpty &&
         state.q.trim().isEmpty &&
         !state.isLoading &&
         !_isLoadingSync &&
@@ -73,8 +86,20 @@ class WordListNotifier extends _$WordListNotifier {
     state = state.copyWith(q: q, clearErrorMessage: true);
     if (nextEmpty) {
       _debounce?.cancel();
+      if (state.searchIn == 'translation') {
+        _dropInFlight();
+        state = state.copyWith(
+          items: const [],
+          clearNextCursor: true,
+          hasMore: false,
+          isLoading: false,
+          isLoadingMore: false,
+          viaSearch: false,
+        );
+        return;
+      }
       state = state.copyWith(
-        items: [],
+        items: const [],
         clearNextCursor: true,
         hasMore: false,
       );
@@ -85,10 +110,32 @@ class WordListNotifier extends _$WordListNotifier {
     _debounce = Timer(const Duration(milliseconds: _kDebounceMs), load);
   }
 
+  /// Sambas (`lemma`) atau Indonesia (`translation`).
+  void onSearchInChanged(String searchIn) {
+    if (searchIn == state.searchIn) return;
+    _debounce?.cancel();
+    _dropInFlight();
+    final idleTranslation = searchIn == 'translation' && state.q.trim().isEmpty;
+    state = state.copyWith(
+      searchIn: searchIn,
+      items: const [],
+      clearNextCursor: true,
+      hasMore: false,
+      viaSearch: false,
+      isLoading: !idleTranslation,
+      isLoadingMore: false,
+      clearErrorMessage: true,
+    );
+    if (idleTranslation) return;
+    scheduleMicrotask(load);
+  }
+
   /// Halaman berikutnya (infinite scroll: `maxScrollExtent - 200`).
   Future<void> loadMore() async {
     if (_isLoadingMoreSync ||
+        _isLoadingSync ||
         !ref.mounted ||
+        state.isLoading ||
         state.isLoadingMore ||
         !state.hasMore ||
         state.nextCursor == null) {
@@ -96,13 +143,22 @@ class WordListNotifier extends _$WordListNotifier {
     }
     _isLoadingMoreSync = true;
     final reqId = ++_loadMoreReqId;
+    final useSearch = state.searchIn == 'translation' || state.viaSearch;
 
     state = state.copyWith(isLoadingMore: true, clearErrorMessage: true);
 
     try {
-      final result = await ref.read(listWordsUseCaseProvider)(
-        ListWordsParams(q: state.q, cursor: state.nextCursor),
-      );
+      final result = useSearch
+          ? await ref.read(searchWordsUseCaseProvider)(
+              SearchWordsParams(
+                query: state.q,
+                cursor: state.nextCursor,
+                searchIn: state.searchIn,
+              ),
+            )
+          : await ref.read(listWordsUseCaseProvider)(
+              ListWordsParams(q: state.q, cursor: state.nextCursor),
+            );
 
       if (!ref.mounted || reqId != _loadMoreReqId) return;
 
@@ -136,42 +192,97 @@ class WordListNotifier extends _$WordListNotifier {
     }
   }
 
+  void _applyPage(WordSearchPage page, {required bool viaSearch}) {
+    state = state.copyWith(
+      isLoading: false,
+      isLoadingMore: false,
+      items: page.items,
+      nextCursor: page.nextCursor,
+      clearNextCursor: page.nextCursor == null,
+      hasMore: page.hasMore,
+      viaSearch: viaSearch,
+    );
+  }
+
   /// Halaman pertama (buka halaman / q berubah / pull-to-refresh).
   Future<void> load() async {
     if (_isLoadingSync || !ref.mounted) return;
     _isLoadingSync = true;
     final reqId = ++_loadReqId;
+    _loadMoreReqId++;
+    _isLoadingMoreSync = false;
 
-    state = state.copyWith(isLoading: true, clearErrorMessage: true);
+    final q = state.q;
+    final searchIn = state.searchIn;
+
+    state = state.copyWith(
+      isLoading: true,
+      isLoadingMore: false,
+      clearErrorMessage: true,
+    );
 
     try {
-      final result = await ref.read(listWordsUseCaseProvider)(
-        ListWordsParams(q: state.q),
-      );
-
-      // Hasil usang (q sudah berubah lagi) ATAU notifier sudah diganti —
-      // jangan tulis state; finally tetap lepas sync-lock.
-      if (!ref.mounted || reqId != _loadReqId) return;
-
-      result.match(
-        (failure) => state = state.copyWith(
-          isLoading: false,
-          errorMessage: failure.message,
-        ),
-        (page) => state = state.copyWith(
-          isLoading: false,
-          items: page.items,
-          nextCursor: page.nextCursor,
-          clearNextCursor: page.nextCursor == null,
-          hasMore: page.hasMore,
-        ),
-      );
-    } catch (e) {
-      if (ref.mounted && reqId == _loadReqId) {
+      if (searchIn == 'translation' && q.trim().isEmpty) {
+        if (!ref.mounted || reqId != _loadReqId) return;
         state = state.copyWith(
           isLoading: false,
-          errorMessage: e.toString(),
+          items: const [],
+          clearNextCursor: true,
+          hasMore: false,
+          viaSearch: false,
         );
+        return;
+      }
+
+      if (searchIn == 'translation') {
+        final result = await ref.read(searchWordsUseCaseProvider)(
+          SearchWordsParams(query: q, searchIn: 'translation'),
+        );
+        if (!ref.mounted || reqId != _loadReqId) return;
+        result.match(
+          (failure) => state = state.copyWith(
+            isLoading: false,
+            errorMessage: failure.message,
+          ),
+          (page) => _applyPage(page, viaSearch: true),
+        );
+        return;
+      }
+
+      final listed = await ref.read(listWordsUseCaseProvider)(
+        ListWordsParams(q: q),
+      );
+      if (!ref.mounted || reqId != _loadReqId) return;
+
+      DictionaryFailure? failure;
+      WordSearchPage? page;
+      listed.match((error) => failure = error, (value) => page = value);
+      final error = failure;
+      if (error != null) {
+        state = state.copyWith(isLoading: false, errorMessage: error.message);
+        return;
+      }
+
+      final found = page;
+      if (found == null) return;
+      // Saringan Sambas kosong + q cukup panjang: coba pencarian lemma
+      // (variasi penulisan + rekam search-miss bila tetap kosong).
+      if (found.items.isEmpty && q.trim().length >= 2) {
+        final searched = await ref.read(searchWordsUseCaseProvider)(
+          SearchWordsParams(query: q, searchIn: 'lemma'),
+        );
+        if (!ref.mounted || reqId != _loadReqId) return;
+        searched.match(
+          (_) => _applyPage(found, viaSearch: false),
+          (hits) => _applyPage(hits, viaSearch: true),
+        );
+        return;
+      }
+
+      _applyPage(found, viaSearch: false);
+    } catch (e) {
+      if (ref.mounted && reqId == _loadReqId) {
+        state = state.copyWith(isLoading: false, errorMessage: e.toString());
       }
     } finally {
       if (reqId == _loadReqId) {

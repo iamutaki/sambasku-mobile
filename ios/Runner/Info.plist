@@ -105,6 +105,8 @@
 	<string>Akses galeri digunakan untuk menyimpan kartu share SambasKu (foto atau video).</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Akses kamera digunakan untuk mengambil foto yang diperlukan di dalam aplikasi.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SambasKu memakai mikrofon hanya untuk merekam pelafalan kata atau contoh kalimat yang Anda kirim untuk ditinjau.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

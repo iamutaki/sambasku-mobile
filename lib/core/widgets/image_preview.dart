@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:forui/forui.dart';
+
+import '../../shared/widgets/cached_network_image_with_fallback.dart';
 
 /// Buka preview fullscreen dengan pinch-zoom.
 ///
@@ -123,21 +124,11 @@ class _ZoomableNetworkImage extends StatelessWidget {
     return InteractiveViewer(
       minScale: 1,
       maxScale: 5,
-      child: Center(
-        child: Image.network(
-          url,
+      child: SizedBox.expand(
+        child: CachedNetworkImageWithFallback(
+          imageUrl: url,
           fit: BoxFit.contain,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return const Center(
-              child: SizedBox(
-                width: 28,
-                height: 28,
-                child: FCircularProgress(),
-              ),
-            );
-          },
-          errorBuilder: (_, _, _) => const Icon(
+          fallback: const Icon(
             Icons.broken_image_outlined,
             color: Colors.white54,
             size: 48,

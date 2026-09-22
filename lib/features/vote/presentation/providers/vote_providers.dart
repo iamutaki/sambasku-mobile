@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../my_votes/presentation/providers/my_votes_providers.dart';
 import '../../domain/entities/vote_target.dart';
 import '../../domain/entities/vote_view.dart';
 import '../../domain/failures/vote_failure.dart';
@@ -64,6 +65,7 @@ class VoteController extends _$VoteController {
       (failure) => failure,
       (view) {
         state = AsyncData(view);
+        ref.invalidate(myVotesListControllerProvider);
         return null;
       },
     );

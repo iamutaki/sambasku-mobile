@@ -49,3 +49,17 @@ String formatDateYmd(String? ymd) {
   if (month < 1 || month > 12) return '';
   return '$day ${_months[month - 1]} $year';
 }
+
+/// Jarak singkat untuk feed: `baru saja`, `12 mnt`, `3 jam`, `2 hr`,
+/// lalu tanggal-waktu penuh.
+String formatRelative(DateTime? value, {DateTime? now}) {
+  if (value == null) return '';
+  final clock = now ?? DateTime.now();
+  var diff = clock.difference(value);
+  if (diff.isNegative) diff = Duration.zero;
+  if (diff.inMinutes < 1) return 'baru saja';
+  if (diff.inHours < 1) return '${diff.inMinutes} mnt';
+  if (diff.inDays < 1) return '${diff.inHours} jam';
+  if (diff.inDays < 7) return '${diff.inDays} hr';
+  return formatDateTime(value);
+}

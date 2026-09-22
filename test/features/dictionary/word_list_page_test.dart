@@ -50,6 +50,13 @@ class _StubDictionaryRepository implements DictionaryRepository {
     String searchIn = 'lemma',
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
+    required int limit,
+    String? cursor,
+  }) async =>
+      throw UnimplementedError();
 }
 
 void main() {

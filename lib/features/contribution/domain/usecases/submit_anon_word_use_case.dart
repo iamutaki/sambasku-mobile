@@ -97,11 +97,16 @@ class SubmitAnonWordUseCase {
       );
     }
 
+    final wordType = params.wordType.trim().isEmpty
+        ? 'word'
+        : params.wordType.trim();
+
     return _repository.submitAnon(
       lemma: lemma,
       languageId: params.languageId.trim(),
       meanings: meanings,
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
+      wordType: wordType,
       categoryIds: categoryIds,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
@@ -136,6 +141,7 @@ class SubmitAnonWordParams {
     required this.meanings,
     required this.translationLanguageId,
     this.dialectId,
+    this.wordType = 'word',
     this.categoryIds = const [],
     this.notes,
     this.spellingVariants = const [],
@@ -149,6 +155,8 @@ class SubmitAnonWordParams {
   final List<SubmitAnonWordMeaningParams> meanings;
   final String translationLanguageId;
   final String? dialectId;
+  /// `word` | `idiom` | `peribahasa` | `ungkapan`
+  final String wordType;
   final List<String> categoryIds;
   final String? notes;
   final List<String> spellingVariants;

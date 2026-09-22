@@ -24,10 +24,6 @@ class ProfilePage extends ConsumerWidget {
     'contributor': 'Kontributor',
   };
 
-  static void _comingSoon(BuildContext context, String feature) {
-    showFToast(context: context, title: Text('$feature segera hadir'));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authStatus = ref.watch(authStatusProvider);
@@ -77,14 +73,14 @@ class ProfilePage extends ConsumerWidget {
                         title: const Text('Vote'),
                         subtitle: const Text('Kata yang pernah kamu vote'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Vote'),
+                        onPress: () => context.push('/votes'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.messageSquare),
                         title: const Text('Komentar'),
                         subtitle: const Text('Komentar & status moderasi'),
                         suffix: const Icon(FLucideIcons.chevronRight),
-                        onPress: () => _comingSoon(context, 'Komentar'),
+                        onPress: () => context.push('/comments'),
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.flag),

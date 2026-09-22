@@ -26,6 +26,7 @@ _BookmarkWordDto _$BookmarkWordDtoFromJson(Map<String, dynamic> json) =>
       lemma: json['lemma'] as String,
       wordType: json['word_type'] as String? ?? 'word',
       isVerified: json['is_verified'] as bool? ?? false,
+      available: json['available'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$BookmarkWordDtoToJson(_BookmarkWordDto instance) =>
@@ -34,4 +35,5 @@ Map<String, dynamic> _$BookmarkWordDtoToJson(_BookmarkWordDto instance) =>
       'lemma': instance.lemma,
       'word_type': instance.wordType,
       'is_verified': instance.isVerified,
+      'available': instance.available,
     };

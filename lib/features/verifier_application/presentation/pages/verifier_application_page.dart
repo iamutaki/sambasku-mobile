@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/utils/image_sheet_drawer.dart';
+import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../../auth/presentation/pages/register_page.dart';
 import '../../../contribution/data/providers/contribution_data_providers.dart';
 import '../../domain/entities/verifier_application.dart';
@@ -614,13 +615,9 @@ class _ScreenshotSlot extends StatelessWidget {
         ),
       );
     } else if (remote != null && remote.isNotEmpty) {
-      preview = Image.network(
-        remote,
+      preview = CachedNetworkImageWithFallback(
+        imageUrl: remote,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => ColoredBox(
-          color: theme.colors.muted,
-          child: Icon(FLucideIcons.image, color: theme.colors.mutedForeground),
-        ),
       );
     } else {
       preview = ColoredBox(

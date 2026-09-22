@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,8 @@ import '../../features/about/about_router.dart';
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/auth_router.dart';
 import '../../features/bookmark/bookmark_router.dart';
+import '../../features/my_comments/my_comments_router.dart';
+import '../../features/my_votes/my_votes_router.dart';
 import '../../features/change_password/change_password_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
@@ -14,6 +17,8 @@ import '../../features/notification/notification_router.dart';
 import '../../features/explore/explore_router.dart';
 import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/dictionary/presentation/pages/home_search_page.dart';
+import '../../features/dictionary/presentation/providers/latest_words_providers.dart';
+import '../../features/dictionary/presentation/providers/word_of_day_providers.dart';
 import '../../features/onboarding/data/onboarding_prefs.dart';
 import '../../features/onboarding/onboarding_router.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
@@ -49,6 +54,8 @@ class AppRouter {
       ...MyContributionsRouter.routes,
       ...NotificationRouter.routes,
       ...BookmarkRouter.routes,
+      ...MyVotesRouter.routes,
+      ...MyCommentsRouter.routes,
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,
       ...ReportBugRouter.routes,
@@ -138,13 +145,13 @@ class AppRouter {
 }
 
 /// Shell 4 tab bottom navigation (Forui).
-class _HomeShell extends StatelessWidget {
+class _HomeShell extends ConsumerWidget {
   const _HomeShell({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // resizeToAvoidBottomInset false: keyboard tidak dorong bottom nav
     // (nested scaffold + inset = overflow / "geser drawer")
     // footerDecoration dikosongkan - FBottomNavigationBar sudah punya top border
@@ -158,7 +165,14 @@ class _HomeShell extends StatelessWidget {
           // IndexedStack menyimpan fokus search → keyboard ikut "nempel"
           // saat ganti tab / setelah hot reload. Unfocus dulu.
           FocusManager.instance.primaryFocus?.unfocus();
+          final openingHome = index == 0 && navigationShell.currentIndex != 0;
           navigationShell.goBranch(index);
+          if (openingHome) {
+            // keepAlive + IndexedStack tidak membangun ulang Home, jadi
+            // kata yang baru disetujui tetap tersembunyi sampai di-refresh.
+            ref.invalidate(wordOfDayProvider);
+            ref.read(latestWordsProvider.notifier).load();
+          }
         },
         children: const [
           FBottomNavigationBarItem(

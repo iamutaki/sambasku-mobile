@@ -38,6 +38,11 @@ _WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
               ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      audios:
+          (json['audios'] as List<dynamic>?)
+              ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       images:
           (json['images'] as List<dynamic>?)
               ?.map((e) => WordImageDto.fromJson(e as Map<String, dynamic>))
@@ -78,6 +83,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'meanings': instance.meanings,
       'categories': instance.categories,
       'pronunciations': instance.pronunciations,
+      'audios': instance.audios,
       'images': instance.images,
       'related_words': instance.relatedWords,
       'appears_in': instance.appearsIn,
@@ -162,9 +168,14 @@ _ExampleDto _$ExampleDtoFromJson(Map<String, dynamic> json) => _ExampleDto(
   id: json['id'] as String,
   sourceLanguageId: json['source_language_id'] as String,
   sourceSentence: json['source_sentence'] as String,
-  targetLanguageId: json['target_language_id'] as String,
-  targetSentence: json['target_sentence'] as String,
-  sourceType: json['source_type'] as String,
+  targetLanguageId: nullableStringFromJson(json['target_language_id']),
+  targetSentence: nullableStringFromJson(json['target_sentence']),
+  sourceType: nullableStringFromJson(json['source_type']),
+  audios:
+      (json['audios'] as List<dynamic>?)
+          ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$ExampleDtoToJson(_ExampleDto instance) =>
@@ -175,6 +186,7 @@ Map<String, dynamic> _$ExampleDtoToJson(_ExampleDto instance) =>
       'target_language_id': instance.targetLanguageId,
       'target_sentence': instance.targetSentence,
       'source_type': instance.sourceType,
+      'audios': instance.audios,
     };
 
 _CategoryDto _$CategoryDtoFromJson(Map<String, dynamic> json) =>

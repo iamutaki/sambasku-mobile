@@ -30,6 +30,13 @@ abstract interface class DictionaryRemoteDatasource {
     @Queries() Map<String, dynamic> query,
   );
 
+  /// Feed beranda (GET /api/v1/words/latest) - published, urut
+  /// waktu persetujuan. Publik tanpa auth.
+  @GET('/api/v1/words/latest')
+  Future<ApiResponse<List<WordSummaryDto>>> listLatestWords(
+    @Queries() Map<String, dynamic> query,
+  );
+
   /// Detail kata lengkap (makna, terjemahan, relasi, dll). Publik.
   @GET('/api/v1/words/{id}')
   Future<ApiResponse<WordDetailDto>> getWordById(@Path('id') String id);

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gal/gal.dart';
@@ -155,11 +156,13 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         return f != null ? FileImage(f) : null;
       case ShareBgSource.wordImage:
         final u = _wordImageUrl;
-        return u != null && u.isNotEmpty ? NetworkImage(u) : null;
+        return u != null && u.isNotEmpty
+            ? CachedNetworkImageProvider(u)
+            : null;
       case ShareBgSource.stock:
         final item = _selectedStock;
         if (item == null) return null;
-        return NetworkImage(item.thumbUrl);
+        return CachedNetworkImageProvider(item.thumbUrl);
       case ShareBgSource.none:
         return null;
     }
@@ -412,9 +415,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     setState(() => _sharing = true);
     try {
       final provider = _imageProvider;
-      if (provider is NetworkImage) {
-        await precacheImage(provider, context);
-      } else if (provider is FileImage) {
+      if (provider != null) {
         await precacheImage(provider, context);
       }
       await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -472,9 +473,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
     setState(() => _saving = true);
     try {
       final provider = _imageProvider;
-      if (provider is NetworkImage) {
-        await precacheImage(provider, context);
-      } else if (provider is FileImage) {
+      if (provider != null) {
         await precacheImage(provider, context);
       }
       await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -868,7 +867,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                               selected: _bgSource == ShareBgSource.wordImage &&
                                   _wordImageUrl == img.url,
                               selectedBorder: chipSelected,
-                              preview: NetworkImage(img.url),
+                              preview: CachedNetworkImageProvider(img.url),
                               onTap: _template.forcesNoPhoto
                                   ? null
                                   : () => setState(() {
@@ -878,7 +877,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                       _localVideoFile = null;
                                     }),
                               onLongPress: () => _openImageFullscreen(
-                                NetworkImage(img.url),
+                                CachedNetworkImageProvider(img.url),
                               ),
                             ),
                             const Gap(8),
@@ -892,7 +891,9 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                   _selectedBgIndex == i &&
                                   !_template.forcesNoPhoto,
                               selectedBorder: chipSelected,
-                              preview: NetworkImage(_bgItems[i].thumbUrl),
+                              preview: CachedNetworkImageProvider(
+                                _bgItems[i].thumbUrl,
+                              ),
                               showPlay: _bgItems[i].isVideo,
                               onTap: _template.forcesNoPhoto
                                   ? null
@@ -904,7 +905,9 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                                       _wordImageUrl = null;
                                     }),
                               onLongPress: () => _openImageFullscreen(
-                                NetworkImage(_bgItems[i].thumbUrl),
+                                CachedNetworkImageProvider(
+                                  _bgItems[i].thumbUrl,
+                                ),
                               ),
                             ),
                             const Gap(8),
