@@ -48,7 +48,8 @@ dependencies:
   flutter_facebook_auth: ^7.2.0
   record: ^6.0.0
   just_audio: ^0.9.46
-
+  maplibre_gl: ^0.27.1
+  firebase_analytics: ^12.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

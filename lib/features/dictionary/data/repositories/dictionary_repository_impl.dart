@@ -62,6 +62,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   status: dto.status,
                   isVerified: dto.isVerified,
                   matchedTranslation: dto.matchedTranslation,
+                  sense: dto.sense,
                 ),
               )
               .toList(),
@@ -288,6 +289,12 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
         : WordVerifier(
             username: dto.verifiedBy!.username,
             role: dto.verifiedBy!.role,
+          ),
+    createdBy: dto.createdBy == null
+        ? null
+        : WordVerifier(
+            username: dto.createdBy!.username,
+            role: dto.createdBy!.role,
           ),
     meanings: dto.meanings
         .map(

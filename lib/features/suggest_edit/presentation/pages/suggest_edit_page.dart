@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
@@ -375,9 +376,20 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
         },
       );
       if (!mounted) return;
+      AnalyticsService.instance.log(
+        AnalyticsEvents.suggestEditSubmit,
+        params: {'word_id': widget.wordId},
+      );
+      final verified =
+          ref.read(wordDetailProvider(widget.wordId)).value?.isVerified ??
+              true;
+      final lemma = _lemmaCtrl.text.trim();
+      final title = verified
+          ? 'Usulan untuk "${lemma.isEmpty ? 'kata ini' : lemma}" masuk antrean. Isi yang sedang tayang belum berubah.'
+          : 'Perubahan sudah tayang di "${lemma.isEmpty ? 'kata ini' : lemma}". Statusnya tetap menunggu pengecekan.';
       showFToast(
         context: context,
-        title: const Text('Usulan terkirim - menunggu review'),
+        title: Text(title),
       );
       ref.invalidate(myContributionsListControllerProvider);
       final router = GoRouter.of(context);
@@ -460,7 +472,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
               FTextField(
                 control: FTextFieldControl.managed(controller: _lemmaCtrl),
                 label: const Text('Lemma'),
-                hint: 'Contoh: makatn',
+                hint: 'Contoh: kata',
                 textInputAction: TextInputAction.next,
               ),
 

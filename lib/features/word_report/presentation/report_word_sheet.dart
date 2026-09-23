@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../data/word_report_providers.dart';
 import '../data/word_report_repository.dart';
 
@@ -64,6 +65,10 @@ class _ReportWordSheetState extends ConsumerState<_ReportWordSheet> {
             note: note,
           );
       if (!mounted) return;
+      AnalyticsService.instance.log(
+        AnalyticsEvents.reportWordSubmit,
+        params: {'word_id': widget.wordId},
+      );
       Navigator.of(context).pop(true);
     } on WordReportFailure catch (error) {
       if (!mounted) return;

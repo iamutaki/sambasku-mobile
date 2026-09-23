@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/utils/file_persist_helper.dart';
 import '../../../../shared/utils/permission_helper.dart';
 import '../../dictionary/domain/entities/word_detail.dart';
@@ -27,6 +28,10 @@ Future<void> showWordShareSheet(
   required WordDetail detail,
   required ShareBackgroundRepository backgrounds,
 }) {
+  AnalyticsService.instance.log(
+    AnalyticsEvents.shareStart,
+    params: {'word_id': detail.id},
+  );
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -111,6 +116,7 @@ ShareCardData buildCardData({
     provider: provider,
     isVideo: isVideo,
     variantsLine: spellingVariantsLine(detail),
+    isVerified: detail.isVerified,
   );
 }
 
@@ -489,6 +495,10 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
           sharePositionOrigin: origin,
         );
       }
+      AnalyticsService.instance.log(
+        AnalyticsEvents.shareComplete,
+        params: {'word_id': widget.detail.id},
+      );
     } catch (e) {
       if (!mounted) return;
       showFToast(

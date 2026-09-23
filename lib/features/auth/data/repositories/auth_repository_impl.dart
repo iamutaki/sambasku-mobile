@@ -255,6 +255,7 @@ class AuthRepositoryImpl implements AuthRepository {
       username: payload.user.username,
       role: payload.user.role,
       userId: payload.user.id,
+      avatarUrl: payload.user.avatarUrl,
     );
     await _tokenStorage.setIsAuth(true);
 
@@ -263,6 +264,7 @@ class AuthRepositoryImpl implements AuthRepository {
         userId: payload.user.id,
         username: payload.user.username,
         role: payload.user.role,
+        avatarUrl: payload.user.avatarUrl,
       ),
     );
   }

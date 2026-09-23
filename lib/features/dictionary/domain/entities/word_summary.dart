@@ -25,7 +25,7 @@ class WordSummary {
 
   /// Satu baris arti.
   /// - GET /words/latest: definisi atau terjemahan pertama.
-  /// - GET /words (A-Z): gloss `[n] makan,[v] santap`.
+  /// - GET /words (A-Z) dan GET /words/search: gloss `[n] makan,[v] santap`.
   final String? sense;
 
   /// Waktu persetujuan / tayang. Hanya feed beranda.

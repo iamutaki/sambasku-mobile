@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/utils/permission_helper.dart';
 import '../../application/wav_trim.dart';
 import '../providers/audio_player_controller.dart';
@@ -193,6 +194,10 @@ class _RecordPronunciationSheetState
     );
 
     if (!mounted) return;
+    AnalyticsService.instance.log(
+      AnalyticsEvents.audioRecordStart,
+      params: {'word_id': widget.wordId},
+    );
     setState(() {
       _phase = _RecordPhase.recording;
       _filePath = path;
@@ -425,6 +430,10 @@ class _RecordPronunciationSheetState
       (_) async {
         ref.invalidate(wordDetailProvider(widget.wordId));
         if (!mounted) return;
+        AnalyticsService.instance.log(
+          AnalyticsEvents.audioRecordSubmit,
+          params: {'word_id': widget.wordId},
+        );
         showFToast(
           context: context,
           title: const Text('Terima kasih, rekaman menunggu tinjauan'),

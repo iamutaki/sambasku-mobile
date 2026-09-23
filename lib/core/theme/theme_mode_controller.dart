@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/analytics_service.dart';
+
 part 'theme_mode_controller.g.dart';
 
 /// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
@@ -38,6 +40,10 @@ class ThemeModeController extends _$ThemeModeController {
     initial = next;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefKey, next.name);
+    AnalyticsService.instance.log(
+      AnalyticsEvents.themeChange,
+      params: {'mode': next.name},
+    );
   }
 
   /// Set mode eksplisit (system/light/dark) dari menu Tampilan, lalu persist.
@@ -46,5 +52,9 @@ class ThemeModeController extends _$ThemeModeController {
     initial = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefKey, mode.name);
+    AnalyticsService.instance.log(
+      AnalyticsEvents.themeChange,
+      params: {'mode': mode.name},
+    );
   }
 }

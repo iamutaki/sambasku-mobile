@@ -46,7 +46,7 @@ final class VerifierApplicationNotifierProvider
 }
 
 String _$verifierApplicationNotifierHash() =>
-    r'd6fdf0f40cb875e2f00612c8df7295af537acdf6';
+    r'c1951ebd1a9c391c93deab537c63d99374b8f812';
 
 abstract class _$VerifierApplicationNotifier
     extends $Notifier<VerifierApplicationState> {

@@ -30,6 +30,7 @@ class AuthTokenStorage {
   static const _usernameKey = 'sessionUsername';
   static const _roleKey = 'sessionRole';
   static const _userIdKey = 'sessionUserId';
+  static const _avatarUrlKey = 'sessionAvatarUrl';
 
   final _authStateController = StreamController<bool>.broadcast();
 
@@ -76,6 +77,7 @@ class AuthTokenStorage {
       prefs.remove(_usernameKey),
       prefs.remove(_roleKey),
       prefs.remove(_userIdKey),
+      prefs.remove(_avatarUrlKey),
     ]);
     await setIsAuth(false);
   }
@@ -87,21 +89,28 @@ class AuthTokenStorage {
     required String username,
     required String? role,
     String? userId,
+    String? avatarUrl,
   }) async {
     final prefs = await _sharedPrefs;
     await Future.wait([
       prefs.setString(_usernameKey, username),
       if (role != null && role.isNotEmpty) prefs.setString(_roleKey, role),
       if (userId != null && userId.isNotEmpty) prefs.setString(_userIdKey, userId),
+      if (avatarUrl != null && avatarUrl.isNotEmpty)
+        prefs.setString(_avatarUrlKey, avatarUrl)
+      else
+        prefs.remove(_avatarUrlKey),
     ]);
   }
 
-  Future<({String? username, String? role, String? userId})> getSessionUser() async {
+  Future<({String? username, String? role, String? userId, String? avatarUrl})>
+  getSessionUser() async {
     final prefs = await _sharedPrefs;
     return (
       username: prefs.getString(_usernameKey),
       role: prefs.getString(_roleKey),
       userId: prefs.getString(_userIdKey),
+      avatarUrl: prefs.getString(_avatarUrlKey),
     );
   }
 

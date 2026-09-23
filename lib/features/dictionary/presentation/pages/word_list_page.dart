@@ -258,14 +258,17 @@ class _WordTile extends StatelessWidget with FTileMixin {
 
   @override
   Widget build(BuildContext context) {
-    // Tab Indonesia: hanya lemma Sambas, tanpa gloss/jenis.
-    // Tab Sambas: gloss A-Z (atau label jenis jika bukan "word").
+    // Sambas: gloss A-Z / sense hasil search.
+    // Indonesia: sense (gloss Sambas) — fallback matched_translation.
+    final gloss = item.sense?.trim();
+    final matched = item.matchedTranslation?.trim();
     String? subtitle;
-    if (searchIn != 'translation') {
-      final gloss = item.sense?.trim();
-      subtitle = (gloss != null && gloss.isNotEmpty)
-          ? gloss
-          : (item.wordType != 'word' ? item.wordTypeLabel : null);
+    if (gloss != null && gloss.isNotEmpty) {
+      subtitle = gloss;
+    } else if (searchIn == 'translation' && matched != null && matched.isNotEmpty) {
+      subtitle = matched;
+    } else if (searchIn != 'translation' && item.wordType != 'word') {
+      subtitle = item.wordTypeLabel;
     }
 
     return FTile(

@@ -23,10 +23,13 @@ import '../../features/onboarding/data/onboarding_prefs.dart';
 import '../../features/onboarding/onboarding_router.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/report_bug/report_bug_router.dart';
+import '../../features/review/presentation/providers/review_providers.dart';
+import '../../features/review/review_router.dart';
 import '../../features/user_profile/user_profile_router.dart';
 import '../../features/verifier_application/verifier_application_router.dart';
 import '../../shared/splash/splash_router.dart';
 import '../network/auth_token_storage.dart';
+import '../services/analytics_route_observer.dart';
 
 /// Router utama (pola jnn_mobile):
 /// - redirect onboarding first-install + auth
@@ -43,6 +46,7 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
+    observers: analyticsNavigatorObservers(),
     routes: [
       ...SplashRouter.routes,
       ...OnboardingRouter.routes,
@@ -59,6 +63,7 @@ class AppRouter {
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,
       ...ReportBugRouter.routes,
+      ...ReviewRouter.routes,
       ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -152,6 +157,7 @@ class _HomeShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pendingReview = ref.watch(reviewQueueHasPendingProvider).value ?? false;
     // resizeToAvoidBottomInset false: keyboard tidak dorong bottom nav
     // (nested scaffold + inset = overflow / "geser drawer")
     // footerDecoration dikosongkan - FBottomNavigationBar sudah punya top border
@@ -174,26 +180,56 @@ class _HomeShell extends ConsumerWidget {
             ref.read(latestWordsProvider.notifier).load();
           }
         },
-        children: const [
-          FBottomNavigationBarItem(
+        children: [
+          const FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.house),
             label: Text('Home'),
           ),
-          FBottomNavigationBarItem(
+          const FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.compass),
             label: Text('Eksplorasi'),
           ),
-          FBottomNavigationBarItem(
+          const FBottomNavigationBarItem(
             icon: Icon(FLucideIcons.circlePlus),
             label: Text('Kontribusi'),
           ),
           FBottomNavigationBarItem(
-            icon: Icon(FLucideIcons.userRound),
-            label: Text('Profil'),
+            icon: pendingReview
+                ? const _ProfileNavIcon(showDot: true)
+                : const Icon(FLucideIcons.userRound),
+            label: const Text('Profil'),
           ),
         ],
       ),
       child: navigationShell,
+    );
+  }
+}
+
+class _ProfileNavIcon extends StatelessWidget {
+  const _ProfileNavIcon({required this.showDot});
+
+  final bool showDot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(FLucideIcons.userRound),
+        if (showDot)
+          const Positioned(
+            right: -2,
+            top: -2,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFFF59E0B),
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox(width: 8, height: 8),
+            ),
+          ),
+      ],
     );
   }
 }

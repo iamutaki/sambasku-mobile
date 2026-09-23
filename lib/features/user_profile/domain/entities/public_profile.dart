@@ -7,6 +7,8 @@ class PublicProfile {
     required this.joinedAt,
     required this.contributionsApproved,
     required this.verificationsDone,
+    required this.commentsPublished,
+    this.avatarUrl,
   });
 
   final String username;
@@ -15,4 +17,22 @@ class PublicProfile {
   final String joinedAt;
   final int contributionsApproved;
   final int verificationsDone;
+  final int commentsPublished;
+  final String? avatarUrl;
+}
+
+class PublicActivityItem {
+  const PublicActivityItem({
+    required this.kind,
+    required this.occurredAt,
+    required this.summary,
+    this.wordId,
+    this.lemma,
+  });
+
+  final String kind;
+  final String occurredAt;
+  final String summary;
+  final String? wordId;
+  final String? lemma;
 }

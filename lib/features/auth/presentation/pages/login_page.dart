@@ -8,6 +8,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/widgets/brand_logo.dart';
 import '../../auth_router.dart';
+import '../../domain/failures/auth_failure.dart';
 import '../providers/auth_login_providers.dart';
 import '../providers/auth_status_providers.dart';
 import '../widgets/facebook_auth_button.dart';
@@ -39,11 +40,22 @@ class LoginPage extends HookConsumerWidget {
     });
 
     ref.listen(authLoginProvider.select((s) => s.errorCode), (_, code) {
-      if (code != 'RATE_LIMITED' || !context.mounted) return;
-      showFToast(
-        context: context,
-        title: Text(state.errorMessage ?? 'Coba lagi nanti'),
-      );
+      if (!context.mounted || code == null) return;
+      if (code == 'RATE_LIMITED') {
+        showFToast(
+          context: context,
+          title: Text(state.errorMessage ?? 'Coba lagi nanti'),
+        );
+        return;
+      }
+      if (code == AuthFailure.googleSignInCanceled ||
+          code == AuthFailure.facebookSignInCanceled) {
+        showFToast(
+          context: context,
+          title: const Text('Masuk dibatalkan'),
+        );
+        ref.read(authLoginProvider.notifier).acknowledgeSocialCancel();
+      }
     });
 
     ref.listen(authLoginProvider.select((s) => s.showUnverifiedSheet), (
@@ -125,7 +137,9 @@ class LoginPage extends HookConsumerWidget {
                   ),
                 ),
                 if (state.errorMessage != null &&
-                    state.errorCode != 'RATE_LIMITED') ...[
+                    state.errorCode != 'RATE_LIMITED' &&
+                    state.errorCode != AuthFailure.googleSignInCanceled &&
+                    state.errorCode != AuthFailure.facebookSignInCanceled) ...[
                   const Gap(12),
                   FAlert(
                     variant: .destructive,

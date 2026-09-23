@@ -4,46 +4,55 @@ import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../domain/failures/contribution_failure.dart';
-import '../datasources/image_remote_datasource.dart';
-import '../datasources/imagekit_uploader.dart';
 import '../models/create_word_image_dto.dart';
 
-/// Token backend → upload CDN → DTO siap dikirim di images[].
-/// 503 IMAGE_UPLOAD_UNAVAILABLE → Left dengan errorCode itu (UI sembunyikan
-/// field). Token sekali pakai: satu getUploadToken per file.
+/// Upload gambar kata lewat API (GitHub) — POST /api/v1/images.
+/// 503 PUBLIC_IMAGE_UPLOAD_UNAVAILABLE → Left (UI sembunyikan field).
 class WordImageUploadService {
-  WordImageUploadService(this._remote, this._uploader);
+  WordImageUploadService(this._dio);
 
-  final ImageRemoteDatasource _remote;
-  final ImageKitUploader _uploader;
+  final Dio _dio;
 
   Future<Either<ContributionFailure, CreateWordImageDto>> uploadFile(
     File file, {
     bool isPrimary = false,
     String? altText,
-    String folder = '/words',
   }) async {
     try {
-      final tokenRes = await _remote.getUploadToken(folder: folder);
-      if (tokenRes.success == false || tokenRes.data == null) {
+      final fileName = file.uri.pathSegments.isNotEmpty
+          ? file.uri.pathSegments.last
+          : 'image.jpg';
+      final form = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+      });
+
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/images',
+        queryParameters: {'purpose': 'word'},
+        data: form,
+      );
+
+      final body = res.data;
+      if (body == null || body['success'] != true || body['data'] is! Map) {
         return Either.left(
-          ContributionFailure(
-            tokenRes.message ?? 'Gagal mendapat token upload',
-            errorCode: tokenRes.errorCode,
-          ),
+          const ContributionFailure('Gagal mengunggah gambar, coba lagi'),
+        );
+      }
+      final data = body['data'] as Map<String, dynamic>;
+      final url = data['url'] as String?;
+      final providerFileId = data['provider_file_id'] as String?;
+      final sha = data['sha'] as String?;
+      if (url == null || providerFileId == null) {
+        return Either.left(
+          const ContributionFailure('Gagal mengunggah gambar, coba lagi'),
         );
       }
 
-      final uploaded = await _uploader.upload(
-        file: file,
-        creds: tokenRes.data!,
-        folder: folder,
-      );
-
       return Either.right(
         CreateWordImageDto(
-          url: uploaded.url,
-          providerFileId: uploaded.fileId,
+          url: url,
+          providerFileId: providerFileId,
+          sha: sha,
           altText: altText,
           isPrimary: isPrimary,
         ),
@@ -53,14 +62,15 @@ class WordImageUploadService {
       if (data is Map<String, dynamic>) {
         final code = data['error_code'] as String?;
         final message = data['message'];
-        if (code == 'IMAGE_UPLOAD_UNAVAILABLE' ||
+        if (code == 'PUBLIC_IMAGE_UPLOAD_UNAVAILABLE' ||
+            code == 'IMAGE_UPLOAD_UNAVAILABLE' ||
             e.response?.statusCode == 503) {
           return Either.left(
             ContributionFailure(
               message is String && message.isNotEmpty
                   ? message
                   : 'Penyimpanan gambar belum tersedia',
-              errorCode: 'IMAGE_UPLOAD_UNAVAILABLE',
+              errorCode: 'PUBLIC_IMAGE_UPLOAD_UNAVAILABLE',
             ),
           );
         }

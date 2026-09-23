@@ -9,6 +9,7 @@ abstract class LoginUserDto with _$LoginUserDto {
     required String id,
     required String username,
     required String role,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
   }) = _LoginUserDto;
 
   factory LoginUserDto.fromJson(Map<String, dynamic> json) =>

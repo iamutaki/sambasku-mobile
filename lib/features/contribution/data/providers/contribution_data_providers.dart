@@ -5,6 +5,7 @@ import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
 import '../datasources/image_remote_datasource.dart';
 import '../datasources/imagekit_uploader.dart';
+import '../datasources/private_image_upload_service.dart';
 import '../datasources/word_image_upload_service.dart';
 import '../repositories/contribution_repository_impl.dart';
 
@@ -24,7 +25,11 @@ ImageRemoteDatasource imageRemoteDatasource(Ref ref) =>
 
 @riverpod
 WordImageUploadService wordImageUploadService(Ref ref) =>
-    WordImageUploadService(
+    WordImageUploadService(ref.watch(dioProvider));
+
+@riverpod
+PrivateImageUploadService privateImageUploadService(Ref ref) =>
+    PrivateImageUploadService(
       ref.watch(imageRemoteDatasourceProvider),
       ImageKitUploader(),
     );

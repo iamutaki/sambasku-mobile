@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -6,11 +7,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../review/domain/review_access.dart';
+import '../../../review/presentation/providers/review_providers.dart';
 import '../../../bookmark/presentation/providers/bookmark_providers.dart';
 import '../../../bookmark/presentation/widgets/bookmark_button.dart';
 import '../../../comment/presentation/widgets/word_comments_section.dart';
 import '../../../comment/presentation/providers/comment_providers.dart';
-import '../../../../core/theme/f_colors_x.dart';
+import '../../../../core/services/analytics_service.dart';
+import '../../../../core/utils/display_image_url.dart';
+import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/image_preview.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
@@ -21,7 +26,6 @@ import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_detail.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../providers/word_detail_providers.dart';
-import '../../../../core/utils/format_datetime.dart';
 import '../../../user_profile/user_profile_router.dart';
 import '../../../share/data/share_background_repository.dart';
 import '../../../share/presentation/share_sheet.dart';
@@ -32,13 +36,21 @@ import '../widgets/pronunciation_section.dart';
 import '../../../word_report/presentation/report_word_sheet.dart';
 
 /// Halaman detail kata publik - GET /api/v1/words/:id.
-class WordDetailPage extends ConsumerWidget {
+class WordDetailPage extends HookConsumerWidget {
   const WordDetailPage({super.key, required this.wordId});
 
   final String wordId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useEffect(() {
+      AnalyticsService.instance.logWordOpen(
+        wordId: wordId,
+        source: 'detail',
+      );
+      return null;
+    }, [wordId]);
+
     final async = ref.watch(wordDetailProvider(wordId));
     final theme = context.theme;
 
@@ -145,6 +157,33 @@ Future<void> _refreshWordDetail(WidgetRef ref, String wordId) async {
   ]);
 }
 
+Future<void> _openWordReview(BuildContext context, WidgetRef ref, String wordId) async {
+  final result = await ref.read(reviewRepositoryProvider).list(
+    status: 'pending',
+    wordId: wordId,
+    limit: 20,
+  );
+  if (!context.mounted) return;
+  result.match((failure) {
+    final message = failure.isForbidden
+        ? 'Kamu tidak berwenang meninjau usulan.'
+        : failure.message;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }, (page) {
+    if (page.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak ada usulan yang menunggu untuk kata ini.')),
+      );
+      return;
+    }
+    if (page.items.length == 1) {
+      context.push('/review/${page.items.first.id}');
+      return;
+    }
+    context.push('/review?wordId=$wordId');
+  });
+}
+
 class _DetailBody extends ConsumerWidget {
   const _DetailBody({required this.detail, required this.wordId});
 
@@ -158,7 +197,10 @@ class _DetailBody extends ConsumerWidget {
         detail.images.where((i) => i.isPrimary).firstOrNull ??
         detail.images.firstOrNull;
 
-    return RefreshIndicator(
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
       onRefresh: () => _refreshWordDetail(ref, wordId),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -186,7 +228,10 @@ class _DetailBody extends ConsumerWidget {
                       width: 72,
                       height: 72,
                       child: CachedNetworkImageWithFallback(
-                        imageUrl: primaryImage.url,
+                        imageUrl:
+                            displayImageUrl(primaryImage.url, width: 800) ??
+                            primaryImage.url,
+                        fallbackUrl: primaryImage.url,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -219,9 +264,35 @@ class _DetailBody extends ConsumerWidget {
                                 showVerifierAttributionSheet(context, detail),
                             child: const VerifiedBadgeIcon(),
                           ),
+                        )
+                      else
+                        Text(
+                          'Menunggu pengecekan',
+                          style: theme.typography.xs.copyWith(
+                            color: theme.colors.mutedForeground,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                     ],
                   ),
+                  if (!detail.isVerified) ...[
+                    const Gap(6),
+                    Text(
+                      'Kata ini belum diperiksa tim Sambasku. Artinya atau terjemahannya bisa saja kurang tepat.',
+                      style: theme.typography.xs.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                    if (detail.status == 'published' &&
+                        canReviewQueue(ref.watch(authStatusProvider).value?.role)) ...[
+                      const Gap(8),
+                      FButton(
+                        variant: .outline,
+                        onPress: () => _openWordReview(context, ref, wordId),
+                        child: const Text('Tinjau'),
+                      ),
+                    ],
+                  ],
                   const Gap(2),
                   Text(
                     detail.wordTypeLabel,
@@ -229,24 +300,6 @@ class _DetailBody extends ConsumerWidget {
                       color: theme.colors.mutedForeground,
                     ),
                   ),
-                  if (detail.verifiedBy != null) ...[
-                    const Gap(6),
-                    Semantics(
-                      button: true,
-                      label: detail.verifierAttributionLabel,
-                      child: GestureDetector(
-                        onTap: () =>
-                            showVerifierAttributionSheet(context, detail),
-                        child: Text(
-                          detail.verifierAttributionLabel,
-                          style: theme.typography.sm.copyWith(
-                            color: theme.colors.success,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                   if (detail.pronunciations.isNotEmpty) ...[
                     const Gap(4),
                     Text(
@@ -337,13 +390,41 @@ class _DetailBody extends ConsumerWidget {
           ...detail.appearsIn.map((r) => _RelatedRow(related: r)),
         ],
 
-        const Gap(16),
-        _WordActionTileGroup(detail: detail, wordId: wordId),
+        if (detail.combinedAttributionLabel != null ||
+            detail.creatorAttributionLabel != null ||
+            detail.verifierAttributionLabel != null) ...[
+          const Gap(18),
+          if (detail.combinedAttributionLabel != null)
+            _AttributionLine(
+              label: detail.combinedAttributionLabel!,
+              username:
+                  detail.verifiedBy?.username ?? detail.createdBy!.username,
+              badge: detail.combinedByVerifier ? 'Verifikator' : null,
+            )
+          else ...[
+            if (detail.creatorAttributionLabel != null)
+              _AttributionLine(
+                label: detail.creatorAttributionLabel!,
+                username: detail.createdBy!.username,
+              ),
+            if (detail.verifierAttributionLabel != null) ...[
+              const Gap(2),
+              _AttributionLine(
+                label: detail.verifierAttributionLabel!,
+                username: detail.verifiedBy!.username,
+              ),
+            ],
+          ],
+        ],
 
         const Gap(16),
-        WordCommentsSection(wordId: wordId),
+        _WordActionTileGroup(detail: detail, wordId: wordId),
       ],
       ),
+          ),
+        ),
+        WordCommentEntryBar(wordId: wordId),
+      ],
     );
   }
 
@@ -568,7 +649,7 @@ class _WordActionTileGroup extends ConsumerWidget {
           prefix: const Icon(FLucideIcons.penLine),
           title: const Text('Usulkan perubahan'),
           subtitle: const Text(
-            'Lemma, definisi, catatan - masuk antrean review',
+            'Perbaikan kata yang sudah dicek menunggu persetujuan',
           ),
           suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
           onPress: () async {
@@ -872,7 +953,7 @@ class _DetailSkeleton extends StatelessWidget {
       duration: const Duration(milliseconds: 1500),
     );
 
-    // Mirror 1:1 struktur [_DetailBody]: thumb+meta → vote → makna → komentar.
+    // Mirror struktur [_DetailBody]: thumb+meta → vote → makna. Komentar ada di bar bawah.
     return SkeletonizerConfig(
       data: SkeletonizerConfigData(effect: shimmer),
       child: IgnorePointer(
@@ -1062,9 +1143,77 @@ class _CommentSkeletonCard extends StatelessWidget {
   }
 }
 
+class _AttributionLine extends StatelessWidget {
+  const _AttributionLine({
+    required this.label,
+    required this.username,
+    this.badge,
+  });
+
+  final String label;
+  final String username;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final tappable = username != 'anonim';
+    final textStyle = theme.typography.sm.copyWith(
+      color: theme.colors.mutedForeground,
+      fontWeight: FontWeight.w500,
+    );
+    return Semantics(
+      button: tappable,
+      label: badge == null ? label : '$label, $badge',
+      child: GestureDetector(
+        onTap: tappable
+            ? () => UserProfileRouter.open(context, username)
+            : null,
+        child: Text.rich(
+          TextSpan(
+            style: textStyle,
+            children: [
+              TextSpan(text: label),
+              if (badge != null)
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge!,
+                        style: theme.typography.xs.copyWith(
+                          color: theme.colors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
-  final username = detail.verifiedBy?.username;
   final verifiedAt = formatDateTimeIso(detail.verifiedAt);
+  final profiles = <String>{
+    if (detail.createdBy != null && detail.createdBy!.username != 'anonim')
+      detail.createdBy!.username,
+    if (detail.verifiedBy != null && detail.verifiedBy!.username != 'anonim')
+      detail.verifiedBy!.username,
+  };
 
   showModalBottomSheet<void>(
     context: context,
@@ -1084,7 +1233,7 @@ void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
                   children: [
                     Expanded(
                       child: Text(
-                        'Verifikator',
+                        'Atribusi',
                         style: theme.typography.lg.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -1096,10 +1245,35 @@ void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
                     ),
                   ],
                 ),
-                Text(
-                  detail.verifierAttributionLabel,
-                  style: theme.typography.sm,
-                ),
+                if (detail.combinedAttributionLabel != null) ...[
+                  Text(
+                    detail.combinedAttributionLabel!,
+                    style: theme.typography.sm,
+                  ),
+                  if (detail.combinedByVerifier) ...[
+                    const Gap(6),
+                    Text(
+                      'Verifikator',
+                      style: theme.typography.xs.copyWith(
+                        color: theme.colors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ] else ...[
+                  if (detail.creatorAttributionLabel != null)
+                    Text(
+                      detail.creatorAttributionLabel!,
+                      style: theme.typography.sm,
+                    ),
+                  if (detail.verifierAttributionLabel != null) ...[
+                    const Gap(4),
+                    Text(
+                      detail.verifierAttributionLabel!,
+                      style: theme.typography.sm,
+                    ),
+                  ],
+                ],
                 if (verifiedAt.isNotEmpty) ...[
                   const Gap(4),
                   Text(
@@ -1109,14 +1283,18 @@ void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
                     ),
                   ),
                 ],
-                if (username != null) ...[
-                  const Gap(16),
+                for (final username in profiles) ...[
+                  const Gap(12),
                   FButton(
                     onPress: () {
                       Navigator.of(sheetContext).pop();
                       UserProfileRouter.open(context, username);
                     },
-                    child: const Text('Lihat profil'),
+                    child: Text(
+                      profiles.length == 1
+                          ? 'Lihat profil'
+                          : 'Profil $username',
+                    ),
                   ),
                 ],
                 const Gap(8),

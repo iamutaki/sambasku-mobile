@@ -154,7 +154,7 @@ void main() {
           supportedLocales: FLocalizations.supportedLocales,
           home: FTheme(
             data: FThemes.zinc.light.touch,
-            child: const ProfilePage(),
+            child: const FToaster(child: ProfilePage()),
           ),
         ),
       ),
@@ -193,6 +193,7 @@ void main() {
     );
 
     expect(find.text('budi'), findsOneWidget);
+    expect(find.text('Tinjau usulan'), findsNothing);
     expect(find.text('Masuk / Login'), findsNothing);
     expect(find.text('Daftar'), findsNothing);
     expect(find.text('Keluar'), findsOneWidget);
@@ -208,6 +209,17 @@ void main() {
     expect(find.text('Masuk / Login'), findsOneWidget);
     expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(FToast),
+        matching: find.text('Berhasil keluar'),
+      ),
+      findsOneWidget,
+    );
+
+    // biarkan toast auto-dismiss supaya tidak ada pending timer di teardown
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 300));
   });
 
   testWidgets('sudah login - tile Vote dan Komentar membuka route', (tester) async {

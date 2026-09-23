@@ -1,0 +1,211 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../flavors.dart';
+
+/// Nama event kanonik (docs/mobile/mobile-base-stack.md Section 14).
+abstract final class AnalyticsEvents {
+  static const screenView = 'screen_view';
+  static const searchSubmit = 'search_submit';
+  static const wotdTap = 'wotd_tap';
+  static const wordOpen = 'word_open';
+  static const audioPlay = 'audio_play';
+  static const contributeStart = 'contribute_start';
+  static const contributeSubmit = 'contribute_submit';
+  static const contributeSuccess = 'contribute_success';
+  static const contributeFail = 'contribute_fail';
+  static const exploreCategoryTap = 'explore_category_tap';
+  static const mapOpen = 'map_open';
+  static const mapFallbackShown = 'map_fallback_shown';
+  static const voteCast = 'vote_cast';
+  static const bookmarkToggle = 'bookmark_toggle';
+  static const shareStart = 'share_start';
+  static const shareComplete = 'share_complete';
+  static const authLoginSuccess = 'auth_login_success';
+  static const authLoginFail = 'auth_login_fail';
+  static const authRegisterSuccess = 'auth_register_success';
+  static const authLogout = 'auth_logout';
+  static const searchMissTap = 'search_miss_tap';
+  static const commentSubmit = 'comment_submit';
+  static const notificationOpen = 'notification_open';
+  static const notificationItemTap = 'notification_item_tap';
+  static const suggestEditSubmit = 'suggest_edit_submit';
+  static const audioRecordStart = 'audio_record_start';
+  static const audioRecordSubmit = 'audio_record_submit';
+  static const reportWordSubmit = 'report_word_submit';
+  static const reportBugSubmit = 'report_bug_submit';
+  static const onboardingComplete = 'onboarding_complete';
+  static const themeChange = 'theme_change';
+  static const reviewApprove = 'review_approve';
+  static const reviewReject = 'review_reject';
+  static const reviewCorrect = 'review_correct';
+  static const verifierApplySubmit = 'verifier_apply_submit';
+}
+
+/// Abstraksi Firebase Analytics. Page/notifier memanggil ini, bukan
+/// `FirebaseAnalytics` langsung.
+class AnalyticsService {
+  AnalyticsService._({FirebaseAnalytics? analytics})
+      : _analytics = analytics ?? FirebaseAnalytics.instance;
+
+  static AnalyticsService? _instance;
+
+  static AnalyticsService get instance =>
+      _instance ??= AnalyticsService._();
+
+  /// Untuk tes: inject mock / reset singleton.
+  @visibleForTesting
+  static void debugReset([AnalyticsService? service]) {
+    _instance = service;
+  }
+
+  final FirebaseAnalytics _analytics;
+  bool _ready = false;
+
+  /// Panggil sekali setelah `Firebase.initializeApp()`.
+  Future<void> init() async {
+    if (_ready) return;
+    try {
+      await _analytics.setAnalyticsCollectionEnabled(true);
+      await _analytics.setUserProperty(
+        name: 'app_flavor',
+        value: F.appFlavor.name,
+      );
+      _ready = true;
+    } catch (e, st) {
+      debugPrint('AnalyticsService.init failed: $e\n$st');
+    }
+  }
+
+  Future<void> log(
+    String name, {
+    Map<String, Object>? params,
+  }) async {
+    if (!_ready) return;
+    try {
+      final cleaned = params == null
+          ? null
+          : <String, Object>{
+              for (final e in params.entries)
+                if (e.value.toString().isNotEmpty) e.key: e.value,
+            };
+      await _analytics.logEvent(name: name, parameters: cleaned);
+    } catch (e, st) {
+      debugPrint('AnalyticsService.log($name) failed: $e\n$st');
+    }
+  }
+
+  Future<void> logScreenView(String screenName) async {
+    if (!_ready) return;
+    try {
+      await _analytics.logScreenView(screenName: screenName);
+    } catch (e, st) {
+      debugPrint('AnalyticsService.logScreenView failed: $e\n$st');
+    }
+  }
+
+  Future<void> logSearchSubmit({
+    required int queryLen,
+    required String searchIn,
+    required bool hasResults,
+  }) =>
+      log(
+        AnalyticsEvents.searchSubmit,
+        params: {
+          'query_len': queryLen,
+          'search_in': searchIn,
+          'has_results': hasResults ? 1 : 0,
+        },
+      );
+
+  Future<void> logWordOpen({
+    required String wordId,
+    required String source,
+  }) =>
+      log(
+        AnalyticsEvents.wordOpen,
+        params: {'word_id': wordId, 'source': source},
+      );
+
+  Future<void> logContributeSubmit({required bool guest}) => log(
+        AnalyticsEvents.contributeSubmit,
+        params: {'guest': guest ? 1 : 0},
+      );
+
+  Future<void> logContributeSuccess({
+    required bool guest,
+    String? wordId,
+  }) =>
+      log(
+        AnalyticsEvents.contributeSuccess,
+        params: {
+          'guest': guest ? 1 : 0,
+          'word_id': ?wordId,
+        },
+      );
+
+  Future<void> logContributeFail({
+    required bool guest,
+    String? errorCode,
+  }) =>
+      log(
+        AnalyticsEvents.contributeFail,
+        params: {
+          'guest': guest ? 1 : 0,
+          'error_code': ?errorCode,
+        },
+      );
+
+  Future<void> logExploreCategoryTap({
+    required String categoryId,
+    required bool comingSoon,
+  }) =>
+      log(
+        AnalyticsEvents.exploreCategoryTap,
+        params: {
+          'category_id': categoryId,
+          'coming_soon': comingSoon ? 1 : 0,
+        },
+      );
+
+  Future<void> logMapOpen({
+    required String entry,
+    required String mode,
+  }) =>
+      log(
+        AnalyticsEvents.mapOpen,
+        params: {'entry': entry, 'mode': mode},
+      );
+
+  Future<void> logMapFallback({required String reason}) => log(
+        AnalyticsEvents.mapFallbackShown,
+        params: {'reason': reason},
+      );
+
+  Future<void> logVoteCast({
+    required String targetType,
+    required int direction,
+  }) =>
+      log(
+        AnalyticsEvents.voteCast,
+        params: {
+          'target_type': targetType,
+          'direction': direction,
+        },
+      );
+
+  Future<void> logBookmarkToggle({
+    required String wordId,
+    required String action,
+  }) =>
+      log(
+        AnalyticsEvents.bookmarkToggle,
+        params: {'word_id': wordId, 'action': action},
+      );
+
+  Future<void> logAuthSuccess({
+    required String event,
+    required String method,
+  }) =>
+      log(event, params: {'method': method});
+}

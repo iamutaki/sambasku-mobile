@@ -6,6 +6,7 @@ class AuthStatusState {
     this.username,
     this.role,
     this.userId,
+    this.avatarUrl,
     this.isLoggingOut = false,
   });
 
@@ -13,6 +14,7 @@ class AuthStatusState {
   final String? username;
   final String? role;
   final String? userId;
+  final String? avatarUrl;
   final bool isLoggingOut;
 
   AuthStatusState copyWith({
@@ -20,13 +22,16 @@ class AuthStatusState {
     String? username,
     String? role,
     String? userId,
+    String? avatarUrl,
     bool? isLoggingOut,
+    bool clearAvatarUrl = false,
   }) {
     return AuthStatusState(
       isAuth: isAuth ?? this.isAuth,
       username: username ?? this.username,
       role: role ?? this.role,
       userId: userId ?? this.userId,
+      avatarUrl: clearAvatarUrl ? null : (avatarUrl ?? this.avatarUrl),
       isLoggingOut: isLoggingOut ?? this.isLoggingOut,
     );
   }

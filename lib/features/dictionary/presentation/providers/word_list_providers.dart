@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/word_summary.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../../domain/providers/dictionary_domain_providers.dart';
@@ -205,6 +206,13 @@ class WordListNotifier extends _$WordListNotifier {
       hasMore: page.hasMore,
       viaSearch: viaSearch,
     );
+    if (viaSearch && state.q.trim().isNotEmpty) {
+      AnalyticsService.instance.logSearchSubmit(
+        queryLen: state.q.trim().length,
+        searchIn: state.searchIn,
+        hasResults: page.items.isNotEmpty,
+      );
+    }
   }
 
   /// Halaman pertama (buka halaman / q berubah / pull-to-refresh).

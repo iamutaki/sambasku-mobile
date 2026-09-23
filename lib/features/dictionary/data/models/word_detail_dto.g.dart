@@ -6,66 +6,68 @@ part of 'word_detail_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_WordDetailDto _$WordDetailDtoFromJson(Map<String, dynamic> json) =>
-    _WordDetailDto(
-      id: json['id'] as String,
-      lemma: json['lemma'] as String,
-      languageId: json['language_id'] as String,
-      notes: json['notes'] as String?,
-      wordType: json['word_type'] as String,
-      status: json['status'] as String,
-      isVerified: json['is_verified'] as bool,
-      isCorrected: json['is_corrected'] as bool? ?? false,
-      selfVerified: json['self_verified'] as bool? ?? false,
-      verifiedAt: json['verified_at'] as String?,
-      verifiedBy: json['verified_by'] == null
-          ? null
-          : WordVerifierDto.fromJson(
-              json['verified_by'] as Map<String, dynamic>,
-            ),
-      meanings:
-          (json['meanings'] as List<dynamic>?)
-              ?.map((e) => MeaningDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      categories:
-          (json['categories'] as List<dynamic>?)
-              ?.map((e) => CategoryDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      pronunciations:
-          (json['pronunciations'] as List<dynamic>?)
-              ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      audios:
-          (json['audios'] as List<dynamic>?)
-              ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      images:
-          (json['images'] as List<dynamic>?)
-              ?.map((e) => WordImageDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      relatedWords:
-          (json['related_words'] as List<dynamic>?)
-              ?.map((e) => RelatedWordDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      appearsIn:
-          (json['appears_in'] as List<dynamic>?)
-              ?.map((e) => RelatedWordDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      variants:
-          (json['variants'] as List<dynamic>?)
-              ?.map((e) => WordVariantDto.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      date: json['date'] as String?,
-      isNewThisWeek: json['is_new_this_week'] as bool? ?? false,
-    );
+_WordDetailDto _$WordDetailDtoFromJson(
+  Map<String, dynamic> json,
+) => _WordDetailDto(
+  id: json['id'] as String,
+  lemma: json['lemma'] as String,
+  languageId: json['language_id'] as String,
+  notes: json['notes'] as String?,
+  wordType: json['word_type'] as String,
+  status: json['status'] as String,
+  isVerified: json['is_verified'] as bool,
+  isCorrected: json['is_corrected'] as bool? ?? false,
+  selfVerified: json['self_verified'] as bool? ?? false,
+  verifiedAt: json['verified_at'] as String?,
+  verifiedBy: json['verified_by'] == null
+      ? null
+      : WordVerifierDto.fromJson(json['verified_by'] as Map<String, dynamic>),
+  createdBy: json['created_by'] == null
+      ? null
+      : WordVerifierDto.fromJson(json['created_by'] as Map<String, dynamic>),
+  meanings:
+      (json['meanings'] as List<dynamic>?)
+          ?.map((e) => MeaningDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  categories:
+      (json['categories'] as List<dynamic>?)
+          ?.map((e) => CategoryDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  pronunciations:
+      (json['pronunciations'] as List<dynamic>?)
+          ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  audios:
+      (json['audios'] as List<dynamic>?)
+          ?.map((e) => WordAudioDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  images:
+      (json['images'] as List<dynamic>?)
+          ?.map((e) => WordImageDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  relatedWords:
+      (json['related_words'] as List<dynamic>?)
+          ?.map((e) => RelatedWordDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  appearsIn:
+      (json['appears_in'] as List<dynamic>?)
+          ?.map((e) => RelatedWordDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  variants:
+      (json['variants'] as List<dynamic>?)
+          ?.map((e) => WordVariantDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  date: json['date'] as String?,
+  isNewThisWeek: json['is_new_this_week'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
     <String, dynamic>{
@@ -80,6 +82,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'self_verified': instance.selfVerified,
       'verified_at': instance.verifiedAt,
       'verified_by': instance.verifiedBy,
+      'created_by': instance.createdBy,
       'meanings': instance.meanings,
       'categories': instance.categories,
       'pronunciations': instance.pronunciations,

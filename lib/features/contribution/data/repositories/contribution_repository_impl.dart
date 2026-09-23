@@ -39,6 +39,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
             (img) => CreateWordImageDto(
               url: img.url,
               providerFileId: img.providerFileId,
+              sha: img.sha,
               altText: img.altText,
               isPrimary: img.isPrimary,
             ),

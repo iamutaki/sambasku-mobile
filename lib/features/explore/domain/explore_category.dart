@@ -49,6 +49,7 @@ class ExploreCategory {
       title: 'Bahasa & Budaya',
       subtitle: 'Ungkapan, pantun, dan kamus hidup',
       icon: FLucideIcons.bookOpen,
+      comingSoon: false,
     ),
     ExploreCategory(
       id: 'sejarah-tokoh',
@@ -73,6 +74,7 @@ class ExploreCategory {
       title: 'Peta & Akses',
       subtitle: 'Cara ke lokasi dan transportasi',
       icon: FLucideIcons.map,
+      comingSoon: false,
     ),
     ExploreCategory(
       id: 'komunitas',

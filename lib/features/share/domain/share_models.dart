@@ -108,6 +108,7 @@ class ShareCardData {
     this.provider,
     this.isVideo = false,
     this.variantsLine,
+    this.isVerified = true,
   });
 
   final String lemma;
@@ -125,6 +126,9 @@ class ShareCardData {
   final String? provider;
   final bool isVideo;
   final String? variantsLine;
+  final bool isVerified;
+
+  String get trustLabel => isVerified ? 'Terverifikasi' : 'Menunggu pengecekan';
 
   String? get wordClassBracket {
     final code = wordClassCode?.trim();
@@ -145,10 +149,11 @@ class ShareCardData {
   String get caption {
     final pad = (padanan != null && padanan!.isNotEmpty) ? padanan! : lemma;
     final variants = variantsLine;
-    if (variants != null && variants.isNotEmpty) {
-      return '"$lemma" ($variants) — $pad · kamus bahasa Sambas #SambasKu';
-    }
-    return '"$lemma" — $pad · kamus bahasa Sambas #SambasKu';
+    final base = variants != null && variants.isNotEmpty
+        ? '"$lemma" ($variants) — $pad · kamus bahasa Sambas #SambasKu'
+        : '"$lemma" — $pad · kamus bahasa Sambas #SambasKu';
+    if (isVerified) return base;
+    return '$base\nArti belum diperiksa tim Sambasku.';
   }
 
   String get copyText {
@@ -183,6 +188,9 @@ class ShareCardData {
     }
     if (exampleSentence != null && exampleSentence!.isNotEmpty) {
       buf.write('\n"$exampleSentence"');
+    }
+    if (!isVerified) {
+      buf.write('\nArti belum diperiksa tim Sambasku.');
     }
     buf.write('\n\n#SambasKu');
     return buf.toString();

@@ -13,12 +13,14 @@ class AttachmentUploadedImage {
   const AttachmentUploadedImage({
     required this.url,
     required this.providerFileId,
+    this.sha,
     this.altText,
     this.isPrimary = false,
   });
 
   final String url;
   final String providerFileId;
+  final String? sha;
   final String? altText;
   final bool isPrimary;
 }

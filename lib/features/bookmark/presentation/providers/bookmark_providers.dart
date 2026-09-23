@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../domain/entities/bookmark_status.dart';
 import '../../domain/failures/bookmark_failure.dart';
@@ -43,6 +44,10 @@ class BookmarkToggleController extends _$BookmarkToggleController {
         // List dari Profil → Bookmark keepAlive; tanpa invalidate, item
         // baru/hilang tidak muncul sampai pull-to-refresh / cold start.
         ref.invalidate(bookmarkListControllerProvider);
+        AnalyticsService.instance.logBookmarkToggle(
+          wordId: wordId,
+          action: status.isBookmarked ? 'add' : 'remove',
+        );
         return null;
       },
     );

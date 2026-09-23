@@ -56,3 +56,51 @@ final class GetPublicProfileUseCaseProvider
 
 String _$getPublicProfileUseCaseHash() =>
     r'8d1e04cd81ef77795681dc2c7018aee76ad9dcf7';
+
+@ProviderFor(getPublicActivityUseCase)
+final getPublicActivityUseCaseProvider = GetPublicActivityUseCaseProvider._();
+
+final class GetPublicActivityUseCaseProvider
+    extends
+        $FunctionalProvider<
+          GetPublicActivityUseCase,
+          GetPublicActivityUseCase,
+          GetPublicActivityUseCase
+        >
+    with $Provider<GetPublicActivityUseCase> {
+  GetPublicActivityUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'getPublicActivityUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$getPublicActivityUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetPublicActivityUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GetPublicActivityUseCase create(Ref ref) {
+    return getPublicActivityUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetPublicActivityUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetPublicActivityUseCase>(value),
+    );
+  }
+}
+
+String _$getPublicActivityUseCaseHash() =>
+    r'6cbc5534238c40c21090a36382c39415c98c59c1';

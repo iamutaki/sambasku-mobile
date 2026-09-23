@@ -473,16 +473,34 @@ Widget _variantsUnderLemma({
   TextAlign align = TextAlign.start,
 }) {
   final line = data.variantsLine;
-  if (line == null || line.isEmpty) return const SizedBox.shrink();
-  return Padding(
+  final chip = Padding(
     padding: const EdgeInsets.only(top: 10),
     child: Text(
-      line,
+      data.trustLabel,
       textAlign: align,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: _bodyStyle(pair: pair, size: size, color: color),
+      style: _bodyStyle(pair: pair, size: size * 0.85, color: color),
     ),
+  );
+  if (line == null || line.isEmpty) return chip;
+  return Column(
+    crossAxisAlignment: align == TextAlign.center
+        ? CrossAxisAlignment.center
+        : align == TextAlign.end
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+    children: [
+      chip,
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(
+          line,
+          textAlign: align,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: _bodyStyle(pair: pair, size: size, color: color),
+        ),
+      ),
+    ],
   );
 }
 

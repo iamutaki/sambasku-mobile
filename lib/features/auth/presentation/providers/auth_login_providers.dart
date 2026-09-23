@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/failures/auth_failure.dart';
 import '../../domain/providers/auth_domain_providers.dart';
@@ -57,6 +58,13 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
           clearSession: true,
           showUnverifiedSheet: false,
         );
+        AnalyticsService.instance.log(
+          AnalyticsEvents.authLoginFail,
+          params: {
+            'method': 'email',
+            if (failure.errorCode != null) 'error_code': failure.errorCode!,
+          },
+        );
       },
       (session) {
         ref.read(authStatusProvider.notifier).markLoggedIn(session);
@@ -64,6 +72,10 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
           isSubmitting: false,
           session: session,
           showUnverifiedSheet: false,
+        );
+        AnalyticsService.instance.logAuthSuccess(
+          event: AnalyticsEvents.authLoginSuccess,
+          method: 'email',
         );
       },
     );
@@ -82,12 +94,6 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
     );
 
     final result = await ref.read(authLoginWithGoogleUseCaseProvider).call();
-    if (result == null) {
-      state = state.copyWith(isSubmitting: false);
-      _inFlight = false;
-      return;
-    }
-
     result.match(
       (failure) => _applyGoogleFailure(failure),
       (session) => _applyGoogleSession(session),
@@ -107,20 +113,23 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
     );
 
     final result = await ref.read(authLoginWithFacebookUseCaseProvider).call();
-    if (result == null) {
-      state = state.copyWith(isSubmitting: false);
-      _inFlight = false;
-      return;
-    }
-
     result.match(
       (failure) => _applyFacebookFailure(failure),
-      (session) => _applyGoogleSession(session),
+      (session) => _applySocialSession(session, method: 'facebook'),
     );
     _inFlight = false;
   }
 
   void _applyGoogleFailure(AuthFailure failure) {
+    if (failure.isSocialSignInCanceled) {
+      state = state.copyWith(
+        isSubmitting: false,
+        errorCode: failure.errorCode,
+        clearErrorMessage: true,
+        clearSession: true,
+      );
+      return;
+    }
     final hide = failure.errorCode == 'GOOGLE_AUTH_UNAVAILABLE';
     state = state.copyWith(
       isSubmitting: false,
@@ -129,9 +138,25 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
       googleUnavailable: hide || state.googleUnavailable,
       clearSession: true,
     );
+    AnalyticsService.instance.log(
+      AnalyticsEvents.authLoginFail,
+      params: {
+        'method': 'google',
+        if (failure.errorCode != null) 'error_code': failure.errorCode!,
+      },
+    );
   }
 
   void _applyFacebookFailure(AuthFailure failure) {
+    if (failure.isSocialSignInCanceled) {
+      state = state.copyWith(
+        isSubmitting: false,
+        errorCode: failure.errorCode,
+        clearErrorMessage: true,
+        clearSession: true,
+      );
+      return;
+    }
     final hide = failure.errorCode == 'FACEBOOK_AUTH_UNAVAILABLE';
     state = state.copyWith(
       isSubmitting: false,
@@ -140,14 +165,34 @@ class AuthLoginNotifier extends _$AuthLoginNotifier {
       facebookUnavailable: hide || state.facebookUnavailable,
       clearSession: true,
     );
+    AnalyticsService.instance.log(
+      AnalyticsEvents.authLoginFail,
+      params: {
+        'method': 'facebook',
+        if (failure.errorCode != null) 'error_code': failure.errorCode!,
+      },
+    );
   }
 
   void _applyGoogleSession(AuthSession session) {
+    _applySocialSession(session, method: 'google');
+  }
+
+  void _applySocialSession(AuthSession session, {required String method}) {
     ref.read(authStatusProvider.notifier).markLoggedIn(session);
     state = state.copyWith(isSubmitting: false, session: session);
+    AnalyticsService.instance.logAuthSuccess(
+      event: AnalyticsEvents.authLoginSuccess,
+      method: method,
+    );
   }
 
   void acknowledgeUnverifiedSheet() {
     state = state.copyWith(showUnverifiedSheet: false);
+  }
+
+  /// Setelah toast "Masuk dibatalkan" supaya cancel kedua tetap memicu listen.
+  void acknowledgeSocialCancel() {
+    state = state.copyWith(clearErrorCode: true, clearErrorMessage: true);
   }
 }

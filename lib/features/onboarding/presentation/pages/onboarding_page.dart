@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/widgets/brand_logo.dart';
 import '../../data/onboarding_prefs.dart';
@@ -55,6 +56,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         await NotificationService.requestPermissions();
       }
       await OnboardingPrefs.markDone();
+      await AnalyticsService.instance.log(AnalyticsEvents.onboardingComplete);
       if (!mounted) return;
       context.go('/');
     } finally {

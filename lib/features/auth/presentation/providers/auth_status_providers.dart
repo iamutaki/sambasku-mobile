@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/device_registration_holder.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/providers/auth_domain_providers.dart';
@@ -25,6 +26,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
       username: user.username,
       role: user.role,
       userId: user.userId,
+      avatarUrl: user.avatarUrl,
     );
   }
 
@@ -38,9 +40,29 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
         username: session.username,
         role: session.role,
         userId: session.userId,
+        avatarUrl: session.avatarUrl,
       ),
     );
     // Sama seperti logout: list keepAlive watch authStatus, cukup rebuild.
+  }
+
+  /// Update avatar setelah upload/hapus tanpa reload storage penuh.
+  Future<void> setAvatarUrl(String? avatarUrl) async {
+    final current = state.value ?? const AuthStatusState();
+    final storage = ref.read(authTokenStorageProvider);
+    final user = await storage.getSessionUser();
+    final next = (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : null;
+    if (user.username != null && user.username!.isNotEmpty) {
+      await storage.saveSessionUser(
+        username: user.username!,
+        role: user.role,
+        userId: user.userId,
+        avatarUrl: next,
+      );
+    }
+    state = AsyncData(
+      current.copyWith(clearAvatarUrl: true).copyWith(avatarUrl: next),
+    );
   }
 
   Future<void> logout() async {
@@ -55,6 +77,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
     await ref.read(authLogoutUseCaseProvider).call();
 
     state = const AsyncData(AuthStatusState(isAuth: false));
+    AnalyticsService.instance.log(AnalyticsEvents.authLogout);
     // Jangan invalidate bookmark/kontribusi/notifikasi: mereka sudah
     // `watch` authStatus. Invalidate saat rebuild → circular Riverpod 3.
   }
