@@ -70,9 +70,9 @@ ter-commit dipakai CI.
 
 | Jenis | Alur |
 | --- | --- |
-| Gambar kata | `POST /api/v1/images?purpose=word` → [sambasku-images](https://github.com/iamutaki/sambasku-images) |
+| Gambar kata | `POST /api/v1/images?purpose=word` → [sambasku/images](https://github.com/sambasku/images) |
 | Avatar | `POST /api/v1/users/me/avatar` → repo yang sama |
-| Audio pelafalan | Multipart ke API → [sambasku-pronunciation](https://github.com/iamutaki/sambasku-pronunciation) |
+| Audio pelafalan | Multipart ke API → [sambasku/audios](https://github.com/sambasku/audios) |
 | Bukti / lampiran bug | ImageKit (privat) lewat upload-token |
 
 URL kanonik gambar = jsDelivr. Tampilan di-resize lewat wsrv
