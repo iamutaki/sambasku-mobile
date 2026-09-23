@@ -6,6 +6,7 @@ import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
+import '../models/create_word_example_dto.dart';
 import '../models/create_word_image_dto.dart';
 import '../models/create_word_meaning_dto.dart';
 import '../models/create_word_related_word_dto.dart';
@@ -76,6 +77,16 @@ class ContributionRepositoryImpl implements ContributionRepository {
                   ),
                 )
                 .toList(growable: false),
+            examples: m.exampleSentences.isEmpty
+                ? null
+                : m.exampleSentences
+                      .map(
+                        (sentence) => CreateWordExampleDto(
+                          sourceLanguageId: languageId,
+                          sourceSentence: sentence,
+                        ),
+                      )
+                      .toList(growable: false),
           ),
         );
       }

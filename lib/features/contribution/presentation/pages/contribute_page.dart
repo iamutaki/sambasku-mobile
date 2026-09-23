@@ -62,10 +62,10 @@ class _MeaningDraft {
 
 class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _lemmaCtrl;
-  late final TextEditingController _standardAnswerCtrl;
+  late final TextEditingController _standardTranslationCtrl;
   late final List<_MeaningDraft> _meanings;
 
-  /// false = mode standar (satu jawaban). true = form lengkap.
+  /// false = mode standar (lemma + terjemahan). true = form lengkap.
   bool _advanced = false;
   String? _dialectId;
   bool _dialectSeeded = false;
@@ -73,7 +73,13 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   /// Id kelas kata `umum` setelah referensi termuat. Dipakai makna baru.
   String? _umumWordClassId;
 
-  /// API `word_type`: word | idiom | peribahasa | ungkapan
+  /// Definisi dan kelas kata dari pilihan KBBI. Kosong = entri tanpa definisi.
+  String _standardDefinition = '';
+  String? _standardWordClassId;
+  String? _standardKbbiLemma;
+  bool _applyingKbbiPick = false;
+
+  /// API `word_type`: word | idiom | peribahasa | ungkapan. Default kata.
   String _wordType = 'word';
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
@@ -85,7 +91,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     _lemmaCtrl = TextEditingController(
       text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
     );
-    _standardAnswerCtrl = TextEditingController(
+    _standardTranslationCtrl = TextEditingController(
       text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
     );
     _meanings = [
@@ -111,7 +117,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             searchMissId: widget.initialSearchMissId,
           );
       _lemmaCtrl.addListener(_onFieldEdited);
-      _standardAnswerCtrl.addListener(_onFieldEdited);
+      _standardTranslationCtrl.addListener(_onStandardTranslationEdited);
       for (final m in _meanings) {
         m.defCtrl.addListener(_onFieldEdited);
         m.trCtrl.addListener(_onFieldEdited);
@@ -123,10 +129,22 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     ref.read(submitWordProvider.notifier).clearFieldErrors();
   }
 
+  void _onStandardTranslationEdited() {
+    _onFieldEdited();
+    if (_applyingKbbiPick) return;
+    final text = _standardTranslationCtrl.text.trim();
+    if (_standardKbbiLemma == null || text == _standardKbbiLemma) return;
+    setState(() {
+      _standardDefinition = '';
+      _standardWordClassId = null;
+      _standardKbbiLemma = null;
+    });
+  }
+
   @override
   void dispose() {
     _lemmaCtrl.dispose();
-    _standardAnswerCtrl.dispose();
+    _standardTranslationCtrl.dispose();
     for (final m in _meanings) {
       m.dispose();
     }
@@ -315,11 +333,21 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 final turningOn = advanced && !_advanced;
                 _advanced = advanced;
                 if (!turningOn) return;
-                final text = _standardAnswerCtrl.text.trim();
+                final text = _standardTranslationCtrl.text.trim();
                 final first = _meanings.first;
-                if (text.isEmpty || first.modePicked) return;
-                first.wantDefinition = true;
-                first.defCtrl.text = text;
+                if (first.modePicked) return;
+                if (text.isNotEmpty) {
+                  first.wantPadanan = true;
+                  first.trCtrl.text = text;
+                }
+                final definition = _standardDefinition.trim();
+                if (definition.isNotEmpty) {
+                  first.wantDefinition = true;
+                  first.defCtrl.text = definition;
+                }
+                if (_standardWordClassId != null) {
+                  first.wordClassId = _standardWordClassId;
+                }
               });
             },
           ),
@@ -332,9 +360,47 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
-          const Gap(12),
 
-          if (_advanced) ...[
+          if (!_advanced) ...[
+            const Gap(12),
+            FTextField(
+              control: FTextFieldControl.managed(
+                controller: _standardTranslationCtrl,
+              ),
+              label: const Text('Terjemahan *'),
+              hint: 'Satu kata/frasa setara di Indonesia',
+              description: const Text(
+                'Tekan icon buku untuk mencari definisi di KBBI',
+              ),
+              textInputAction: TextInputAction.done,
+              suffixBuilder: (context, style, _) => Padding(
+                padding: style.clearButtonPadding,
+                child: FButton.icon(
+                  style: style.clearButtonStyle,
+                  onPress: _openStandardKbbiSheet,
+                  child: Icon(
+                    FLucideIcons.bookOpen,
+                    semanticLabel: 'Ambil dari KBBI',
+                  ),
+                ),
+              ),
+            ),
+            _inlineError(notifier.errorForMeaning(0, 'translation_texts')),
+            _inlineError(notifier.errorForMeaning(0, 'definition')),
+            if (_standardDefinition.trim().isNotEmpty) ...[
+              const Gap(12),
+              const _FieldCaption(
+                'Definisi',
+                info:
+                    'Muncul setelah satu makna dipilih dari KBBI. Hilang jika terjemahan diubah.',
+              ),
+              Text(
+                _standardDefinition.trim(),
+                style: theme.typography.sm.copyWith(height: 1.4),
+              ),
+            ],
+          ] else ...[
+            const Gap(12),
             const _FieldCaption('Jenis Entri'),
             const Gap(6),
             _WordTypeChips(
@@ -346,56 +412,34 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ),
             _inlineError(notifier.errorFor('word_type')),
             const Gap(8),
-          ],
 
-          const _FieldCaption('Dialek'),
-          if (sambasLanguageId == null)
-            const _SelectFieldSkeleton()
-          else
-            dialectsAsync.when(
-              loading: () => const _SelectFieldSkeleton(),
-              error: (e, _) => _BuildReferenceError(
-                message: 'Gagal muat dialek',
-                onRetry: () => ref.invalidate(
-                  _referenceDialectsProvider(sambasLanguageId),
+            const _FieldCaption('Dialek'),
+            if (sambasLanguageId == null)
+              const _SelectFieldSkeleton()
+            else
+              dialectsAsync.when(
+                loading: () => const _SelectFieldSkeleton(),
+                error: (e, _) => _BuildReferenceError(
+                  message: 'Gagal muat dialek',
+                  onRetry: () => ref.invalidate(
+                    _referenceDialectsProvider(sambasLanguageId),
+                  ),
                 ),
+                data: (items) {
+                  final selected = _dialectId == null
+                      ? null
+                      : items.where((e) => e.id == _dialectId).firstOrNull;
+                  return _SelectField(
+                    selectedLabel: selected?.name,
+                    hint: items.isEmpty ? '-' : 'Pilih dialek…',
+                    onTap: items.isEmpty
+                        ? null
+                        : () => _openDialectSheet(items),
+                  );
+                },
               ),
-              data: (items) {
-                final selected = _dialectId == null
-                    ? null
-                    : items.where((e) => e.id == _dialectId).firstOrNull;
-                return _SelectField(
-                  selectedLabel: selected?.name,
-                  hint: items.isEmpty ? '-' : 'Pilih dialek…',
-                  onTap: items.isEmpty ? null : () => _openDialectSheet(items),
-                );
-              },
-            ),
-          _inlineError(notifier.errorFor('dialect_id')),
-          _inlineError(notifier.errorFor('language_id')),
-
-          if (!_advanced) ...[
-            const Gap(16),
-            const _FieldCaption(
-              'Terjemahan atau definisi bahasa Indonesia *',
-              info:
-                  'Tulis salah satu yang kamu tahu.\n\n'
-                  '• Terjemahan - satu kata atau frasa.\n'
-                  '• Definisi - uraian makna.\n\n'
-                  'Tim akan menempatkannya di kolom yang tepat saat memeriksa.',
-            ),
-            FTextField(
-              control: FTextFieldControl.managed(
-                controller: _standardAnswerCtrl,
-              ),
-              hint: 'Tulis satu kata atau uraian makna',
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              maxLines: 4,
-              minLines: 2,
-            ),
-            _inlineError(notifier.errorForMeaning(0, 'definition')),
-          ] else ...[
+            _inlineError(notifier.errorFor('dialect_id')),
+            _inlineError(notifier.errorFor('language_id')),
             const Gap(16),
             const _FieldCaption(
               'Makna *',
@@ -561,6 +605,45 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     setState(() => _relations = result);
   }
 
+  Future<void> _openStandardKbbiSheet() async {
+    final dio = ref.read(dioProvider);
+    final picked = await showKbbiDefinitionSheet(
+      context,
+      dio: dio,
+      initialLemma: _standardTranslationCtrl.text.trim(),
+    );
+    if (!mounted || picked == null) return;
+
+    final classes =
+        ref.read(_referenceWordClassesProvider).value ?? const <_OptionItem>[];
+    final matched = _matchWordClassId(
+      classes,
+      picked.wordClassCode,
+      picked.wordClassLabel,
+    );
+
+    _onFieldEdited();
+    setState(() {
+      _applyingKbbiPick = true;
+      final lemmaId = picked.lemma.trim();
+      if (lemmaId.isNotEmpty) {
+        _standardTranslationCtrl.text = lemmaId;
+        _standardKbbiLemma = lemmaId;
+      }
+      _standardDefinition = picked.definition.trim();
+      if (matched != null) _standardWordClassId = matched;
+      _applyingKbbiPick = false;
+    });
+
+    final parts = <String>['Terjemahan'];
+    if (_standardDefinition.isNotEmpty) parts.add('definisi');
+    if (matched != null) parts.add('kelas kata');
+    showFToast(
+      context: context,
+      title: Text('${parts.join(', ')} diisi dari KBBI - silakan review'),
+    );
+  }
+
   Future<void> _openKbbiSheet(int index) async {
     // Lookup KBBI publik - tamu tidak perlu login.
     final draft = _meanings[index];
@@ -606,10 +689,10 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   Future<void> _submitForm() async {
     if (!_advanced) {
-      if (_standardAnswerCtrl.text.trim().isEmpty) {
+      if (_standardTranslationCtrl.text.trim().isEmpty) {
         showFToast(
           context: context,
-          title: const Text('Isi terjemahan atau definisi bahasa Indonesia'),
+          title: const Text('Isi terjemahan bahasa Indonesia'),
         );
         return;
       }
@@ -663,18 +746,20 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           ]
         : [
             SubmitAnonWordMeaningParams(
-              wordClassId: _umumWordClassId ?? '',
-              definition: _standardAnswerCtrl.text,
-              isHaveDefinition: true,
+              wordClassId: _standardWordClassId ?? _umumWordClassId ?? '',
+              definition: _standardDefinition.trim().isEmpty
+                  ? '-'
+                  : _standardDefinition.trim(),
+              isHaveDefinition: _standardDefinition.trim().isNotEmpty,
               isHaveTranslation: true,
-              translationTexts: const ['-'],
+              translationTexts: [_standardTranslationCtrl.text],
             ),
           ];
     await notifier.submit(
       lemma: _lemmaCtrl.text,
       languageId: languageId,
       meanings: meanings,
-      dialectId: _dialectId,
+      dialectId: _advanced ? _dialectId : null,
       wordType: _advanced ? _wordType : 'word',
       categoryIds: [],
       notes: _advanced && notes.isNotEmpty ? notes : null,
@@ -1276,7 +1361,7 @@ class _ContributeModeChips extends StatelessWidget {
       children: [
         Expanded(
           child: _ModeChip(
-            label: 'Standar',
+            label: 'Sederhana',
             selected: !advanced,
             onTap: () => onChanged(false),
           ),

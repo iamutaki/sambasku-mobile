@@ -29,10 +29,14 @@ class SubmitAnonWordUseCase {
       final definition = isHaveDefinition ? m.definition.trim() : '-';
       final translations = isHaveTranslation
           ? m.translationTexts
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList(growable: false)
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList(growable: false)
           : <String>[];
+      final exampleSentences = m.exampleSentences
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
 
       meanings.add(
         SubmitWordMeaning(
@@ -41,6 +45,7 @@ class SubmitAnonWordUseCase {
           isHaveDefinition: isHaveDefinition,
           isHaveTranslation: isHaveTranslation,
           translationTexts: translations,
+          exampleSentences: exampleSentences,
         ),
       );
     }
@@ -127,6 +132,7 @@ class SubmitAnonWordMeaningParams {
     this.isHaveDefinition = true,
     this.isHaveTranslation = true,
     this.translationTexts = const [],
+    this.exampleSentences = const [],
   });
 
   final String wordClassId;
@@ -134,6 +140,7 @@ class SubmitAnonWordMeaningParams {
   final bool isHaveDefinition;
   final bool isHaveTranslation;
   final List<String> translationTexts;
+  final List<String> exampleSentences;
 }
 
 class SubmitAnonWordParams {
@@ -157,6 +164,7 @@ class SubmitAnonWordParams {
   final List<SubmitAnonWordMeaningParams> meanings;
   final String translationLanguageId;
   final String? dialectId;
+
   /// `word` | `idiom` | `peribahasa` | `ungkapan`
   final String wordType;
   final List<String> categoryIds;

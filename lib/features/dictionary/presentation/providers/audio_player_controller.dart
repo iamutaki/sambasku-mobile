@@ -402,8 +402,37 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _posThrottle?.cancel();
     _posThrottle = null;
     _pendingPos = null;
-    await _player?.stop();
+    // Lepas instance sepenuhnya: sumber lokal (pratinjau lama) / URL
+    // yang gagal tidak boleh menempel ke player berikutnya.
+    await _tearDownPlayer();
     state = const WordDetailAudioView();
+  }
+
+  Future<void> _tearDownPlayer() async {
+    final sub = _sub;
+    final posSub = _posSub;
+    final durSub = _durSub;
+    final player = _player;
+    _sub = null;
+    _posSub = null;
+    _durSub = null;
+    _player = null;
+    _endingPlayback = false;
+    try {
+      await sub?.cancel();
+    } catch (_) {}
+    try {
+      await posSub?.cancel();
+    } catch (_) {}
+    try {
+      await durSub?.cancel();
+    } catch (_) {}
+    try {
+      await player?.stop();
+    } catch (_) {}
+    try {
+      await player?.dispose();
+    } catch (_) {}
   }
 
   void _disposePlayer() {
@@ -411,14 +440,6 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _posThrottle?.cancel();
     _posThrottle = null;
     _pendingPos = null;
-    unawaited(_sub?.cancel());
-    unawaited(_posSub?.cancel());
-    unawaited(_durSub?.cancel());
-    unawaited(_player?.dispose());
-    _sub = null;
-    _posSub = null;
-    _durSub = null;
-    _player = null;
-    _endingPlayback = false;
+    unawaited(_tearDownPlayer());
   }
 }

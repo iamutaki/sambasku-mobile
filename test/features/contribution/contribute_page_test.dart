@@ -214,9 +214,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   });
 
-  testWidgets('mode standar mengirim teks sebagai definisi dan terjemahan -', (
-    tester,
-  ) async {
+  testWidgets('mode standar mengirim lemma dan terjemahan', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final usecase = _CapturingSubmit();
     final dio = Dio()..httpClientAdapter = _ReferenceAdapter();
@@ -241,28 +239,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
 
+    expect(find.text('Lemma *'), findsOneWidget);
+    expect(find.text('Terjemahan *'), findsOneWidget);
     expect(find.text('Jenis Entri'), findsNothing);
-    expect(
-      find.text('Terjemahan atau definisi bahasa Indonesia *'),
-      findsOneWidget,
-    );
+    expect(find.text('Dialek'), findsNothing);
+    expect(find.text('Contoh'), findsNothing);
 
     final fields = find.byType(EditableText);
-    await tester.enterText(fields.at(0), 'makan');
-    await tester.enterText(fields.at(1), 'aktivitas memasukkan makanan');
-    await tester.pump();
+    await tester.enterText(fields.at(0), 'makatn');
+    await tester.enterText(fields.at(1), 'makan');
     await tester.tap(find.text('Kirim Usulan'));
     await tester.pump(const Duration(milliseconds: 400));
 
     final params = usecase.params;
     expect(params, isNotNull);
-    expect(params!.wordType, 'word');
+    expect(params!.lemma, 'makatn');
+    expect(params.wordType, 'word');
+    expect(params.dialectId, isNull);
     expect(params.meanings, hasLength(1));
-    expect(params.meanings.first.definition, 'aktivitas memasukkan makanan');
-    expect(params.meanings.first.isHaveDefinition, isTrue);
+    expect(params.meanings.first.definition, '-');
+    expect(params.meanings.first.isHaveDefinition, isFalse);
     expect(params.meanings.first.isHaveTranslation, isTrue);
-    expect(params.meanings.first.translationTexts, ['-']);
+    expect(params.meanings.first.translationTexts, ['makan']);
     expect(params.meanings.first.wordClassId, 'wc-umum');
+    expect(params.meanings.first.exampleSentences, isEmpty);
 
     await tester.pump(const Duration(seconds: 6));
     await tester.pump(const Duration(milliseconds: 300));

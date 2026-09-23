@@ -1,8 +1,13 @@
 name: Deploy (Production)
 
-# Build flavor `production` → GitHub Release + draft ke track internal.
-# Promote ke production manual di Play Console.
+# Build flavor `production` → draft ke track production.
+# Rollout tetap manual di Play Console (draft, bukan auto-publish).
+# Track internal diisi workflow deploy-staging.yml dari branch staging.
 # Trigger: push branch `main` (atau workflow_dispatch).
+#
+# versionCode = commit count, dipakai bersama workflow staging pada
+# package yang sama. Merge staging → main dulu supaya code ini lebih
+# tinggi dari build internal terakhir.
 #
 # Secrets GitHub (Settings → Secrets → Actions):
 #   KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
@@ -143,14 +148,14 @@ jobs:
       #     fail_on_unmatched_files: true
       #     make_latest: "true"
 
-      # Draft di internal testing — tidak auto-publish. Promote ke production
-      # tetap manual di Play Console (Internal testing → Promote release).
-      - name: Upload draft ke Google Play Console
+      # Draft di track production — tidak auto-publish. Rollout tetap
+      # manual di Play Console.
+      - name: Upload draft ke Google Play production
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PLAY_PACKAGE_NAME }}
           releaseFiles: build/app/outputs/bundle/productionRelease/app-production-release.aab
-          tracks: internal
+          tracks: production
           status: draft
           releaseName: ${{ steps.version.outputs.name }} (${{ steps.version.outputs.code }})

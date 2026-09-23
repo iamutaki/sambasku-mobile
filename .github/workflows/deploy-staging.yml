@@ -1,13 +1,22 @@
 name: Deploy (Staging)
 
 # Build flavor `staging` → GitHub Release (bukan "latest").
-# Pola jnn_mobile. Trigger: push branch `staging` (atau workflow_dispatch).
+# Sekaligus build flavor `production` → draft ke track internal
+# app Play `com.iamutaki.sambasku` (bukan package .staging).
+# Track production diisi workflow deploy-production.yml dari branch main.
+# Trigger: push branch `staging` (atau workflow_dispatch).
+#
+# versionCode = commit count, dipakai bersama workflow production pada
+# package yang sama. Merge staging → main dulu sebelum rilis production,
+# supaya code di main lebih tinggi dari build internal terakhir.
 #
 # Secrets GitHub yang DIBUTUHKAN (Settings → Secrets → Actions):
 #   KEYSTORE_BASE64     - isi upload-keystore.jks di-encode base64
 #   KEYSTORE_PASSWORD   - store password
 #   KEY_ALIAS           - key alias
 #   KEY_PASSWORD        - key password
+#   PLAY_STORE_SERVICE_ACCOUNT_JSON  - JSON service account Play Developer API
+#     (lihat docs/env/google_play_console/credential.md)
 #
 # One-time keystore (lokal, jangan commit):
 #   keytool -genkey -v -keystore upload-keystore.jks \
@@ -26,6 +35,7 @@ permissions:
 env:
   FLAVOR: staging
   FLUTTER_VERSION: "3.44.1"
+  PLAY_PACKAGE_NAME: com.iamutaki.sambasku
 
 jobs:
   test:
@@ -52,7 +62,7 @@ jobs:
   build-and-release:
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -134,3 +144,30 @@ jobs:
             build/app/outputs/flutter-apk/app-arm64-v8a-staging-release.apk
           fail_on_unmatched_files: true
           make_latest: "false"
+
+      # AAB flavor production (package Play), bukan flavor staging.
+      # Map obfuscation dipisah supaya tidak menimpa simbol APK staging.
+      - name: Build App Bundle (Play internal testing)
+        run: >
+          flutter build appbundle --release --obfuscate
+          --split-debug-info=./debug-info-production
+          --flavor production -t lib/main.dart
+
+      - name: Upload Play AAB as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-play-aab
+          path: build/app/outputs/bundle/productionRelease/*.aab
+          if-no-files-found: error
+
+      # Draft di internal testing — tidak auto-publish. Track production
+      # diisi workflow deploy-production.yml.
+      - name: Upload draft ke Google Play internal testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PLAY_PACKAGE_NAME }}
+          releaseFiles: build/app/outputs/bundle/productionRelease/app-production-release.aab
+          tracks: internal
+          status: draft
+          releaseName: ${{ steps.version.outputs.name }} (${{ steps.version.outputs.code }})

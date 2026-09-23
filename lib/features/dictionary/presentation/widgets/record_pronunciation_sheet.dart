@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
@@ -31,6 +32,11 @@ Future<void> showRecordPronunciationSheet(
   String? exampleId,
   String defaultSpeakerName = '',
 }) {
+  // Hentikan audio di halaman detail sebelum sheet membuka player sendiri.
+  try {
+    ref.read(wordDetailAudioPlayerProvider(wordId).notifier).stop();
+  } catch (_) {}
+
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -68,6 +74,10 @@ class _RecordPronunciationSheetState
   static const _maxSeconds = 60;
 
   final _recorder = AudioRecorder();
+  /// Player khusus pratinjau — jangan pakai [wordDetailAudioPlayerProvider]
+  /// supaya dispose sheet (hapus file temp) tidak merusak player detail.
+  final _previewPlayer = AudioPlayer();
+  StreamSubscription<PlayerState>? _previewSub;
   final _speakerCtrl = TextEditingController();
   String? _dialectId;
   _RecordPhase _phase = _RecordPhase.idle;
@@ -76,6 +86,7 @@ class _RecordPronunciationSheetState
   double _totalSec = 0;
   RangeValues _range = const RangeValues(0, 1);
   bool _trimBusy = false;
+  bool _previewPlaying = false;
   List<double> _peaks = const [];
   String? _previewTrimPath;
   Timer? _tick;
@@ -87,6 +98,24 @@ class _RecordPronunciationSheetState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _speakerCtrl.text = widget.defaultSpeakerName.trim();
+    unawaited(_previewPlayer.setLoopMode(LoopMode.off));
+    _previewSub = _previewPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      final playing =
+          state.playing && state.processingState != ProcessingState.completed;
+      if (playing == _previewPlaying) {
+        if (state.processingState == ProcessingState.completed) {
+          unawaited(_previewPlayer.seek(Duration.zero));
+          unawaited(_previewPlayer.pause());
+        }
+        return;
+      }
+      setState(() => _previewPlaying = playing);
+      if (state.processingState == ProcessingState.completed) {
+        unawaited(_previewPlayer.seek(Duration.zero));
+        unawaited(_previewPlayer.pause());
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final dialects =
           ref.read(wordDialectsProvider(widget.languageId)).value ??
@@ -107,6 +136,7 @@ class _RecordPronunciationSheetState
         _stoppingForLifecycle = true;
         unawaited(_stopRecording(fromLifecycle: true));
       }
+      unawaited(_stopPreviewPlayer());
     }
   }
 
@@ -116,20 +146,44 @@ class _RecordPronunciationSheetState
     _tick?.cancel();
     unawaited(_recorder.dispose());
     _speakerCtrl.dispose();
+    // Jangan panggil ref di dispose (tidak aman di Riverpod). Player detail
+    // sudah di-stop saat sheet dibuka; di sini cukup lepas preview + file.
+    unawaited(_disposePreviewResources());
+    super.dispose();
+  }
+
+  Future<void> _stopPreviewPlayer() async {
     try {
-      ref.read(wordDetailAudioPlayerProvider(widget.wordId).notifier).stop();
+      await _previewPlayer.stop();
+    } catch (_) {}
+    if (mounted && _previewPlaying) {
+      setState(() => _previewPlaying = false);
+    } else {
+      _previewPlaying = false;
+    }
+  }
+
+  Future<void> _disposePreviewResources() async {
+    try {
+      await _previewSub?.cancel();
+    } catch (_) {}
+    _previewSub = null;
+    try {
+      await _previewPlayer.stop();
+    } catch (_) {}
+    try {
+      await _previewPlayer.dispose();
     } catch (_) {}
     final paths = <String?>[_filePath, _previewTrimPath];
+    _filePath = null;
+    _previewTrimPath = null;
     for (final p in paths) {
       if (p == null) continue;
-      unawaited(() async {
-        try {
-          final f = File(p);
-          if (await f.exists()) await f.delete();
-        } catch (_) {}
-      }());
+      try {
+        final f = File(p);
+        if (await f.exists()) await f.delete();
+      } catch (_) {}
     }
-    super.dispose();
   }
 
   Future<void> _deleteQuietly(String? path) async {
@@ -142,11 +196,7 @@ class _RecordPronunciationSheetState
 
   /// Hentikan preview + hapus file trim lama (dipanggil saat range berubah).
   Future<void> _invalidatePreview() async {
-    try {
-      await ref
-          .read(wordDetailAudioPlayerProvider(widget.wordId).notifier)
-          .stop();
-    } catch (_) {}
+    await _stopPreviewPlayer();
     final preview = _previewTrimPath;
     _previewTrimPath = null;
     await _deleteQuietly(preview);
@@ -307,28 +357,47 @@ class _RecordPronunciationSheetState
       );
       return;
     }
+
+    // Ketuk lagi saat sedang putar → jeda.
+    if (_previewPlaying) {
+      await _stopPreviewPlayer();
+      return;
+    }
+
     setState(() {
       _trimBusy = true;
       _error = null;
     });
     try {
-      final trimmed = await trimWavFile(
-        File(path),
-        startSec: _range.start,
-        endSec: _range.end,
-      );
-      if (!mounted) return;
-      final oldPreview = _previewTrimPath;
-      _previewTrimPath = trimmed.file.path;
-      if (oldPreview != null && oldPreview != trimmed.file.path) {
-        unawaited(_deleteQuietly(oldPreview));
+      // Pakai file trim yang sudah ada jika rentang belum berubah.
+      String playPath = _previewTrimPath ?? '';
+      if (playPath.isEmpty || !await File(playPath).exists()) {
+        final trimmed = await trimWavFile(
+          File(path),
+          startSec: _range.start,
+          endSec: _range.end,
+        );
+        if (!mounted) return;
+        final oldPreview = _previewTrimPath;
+        _previewTrimPath = trimmed.file.path;
+        playPath = trimmed.file.path;
+        if (oldPreview != null && oldPreview != playPath) {
+          unawaited(_deleteQuietly(oldPreview));
+        }
       }
-      await ref
-          .read(wordDetailAudioPlayerProvider(widget.wordId).notifier)
-          .playLocalFile('preview-trim', trimmed.file.path);
+
+      await _previewPlayer.stop();
+      await _previewPlayer.setLoopMode(LoopMode.off);
+      await _previewPlayer.setFilePath(playPath);
+      await _previewPlayer.play();
+      if (!mounted) return;
+      setState(() => _previewPlaying = true);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Gagal membuat pratinjau potongan');
+      setState(() {
+        _previewPlaying = false;
+        _error = 'Gagal memutar pratinjau. Coba rekam ulang atau potong ulang.';
+      });
     } finally {
       if (mounted) setState(() => _trimBusy = false);
     }
@@ -582,8 +651,10 @@ class _RecordPronunciationSheetState
                       onPress: (_phase == _RecordPhase.submitting || _trimBusy)
                           ? null
                           : _previewClip,
-                      prefix: const Icon(FLucideIcons.play),
-                      child: const Text('Pratinjau'),
+                      prefix: Icon(
+                        _previewPlaying ? FLucideIcons.pause : FLucideIcons.play,
+                      ),
+                      child: Text(_previewPlaying ? 'Jeda' : 'Pratinjau'),
                     ),
                   ),
                   const Gap(8),

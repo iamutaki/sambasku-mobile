@@ -549,12 +549,20 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
   @override
   void dispose() {
     unawaited(_sub?.cancel() ?? Future<void>.value());
-    unawaited(_player.dispose());
+    unawaited(() async {
+      try {
+        await _player.stop();
+      } catch (_) {}
+      try {
+        await _player.dispose();
+      } catch (_) {}
+    }());
     super.dispose();
   }
 
   Future<void> _toggle() async {
     if (_loading) return;
+    final reload = _error || _player.audioSource == null;
     setState(() {
       _loading = true;
       _error = false;
@@ -563,13 +571,18 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
       if (_player.playing) {
         await _player.pause();
       } else {
-        if (_player.audioSource == null) {
+        // Muat ulang setelah error / sumber belum siap.
+        if (reload) {
+          await _player.stop();
           await _player.setUrl(widget.url);
         }
         await _player.play();
       }
     } catch (_) {
       if (mounted) setState(() => _error = true);
+      try {
+        await _player.stop();
+      } catch (_) {}
     } finally {
       if (mounted) setState(() => _loading = false);
     }

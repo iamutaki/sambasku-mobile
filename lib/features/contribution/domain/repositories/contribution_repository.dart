@@ -22,10 +22,7 @@ class SubmitWordImage {
 
 /// Relasi inline (Form B) - sinonim/antonim lemma baru ikut makna induk.
 class SubmitWordRelation {
-  const SubmitWordRelation({
-    required this.relationType,
-    required this.lemma,
-  });
+  const SubmitWordRelation({required this.relationType, required this.lemma});
 
   /// `synonym` | `antonym`
   final String relationType;
@@ -40,6 +37,7 @@ class SubmitWordMeaning {
     this.isHaveDefinition = true,
     this.isHaveTranslation = true,
     this.translationTexts = const [],
+    this.exampleSentences = const [],
   });
 
   final String wordClassId;
@@ -47,6 +45,9 @@ class SubmitWordMeaning {
   final bool isHaveDefinition;
   final bool isHaveTranslation;
   final List<String> translationTexts;
+
+  /// Kalimat contoh bahasa sumber. Kosong = tidak dikirim.
+  final List<String> exampleSentences;
 }
 
 /// Kontrak repository submit kata.
@@ -62,6 +63,7 @@ abstract interface class ContributionRepository {
     required String languageId,
     required List<SubmitWordMeaning> meanings,
     String? dialectId,
+
     /// `word` | `idiom` | `peribahasa` | `ungkapan` (API `word_type`).
     String wordType = 'word',
     List<String> categoryIds = const [],
