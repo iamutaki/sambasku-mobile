@@ -171,6 +171,9 @@ jobs:
 
       # Draft di internal testing — tidak auto-publish. Track production
       # diisi workflow deploy-production.yml.
+      - name: Assert AAB has no advertising ID permission
+        run: node scripts/assert-no-ad-id.mjs
+
       - name: Upload draft ke Google Play internal testing
         uses: r0adkll/upload-google-play@v1
         with:

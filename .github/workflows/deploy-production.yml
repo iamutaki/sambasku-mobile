@@ -162,6 +162,9 @@ jobs:
 
       # Draft di track production — tidak auto-publish. Rollout tetap
       # manual di Play Console.
+      - name: Assert AAB has no advertising ID permission
+        run: node scripts/assert-no-ad-id.mjs
+
       - name: Upload draft ke Google Play production
         uses: r0adkll/upload-google-play@v1
         with:
