@@ -81,7 +81,7 @@ class _DevToolOverlayState extends State<DevToolOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    if (F.appFlavor == Flavor.production) {
+    if (F.appFlavor == Flavor.production || F.hideDevChrome) {
       return widget.child;
     }
 
