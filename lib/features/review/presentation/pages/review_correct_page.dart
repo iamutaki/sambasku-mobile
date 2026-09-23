@@ -4,7 +4,9 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../contribution/presentation/widgets/kbbi_definition_sheet.dart';
 import '../../data/review_correct_body.dart';
 import '../../domain/entities/review_contribution.dart';
 import '../../domain/failures/review_failure.dart';
@@ -21,12 +23,16 @@ class ReviewCorrectPage extends ConsumerStatefulWidget {
 }
 
 class _MeaningEdit {
-  _MeaningEdit({required String definition, required String translation})
-    : definitionCtrl = TextEditingController(text: definition),
-      translationCtrl = TextEditingController(text: translation);
+  _MeaningEdit({
+    required String definition,
+    required String translation,
+    this.wordClassId,
+  }) : definitionCtrl = TextEditingController(text: definition),
+       translationCtrl = TextEditingController(text: translation);
 
   final TextEditingController definitionCtrl;
   final TextEditingController translationCtrl;
+  String? wordClassId;
 
   void dispose() {
     definitionCtrl.dispose();
@@ -73,13 +79,21 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         for (final raw in meanings) {
           if (raw is! Map) continue;
           final translations = raw['translations'];
-          final first = translations is List && translations.isNotEmpty && translations.first is Map
+          final first =
+              translations is List &&
+                  translations.isNotEmpty &&
+                  translations.first is Map
               ? translations.first['translationText']?.toString() ?? ''
               : '';
+          final wordClass = raw['wordClass'];
+          final wordClassId = wordClass is Map
+              ? wordClass['id']?.toString()
+              : null;
           _meanings.add(
             _MeaningEdit(
               definition: raw['definition']?.toString() ?? '',
               translation: first,
+              wordClassId: wordClassId,
             ),
           );
         }
@@ -107,39 +121,48 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
     if (type == 'meaning') return;
     setState(() => _busy = true);
     final body = type == 'word' ? _wordBody(detail) : _childBody(type);
-    final result = await ref.read(reviewRepositoryProvider).correct(detail.contribution.id, body);
+    final result = await ref
+        .read(reviewRepositoryProvider)
+        .correct(detail.contribution.id, body);
     if (!mounted) return;
     setState(() => _busy = false);
-    result.match((failure) {
-      if (failure.isForbidden) {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => ReviewForbiddenPage(message: failure.message),
-          ),
-        );
-        return;
-      }
-      final message = failure.isAlreadyDecided
-          ? 'Usulan ini sudah diproses'
-          : failure.message;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-      if (failure.isAlreadyDecided) {
+    result.match(
+      (failure) {
+        if (failure.isForbidden) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ReviewForbiddenPage(message: failure.message),
+            ),
+          );
+          return;
+        }
+        final message = failure.isAlreadyDecided
+            ? 'Usulan ini sudah diproses'
+            : failure.message;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        if (failure.isAlreadyDecided) {
+          invalidateReviewQueue(ref);
+          context.pop();
+        }
+      },
+      (decision) {
         invalidateReviewQueue(ref);
+        AnalyticsService.instance.log(
+          AnalyticsEvents.reviewCorrect,
+          params: {'contribution_id': detail.contribution.id},
+        );
+        final label = decision.status == 'pending'
+            ? 'Koreksi disimpan. Usulan tetap menunggu.'
+            : 'Koreksi disimpan dan usulan ditutup.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
         context.pop();
-      }
-    }, (decision) {
-      invalidateReviewQueue(ref);
-      AnalyticsService.instance.log(
-        AnalyticsEvents.reviewCorrect,
-        params: {'contribution_id': detail.contribution.id},
-      );
-      final label = decision.status == 'pending'
-          ? 'Koreksi disimpan. Usulan tetap menunggu.'
-          : 'Koreksi disimpan dan usulan ditutup.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
-      context.pop();
-      context.pop();
-    });
+        context.pop();
+      },
+    );
   }
 
   Map<String, dynamic> _wordBody(ReviewDetail detail) {
@@ -150,7 +173,11 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       wordType: _wordType,
       meaningEdits: [
         for (final meaning in _meanings)
-          (definition: meaning.definitionCtrl.text, translation: meaning.translationCtrl.text),
+          (
+            definition: meaning.definitionCtrl.text,
+            translation: meaning.translationCtrl.text,
+            wordClassId: meaning.wordClassId,
+          ),
       ],
       publish: _publish,
       comment: _comment.text,
@@ -195,7 +222,8 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       _ => {
         ...shared,
         'source_sentence': text('source_sentence') ?? '',
-        if (text('target_sentence') != null) 'target_sentence': text('target_sentence'),
+        if (text('target_sentence') != null)
+          'target_sentence': text('target_sentence'),
         if (text('source_type') != null) 'source_type': text('source_type'),
         if (text('notes') != null) 'notes': text('notes'),
       },
@@ -218,7 +246,9 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         loading: () => const Center(child: FCircularProgress()),
         error: (error, _) {
           return Center(
-            child: Text(error is ReviewFailure ? error.message : 'Gagal memuat usulan'),
+            child: Text(
+              error is ReviewFailure ? error.message : 'Gagal memuat usulan',
+            ),
           );
         },
         data: (detail) {
@@ -234,7 +264,10 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              if (detail.contribution.entityType == 'word') ..._wordFields() else ..._childForm(),
+              if (detail.contribution.entityType == 'word')
+                ..._wordFields()
+              else
+                ..._childForm(),
               const Gap(12),
               FTextField(
                 control: .managed(controller: _comment),
@@ -244,7 +277,9 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
               const Gap(12),
               Row(
                 children: [
-                  const Expanded(child: Text('Langsung terbitkan dan verifikasi')),
+                  const Expanded(
+                    child: Text('Langsung terbitkan dan verifikasi'),
+                  ),
                   FSwitch(
                     semanticsLabel: 'Langsung terbitkan dan verifikasi',
                     value: _publish,
@@ -257,7 +292,9 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
               FButton(
                 onPress: _busy ? null : () => _submit(detail),
                 prefix: _busy ? const FCircularProgress() : null,
-                child: Text(_publish ? 'Simpan dan terbitkan' : 'Simpan, tetap menunggu'),
+                child: Text(
+                  _publish ? 'Simpan dan terbitkan' : 'Simpan, tetap menunggu',
+                ),
               ),
             ],
           );
@@ -274,6 +311,25 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         label: const Text('Lemma'),
       ),
       const Gap(12),
+      const Text('Jenis entri'),
+      const Gap(6),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final opt in _reviewWordTypes)
+            GestureDetector(
+              onTap: _busy ? null : () => setState(() => _wordType = opt.value),
+              child: FBadge(
+                variant: _wordType == opt.value
+                    ? FBadgeVariant.primary
+                    : FBadgeVariant.secondary,
+                child: Text(opt.label),
+              ),
+            ),
+        ],
+      ),
+      const Gap(12),
       FTextField(
         control: .managed(controller: _notes),
         enabled: !_busy,
@@ -283,6 +339,12 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       for (var i = 0; i < _meanings.length; i++) ...[
         Text('Makna ${i + 1}'),
         const Gap(6),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: _busy ? null : () => _swapMeaning(i),
+          child: const Text('Tukar definisi dan terjemahan'),
+        ),
+        const Gap(8),
         FTextField(
           control: .managed(controller: _meanings[i].definitionCtrl),
           enabled: !_busy,
@@ -293,10 +355,80 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
           control: .managed(controller: _meanings[i].translationCtrl),
           enabled: !_busy,
           label: const Text('Padanan'),
+          description: const Text(
+            'Tekan icon buku untuk mencari definisi di KBBI',
+          ),
+          suffixBuilder: (context, style, _) => Padding(
+            padding: style.clearButtonPadding,
+            child: FButton.icon(
+              style: style.clearButtonStyle,
+              onPress: _busy ? null : () => _openKbbi(i),
+              child: Icon(
+                FLucideIcons.bookOpen,
+                semanticLabel: 'Ambil dari KBBI',
+              ),
+            ),
+          ),
         ),
         const Gap(12),
       ],
     ];
+  }
+
+  void _swapMeaning(int index) {
+    final meaning = _meanings[index];
+    final definition = meaning.definitionCtrl.text.trim();
+    final translation = meaning.translationCtrl.text.trim();
+    final definitionIsReal = definition.isNotEmpty && definition != '-';
+    final translationIsReal = translation.isNotEmpty && translation != '-';
+    meaning.definitionCtrl.text = translationIsReal ? translation : '-';
+    meaning.translationCtrl.text = definitionIsReal ? definition : '';
+    setState(() {});
+  }
+
+  Future<void> _openKbbi(int index) async {
+    final meaning = _meanings[index];
+    final current = meaning.translationCtrl.text.trim();
+    final picked = await showKbbiDefinitionSheet(
+      context,
+      dio: ref.read(dioProvider),
+      initialLemma: current == '-' ? '' : current,
+    );
+    if (!mounted || picked == null) return;
+    final classes = await _loadWordClasses();
+    if (!mounted) return;
+    final matched = _matchReviewWordClass(
+      classes,
+      picked.wordClassCode,
+      picked.wordClassLabel,
+    );
+    setState(() {
+      meaning.definitionCtrl.text = picked.definition;
+      final lemma = picked.lemma.trim();
+      if (lemma.isNotEmpty) meaning.translationCtrl.text = lemma;
+      if (matched != null) meaning.wordClassId = matched;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Definisi diisi dari KBBI')));
+  }
+
+  Future<List<_ReviewWordClass>> _loadWordClasses() async {
+    final dio = ref.read(dioProvider);
+    final resp = await dio.get<dynamic>('/api/v1/word-classes');
+    final data = resp.data;
+    if (data is! Map) return const [];
+    final arr = data['data'];
+    if (arr is! List) return const [];
+    return [
+      for (final raw in arr)
+        if (raw is Map)
+          _ReviewWordClass(
+            id: raw['id']?.toString() ?? '',
+            code: raw['code']?.toString() ?? '',
+            name: raw['name']?.toString() ?? '',
+          ),
+    ].where((item) => item.id.isNotEmpty).toList(growable: false);
   }
 
   List<Widget> _childForm() {
@@ -337,4 +469,49 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         ),
     ];
   }
+}
+
+const _reviewWordTypes = <({String value, String label})>[
+  (value: 'word', label: 'Kata'),
+  (value: 'idiom', label: 'Idiom'),
+  (value: 'peribahasa', label: 'Peribahasa'),
+  (value: 'ungkapan', label: 'Ungkapan'),
+];
+
+class _ReviewWordClass {
+  const _ReviewWordClass({
+    required this.id,
+    required this.code,
+    required this.name,
+  });
+
+  final String id;
+  final String code;
+  final String name;
+}
+
+String? _matchReviewWordClass(
+  List<_ReviewWordClass> classes,
+  String? code,
+  String? label,
+) {
+  final normalizedCode = code?.trim().toLowerCase();
+  if (normalizedCode != null && normalizedCode.isNotEmpty) {
+    final byCode = classes
+        .where((item) => item.code.toLowerCase() == normalizedCode)
+        .firstOrNull;
+    if (byCode != null) return byCode.id;
+    if (normalizedCode == 'a') {
+      final adj = classes
+          .where((item) => item.code.toLowerCase() == 'adj')
+          .firstOrNull;
+      if (adj != null) return adj.id;
+    }
+  }
+  final normalizedLabel = label?.trim().toLowerCase();
+  if (normalizedLabel == null || normalizedLabel.isEmpty) return null;
+  return classes
+      .where((item) => item.name.toLowerCase() == normalizedLabel)
+      .firstOrNull
+      ?.id;
 }

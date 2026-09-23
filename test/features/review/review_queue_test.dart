@@ -55,7 +55,9 @@ class _FakeReviewRepository implements ReviewRepository {
   Future<Either<ReviewFailure, ReviewDecisionResult>> approve(
     String id, {
     String? comment,
-  }) async => Either.left(ReviewFailure('sudah', errorCode: 'CONTRIBUTION_ALREADY_REVIEWED'));
+  }) async => Either.left(
+    ReviewFailure('sudah', errorCode: 'CONTRIBUTION_ALREADY_REVIEWED'),
+  );
 
   @override
   Future<Either<ReviewFailure, ReviewDecisionResult>> reject(
@@ -93,20 +95,80 @@ void main() {
           },
         ],
         'images': [
-          {'url': 'https://cdn.example/a.png', 'providerFileId': 'file-1', 'isPrimary': true},
+          {
+            'url': 'https://cdn.example/a.png',
+            'providerFileId': 'file-1',
+            'isPrimary': true,
+          },
         ],
         'categories': [],
       },
       lemma: 'kalintiak',
       notes: '',
       wordType: 'word',
-      meaningEdits: [(definition: 'ikan kecil', translation: 'ikan kecil')],
+      meaningEdits: [
+        (
+          definition: 'ikan kecil',
+          translation: 'ikan kecil',
+          wordClassId: null,
+        ),
+      ],
       publish: true,
     );
 
     expect(body['lemma'], 'kalintiak');
     expect(body['images'], isNotEmpty);
     expect((body['meanings'] as List).first['definition'], 'ikan kecil');
+    expect(
+      (body['meanings'] as List).first['word_class_id'],
+      '01CLASS0000000000000000001',
+    );
+  });
+
+  test('body koreksi memakai kelas kata dari KBBI', () {
+    final body = buildWordCorrectBody(
+      entity: {
+        'languageId': '01LANG00000000000000000001',
+        'lemma': 'lama',
+        'wordType': 'word',
+        'meanings': [
+          {
+            'definition': 'makan',
+            'orderIndex': 0,
+            'wordClass': {'id': '01CLASS0000000000000000001'},
+            'translations': [
+              {
+                'languageId': '01ID0000000000000000000001',
+                'translationText': '-',
+                'translationType': 'direct',
+              },
+            ],
+          },
+        ],
+        'categories': [],
+      },
+      lemma: 'makan',
+      notes: '',
+      wordType: 'peribahasa',
+      meaningEdits: [
+        (
+          definition: 'aktivitas memasukkan makanan ke mulut',
+          translation: 'makan',
+          wordClassId: '01CLASSKBBI000000000000001',
+        ),
+      ],
+      publish: true,
+    );
+
+    final meaning = (body['meanings'] as List).first as Map<String, dynamic>;
+    expect(body['word_type'], 'peribahasa');
+    expect(meaning['word_class_id'], '01CLASSKBBI000000000000001');
+    expect(meaning['definition'], 'aktivitas memasukkan makanan ke mulut');
+    expect(meaning['is_have_definition'], isTrue);
+    expect(
+      (meaning['translations'] as List).first['translation_text'],
+      'makan',
+    );
   });
 
   test('409 menutup kartu dari antrean', () {
@@ -115,7 +177,10 @@ void main() {
       errorCode: 'CONTRIBUTION_ALREADY_REVIEWED',
     );
     expect(failure.isAlreadyDecided, isTrue);
-    expect(ReviewFailure('dilarang', errorCode: 'FORBIDDEN').isForbidden, isTrue);
+    expect(
+      ReviewFailure('dilarang', errorCode: 'FORBIDDEN').isForbidden,
+      isTrue,
+    );
   });
 
   testWidgets('kontributor tidak lolos penjaga antrean', (tester) async {

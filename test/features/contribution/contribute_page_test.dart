@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -25,11 +26,68 @@ class _ThrowingAdapter implements HttpClientAdapter {
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
-  ) async =>
-      throw DioException.connectionError(
-        requestOptions: options,
-        reason: 'mock offline',
-      );
+  ) async => throw DioException.connectionError(
+    requestOptions: options,
+    reason: 'mock offline',
+  );
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _CapturingSubmit implements SubmitAnonWordUseCase {
+  SubmitAnonWordParams? params;
+
+  @override
+  Future<Either<ContributionFailure, SubmitWordResult>> call(
+    SubmitAnonWordParams params,
+  ) async {
+    this.params = params;
+    return Either.left(
+      const ContributionFailure('berhenti', errorCode: 'RATE_LIMITED'),
+    );
+  }
+}
+
+class _ReferenceAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final path = options.uri.path;
+    final Object body;
+    if (path.endsWith('/word-classes')) {
+      body = {
+        'data': [
+          {'id': 'wc-umum', 'name': 'Umum', 'code': 'umum'},
+        ],
+      };
+    } else if (path.endsWith('/languages')) {
+      body = {
+        'data': [
+          {'id': 'lang-sbs', 'name': 'Sambas', 'code': 'SBS'},
+          {'id': 'lang-idn', 'name': 'Indonesia', 'code': 'IDN'},
+        ],
+      };
+    } else if (path.endsWith('/dialects')) {
+      body = {
+        'data': [
+          {'id': 'd-umum', 'name': 'Umum', 'code': 'umum', 'is_default': true},
+        ],
+      };
+    } else {
+      body = {'data': []};
+    }
+    return ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
 
   @override
   void close({bool force = false}) {}
@@ -43,8 +101,7 @@ class _FakeSubmitUsecase implements SubmitAnonWordUseCase {
   @override
   Future<Either<ContributionFailure, SubmitWordResult>> call(
     SubmitAnonWordParams params,
-  ) async =>
-      Either.left(failure);
+  ) async => Either.left(failure);
 }
 
 /// Widget test form kontribusi (mobile-base-stack Section 10): error 4xx
@@ -90,8 +147,9 @@ void main() {
   }
 
   Future<void> submitForm(WidgetTester tester) async {
-    // Form menolak kirim sampai Definisi dan/atau Terjemahan dicentang.
-    await tester.tap(find.text('Definisi'));
+    final fields = find.byType(EditableText);
+    expect(fields, findsAtLeastNWidgets(2));
+    await tester.enterText(fields.at(1), 'aktivitas makan');
     await tester.pump();
     await tester.tap(find.text('Kirim Usulan'));
     await tester.pump(const Duration(milliseconds: 400));
@@ -111,9 +169,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(FToast),
-        matching: find.text(
-          'Terlalu banyak usulan dikirim. Coba lagi nanti.',
-        ),
+        matching: find.text('Terlalu banyak usulan dikirim. Coba lagi nanti.'),
       ),
       findsOneWidget,
     );
@@ -123,16 +179,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   });
 
-  testWidgets('400 VALIDATION_ERROR - toast panduan + error inline per field',
-      (tester) async {
+  testWidgets('400 VALIDATION_ERROR - toast panduan + error inline per field', (
+    tester,
+  ) async {
     await pumpContribute(
       tester,
       failure: const ContributionFailure(
         'Gagal validasi',
         errorCode: 'VALIDATION_ERROR',
-        details: [
-          ApiErrorDetail(field: 'lemma', message: 'Kata wajib diisi'),
-        ],
+        details: [ApiErrorDetail(field: 'lemma', message: 'Kata wajib diisi')],
       ),
     );
 
@@ -154,6 +209,60 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Kata wajib diisi'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 300));
+  });
+
+  testWidgets('mode standar mengirim teks sebagai definisi dan terjemahan -', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final usecase = _CapturingSubmit();
+    final dio = Dio()..httpClientAdapter = _ReferenceAdapter();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dioProvider.overrideWithValue(dio),
+          submitAnonWordUseCaseProvider.overrideWithValue(usecase),
+        ],
+        child: MaterialApp(
+          theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
+          localizationsDelegates: FLocalizations.localizationsDelegates,
+          supportedLocales: FLocalizations.supportedLocales,
+          home: FTheme(
+            data: FThemes.zinc.light.touch,
+            child: const FToaster(child: ContributePage()),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    expect(find.text('Jenis Entri'), findsNothing);
+    expect(
+      find.text('Terjemahan atau definisi bahasa Indonesia *'),
+      findsOneWidget,
+    );
+
+    final fields = find.byType(EditableText);
+    await tester.enterText(fields.at(0), 'makan');
+    await tester.enterText(fields.at(1), 'aktivitas memasukkan makanan');
+    await tester.pump();
+    await tester.tap(find.text('Kirim Usulan'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final params = usecase.params;
+    expect(params, isNotNull);
+    expect(params!.wordType, 'word');
+    expect(params.meanings, hasLength(1));
+    expect(params.meanings.first.definition, 'aktivitas memasukkan makanan');
+    expect(params.meanings.first.isHaveDefinition, isTrue);
+    expect(params.meanings.first.isHaveTranslation, isTrue);
+    expect(params.meanings.first.translationTexts, ['-']);
+    expect(params.meanings.first.wordClassId, 'wc-umum');
 
     await tester.pump(const Duration(seconds: 6));
     await tester.pump(const Duration(milliseconds: 300));

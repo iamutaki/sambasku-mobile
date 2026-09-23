@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,6 +34,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// - atau `--dart-define=FLAVOR=...` (fallback lokal)
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Photo Picker di semua API (default hanya API 33+). Tanpa READ_MEDIA_*.
+  final imagePickerImplementation = ImagePickerPlatform.instance;
+  if (imagePickerImplementation is ImagePickerAndroid) {
+    imagePickerImplementation.useAndroidPhotoPicker = true;
+  }
 
   // TextureView di Android — lebih andal saat map berdampingan dengan scroll.
   MapLibreMap.useHybridComposition = true;

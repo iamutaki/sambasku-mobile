@@ -62,12 +62,17 @@ class _MeaningDraft {
 
 class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _lemmaCtrl;
+  late final TextEditingController _standardAnswerCtrl;
   late final List<_MeaningDraft> _meanings;
 
+  /// false = mode standar (satu jawaban). true = form lengkap.
+  bool _advanced = false;
   String? _dialectId;
   bool _dialectSeeded = false;
+
   /// Id kelas kata `umum` setelah referensi termuat. Dipakai makna baru.
   String? _umumWordClassId;
+
   /// API `word_type`: word | idiom | peribahasa | ungkapan
   String _wordType = 'word';
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
@@ -79,6 +84,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final isTranslationMiss = widget.initialSearchIn == 'translation';
     _lemmaCtrl = TextEditingController(
       text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
+    );
+    _standardAnswerCtrl = TextEditingController(
+      text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
     );
     _meanings = [
       _MeaningDraft(
@@ -103,6 +111,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             searchMissId: widget.initialSearchMissId,
           );
       _lemmaCtrl.addListener(_onFieldEdited);
+      _standardAnswerCtrl.addListener(_onFieldEdited);
       for (final m in _meanings) {
         m.defCtrl.addListener(_onFieldEdited);
         m.trCtrl.addListener(_onFieldEdited);
@@ -117,6 +126,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   @override
   void dispose() {
     _lemmaCtrl.dispose();
+    _standardAnswerCtrl.dispose();
     for (final m in _meanings) {
       m.dispose();
     }
@@ -297,6 +307,23 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ),
           ),
           const Gap(12),
+          _ContributeModeChips(
+            advanced: _advanced,
+            onChanged: (advanced) {
+              _onFieldEdited();
+              setState(() {
+                final turningOn = advanced && !_advanced;
+                _advanced = advanced;
+                if (!turningOn) return;
+                final text = _standardAnswerCtrl.text.trim();
+                final first = _meanings.first;
+                if (text.isEmpty || first.modePicked) return;
+                first.wantDefinition = true;
+                first.defCtrl.text = text;
+              });
+            },
+          ),
+          const Gap(12),
 
           FTextField(
             control: FTextFieldControl.managed(controller: _lemmaCtrl),
@@ -307,17 +334,19 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           _inlineError(notifier.errorFor('lemma')),
           const Gap(12),
 
-          const _FieldCaption('Jenis Entri'),
-          const Gap(6),
-          _WordTypeChips(
-            value: _wordType,
-            onChanged: (v) {
-              _onFieldEdited();
-              setState(() => _wordType = v);
-            },
-          ),
-          _inlineError(notifier.errorFor('word_type')),
-          const Gap(8),
+          if (_advanced) ...[
+            const _FieldCaption('Jenis Entri'),
+            const Gap(6),
+            _WordTypeChips(
+              value: _wordType,
+              onChanged: (v) {
+                _onFieldEdited();
+                setState(() => _wordType = v);
+              },
+            ),
+            _inlineError(notifier.errorFor('word_type')),
+            const Gap(8),
+          ],
 
           const _FieldCaption('Dialek'),
           if (sambasLanguageId == null)
@@ -345,81 +374,106 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           _inlineError(notifier.errorFor('dialect_id')),
           _inlineError(notifier.errorFor('language_id')),
 
-          const Gap(16),
-          const _FieldCaption(
-            'Makna *',
-            info:
-                'Satu kata bisa punya beberapa makna (polisemi).\n\n'
-                'Tiap blok: centang Definisi dan/atau Terjemahan, isi kelas kata.',
-          ),
-          const Gap(8),
-          for (var i = 0; i < _meanings.length; i++) ...[
-            _MeaningBlock(
-              index: i,
-              draft: _meanings[i],
-              canRemove: _meanings.length > 1,
-              isTranslationMiss: widget.initialSearchIn == 'translation',
-              wordClassesAsync: wordClassesAsync,
-              onRetryWordClasses: () =>
-                  ref.invalidate(_referenceWordClassesProvider),
-              onRemove: () => _removeMeaning(i),
-              onWantDefinition: (v) => _setWantDefinition(i, v),
-              onWantPadanan: (v) => _setWantPadanan(i, v),
-              onPickWordClass: (items) => _openWordClassSheet(i, items),
-              onOpenKbbi: () => _openKbbiSheet(i),
-              definitionError: notifier.errorForMeaning(i, 'definition'),
-              padananError: notifier.errorForMeaning(i, 'translation_texts'),
-              wordClassError: notifier.errorForMeaning(i, 'word_class_id'),
+          if (!_advanced) ...[
+            const Gap(16),
+            const _FieldCaption(
+              'Terjemahan atau definisi bahasa Indonesia *',
+              info:
+                  'Tulis salah satu yang kamu tahu.\n\n'
+                  '• Terjemahan - satu kata atau frasa.\n'
+                  '• Definisi - uraian makna.\n\n'
+                  'Tim akan menempatkannya di kolom yang tepat saat memeriksa.',
             ),
-            if (i < _meanings.length - 1) const Gap(12),
+            FTextField(
+              control: FTextFieldControl.managed(
+                controller: _standardAnswerCtrl,
+              ),
+              hint: 'Tulis satu kata atau uraian makna',
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              maxLines: 4,
+              minLines: 2,
+            ),
+            _inlineError(notifier.errorForMeaning(0, 'definition')),
+          ] else ...[
+            const Gap(16),
+            const _FieldCaption(
+              'Makna *',
+              info:
+                  'Satu kata bisa punya beberapa makna (polisemi).\n\n'
+                  'Tiap blok: centang Definisi dan/atau Terjemahan, isi kelas kata.',
+            ),
+            const Gap(8),
+            for (var i = 0; i < _meanings.length; i++) ...[
+              _MeaningBlock(
+                index: i,
+                draft: _meanings[i],
+                canRemove: _meanings.length > 1,
+                isTranslationMiss: widget.initialSearchIn == 'translation',
+                wordClassesAsync: wordClassesAsync,
+                onRetryWordClasses: () =>
+                    ref.invalidate(_referenceWordClassesProvider),
+                onRemove: () => _removeMeaning(i),
+                onWantDefinition: (v) => _setWantDefinition(i, v),
+                onWantPadanan: (v) => _setWantPadanan(i, v),
+                onPickWordClass: (items) => _openWordClassSheet(i, items),
+                onOpenKbbi: () => _openKbbiSheet(i),
+                definitionError: notifier.errorForMeaning(i, 'definition'),
+                padananError: notifier.errorForMeaning(i, 'translation_texts'),
+                wordClassError: notifier.errorForMeaning(i, 'word_class_id'),
+              ),
+              if (i < _meanings.length - 1) const Gap(12),
+            ],
+            const Gap(8),
+            if (_meanings.length < SubmitAnonWordUseCase.maxMeanings)
+              FButton(
+                variant: FButtonVariant.outline,
+                onPress: _addMeaning,
+                prefix: Icon(FLucideIcons.plus, size: 16),
+                child: const Text('Tambah makna'),
+              )
+            else
+              Text(
+                'Maksimal ${SubmitAnonWordUseCase.maxMeanings} makna per usulan.',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
+              ),
+            const Gap(12),
+
+            const _FieldCaption(
+              'Kelengkapan',
+              info:
+                  'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
+            ),
+            _SelectField(
+              selectedLabel: _relations.isEmpty
+                  ? null
+                  : _relations.summaryLabel,
+              hint: 'Tambah variasi, sinonim, antonim…',
+              onTap: _openRelationsSheet,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                'Opsional',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
+              ),
+            ),
+
+            const _FieldCaption(
+              'Gambar',
+              info:
+                  'Opsional. Perlu login. Kamera/galeri, upload langsung, maks 3.',
+            ),
+            ContributeImagesField(
+              enabled: isAuth,
+              images: _images,
+              onChanged: (next) => setState(() => _images = next),
+            ),
           ],
-          const Gap(8),
-          if (_meanings.length < SubmitAnonWordUseCase.maxMeanings)
-            FButton(
-              variant: FButtonVariant.outline,
-              onPress: _addMeaning,
-              prefix: Icon(FLucideIcons.plus, size: 16),
-              child: const Text('Tambah makna'),
-            )
-          else
-            Text(
-              'Maksimal ${SubmitAnonWordUseCase.maxMeanings} makna per usulan.',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          const Gap(12),
-
-          const _FieldCaption(
-            'Kelengkapan',
-            info:
-                'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
-          ),
-          _SelectField(
-            selectedLabel: _relations.isEmpty ? null : _relations.summaryLabel,
-            hint: 'Tambah variasi, sinonim, antonim…',
-            onTap: _openRelationsSheet,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(
-              'Opsional',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          ),
-
-          const _FieldCaption(
-            'Gambar',
-            info:
-                'Opsional. Perlu login. Kamera/galeri, upload langsung, maks 3.',
-          ),
-          ContributeImagesField(
-            enabled: isAuth,
-            images: _images,
-            onChanged: (next) => setState(() => _images = next),
-          ),
         ],
       ),
     );
@@ -434,8 +488,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         draft.savedDefinition = draft.defCtrl.text;
         draft.defCtrl.text = '-';
       } else if (!draft.wantDefinition && next) {
-        draft.defCtrl.text =
-            draft.savedDefinition == '-' ? '' : draft.savedDefinition;
+        draft.defCtrl.text = draft.savedDefinition == '-'
+            ? ''
+            : draft.savedDefinition;
       }
       draft.wantDefinition = next;
       if (!draft.wantDefinition &&
@@ -550,30 +605,40 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _submitForm() async {
-    final incomplete = _meanings.indexWhere((m) => !m.modePicked);
-    if (incomplete >= 0) {
-      showFToast(
-        context: context,
-        title: Text(
-          'Makna ${incomplete + 1}: centang dulu Definisi dan/atau Terjemahan',
-        ),
-      );
-      return;
-    }
-    if (_images.any((e) => e.uploading)) {
-      showFToast(
-        context: context,
-        title: const Text('Tunggu upload gambar selesai'),
-      );
-      return;
-    }
-    if (_images.any((e) => e.error)) {
-      showFToast(
-        context: context,
-        title: const Text('Hapus gambar yang gagal diunggah dulu'),
-        variant: FToastVariant.destructive,
-      );
-      return;
+    if (!_advanced) {
+      if (_standardAnswerCtrl.text.trim().isEmpty) {
+        showFToast(
+          context: context,
+          title: const Text('Isi terjemahan atau definisi bahasa Indonesia'),
+        );
+        return;
+      }
+    } else {
+      final incomplete = _meanings.indexWhere((m) => !m.modePicked);
+      if (incomplete >= 0) {
+        showFToast(
+          context: context,
+          title: Text(
+            'Makna ${incomplete + 1}: centang dulu Definisi dan/atau Terjemahan',
+          ),
+        );
+        return;
+      }
+      if (_images.any((e) => e.uploading)) {
+        showFToast(
+          context: context,
+          title: const Text('Tunggu upload gambar selesai'),
+        );
+        return;
+      }
+      if (_images.any((e) => e.error)) {
+        showFToast(
+          context: context,
+          title: const Text('Hapus gambar yang gagal diunggah dulu'),
+          variant: FToastVariant.destructive,
+        );
+        return;
+      }
     }
     final notifier = ref.read(submitWordProvider.notifier);
     final languages =
@@ -585,27 +650,40 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
     final notes = _relations.notesText.trim();
+    final meanings = _advanced
+        ? [
+            for (final m in _meanings)
+              SubmitAnonWordMeaningParams(
+                wordClassId: m.wordClassId ?? '',
+                definition: m.wantDefinition ? m.defCtrl.text : '-',
+                isHaveDefinition: m.wantDefinition,
+                isHaveTranslation: m.wantPadanan,
+                translationTexts: m.wantPadanan ? [m.trCtrl.text] : const [],
+              ),
+          ]
+        : [
+            SubmitAnonWordMeaningParams(
+              wordClassId: _umumWordClassId ?? '',
+              definition: _standardAnswerCtrl.text,
+              isHaveDefinition: true,
+              isHaveTranslation: true,
+              translationTexts: const ['-'],
+            ),
+          ];
     await notifier.submit(
       lemma: _lemmaCtrl.text,
       languageId: languageId,
-      meanings: [
-        for (final m in _meanings)
-          SubmitAnonWordMeaningParams(
-            wordClassId: m.wordClassId ?? '',
-            definition: m.wantDefinition ? m.defCtrl.text : '-',
-            isHaveDefinition: m.wantDefinition,
-            isHaveTranslation: m.wantPadanan,
-            translationTexts: m.wantPadanan ? [m.trCtrl.text] : const [],
-          ),
-      ],
+      meanings: meanings,
       dialectId: _dialectId,
-      wordType: _wordType,
+      wordType: _advanced ? _wordType : 'word',
       categoryIds: [],
-      notes: notes.isEmpty ? null : notes,
-      spellingVariants: _parseCsv(_relations.variantsText),
-      relatedWords: _buildRelatedWords(),
+      notes: _advanced && notes.isNotEmpty ? notes : null,
+      spellingVariants: _advanced
+          ? _parseCsv(_relations.variantsText)
+          : const [],
+      relatedWords: _advanced ? _buildRelatedWords() : const [],
       translationLanguageId: translationLanguageId,
-      images: readySubmitImages(_images),
+      images: _advanced ? readySubmitImages(_images) : const [],
       searchMissId: widget.initialSearchMissId,
     );
   }
@@ -627,8 +705,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final isAuth = ref.read(authStatusProvider).value?.isAuth ?? false;
     final successText = isAuth
         ? (lemma.isNotEmpty
-            ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
-            : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
+              ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
+              : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
         : 'Dikirim sebagai tamu. Kata belum tayang. Tim akan memeriksanya dulu.';
     final choice = await showDialog<String>(
       context: context,
@@ -641,12 +719,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              successText,
-              style: theme.typography.sm,
-            ),
-          ],
+          children: [Text(successText, style: theme.typography.sm)],
         ),
         actions: [
           TextButton(
@@ -1190,6 +1263,79 @@ const _wordTypeOptions = <({String value, String label})>[
   (value: 'peribahasa', label: 'Peribahasa'),
   (value: 'ungkapan', label: 'Ungkapan'),
 ];
+
+class _ContributeModeChips extends StatelessWidget {
+  const _ContributeModeChips({required this.advanced, required this.onChanged});
+
+  final bool advanced;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ModeChip(
+            label: 'Standar',
+            selected: !advanced,
+            onTap: () => onChanged(false),
+          ),
+        ),
+        const Gap(8),
+        Expanded(
+          child: _ModeChip(
+            label: 'Lanjutan',
+            selected: advanced,
+            onTap: () => onChanged(true),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colors.primary.withValues(alpha: 0.08)
+              : theme.colors.background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? theme.colors.primary : theme.colors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.typography.sm.copyWith(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? theme.colors.primary : theme.colors.foreground,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Picker jenis entri — pola chip sama seperti dialek (rekam) / filter komentar.
 class _WordTypeChips extends StatelessWidget {
