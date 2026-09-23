@@ -6,9 +6,10 @@ name: Deploy (Staging)
 # Track production diisi workflow deploy-production.yml dari branch main.
 # Trigger: push branch `staging` (atau workflow_dispatch).
 #
-# versionCode = commit count, dipakai bersama workflow production pada
-# package yang sama. Merge staging → main dulu sebelum rilis production,
-# supaya code di main lebih tinggi dari build internal terakhir.
+# versionCode = 1 + versionCode tertinggi yang sudah ada di package Play
+# yang sama (semua track, termasuk draft). Staging dan production berbagi
+# satu deret. Job build-and-release mengantri di group yang sama supaya
+# dua workflow tidak mengambil angka yang sama.
 #
 # Secrets GitHub yang DIBUTUHKAN (Settings → Secrets → Actions):
 #   KEYSTORE_BASE64     - isi upload-keystore.jks di-encode base64
@@ -44,6 +45,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test Play version-code resolver
+        run: node --test scripts/next-play-version-code.test.mjs
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -63,13 +67,13 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    concurrency:
+      group: play-com.iamutaki.sambasku
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # Full history: commit-count build number akurat.
-          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -95,14 +99,19 @@ jobs:
           printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
             "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
 
-      - name: Resolve staging version (auto-increment)
+      - name: Resolve staging version (Play versionCode + 1)
         id: version
-        # patch + buildNumber = commit count → +1 tiap push, tanpa commit balik.
-        # major.minor dari pubspec.yaml.
+        # major.minor dari pubspec.yaml. versionCode dari Play, bukan git.
+        env:
+          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          PLAY_PACKAGE_NAME: ${{ env.PLAY_PACKAGE_NAME }}
         run: |
           BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
           MAJOR_MINOR=$(printf '%s' "$BASE" | awk -F. '{print $1"."$2}')
-          N=$(git rev-list --count HEAD)
+          N=$(node scripts/next-play-version-code.mjs)
+          case "$N" in
+            ''|*[!0-9]*) echo "invalid version code: '$N'" >&2; exit 1 ;;
+          esac
           echo "name=${MAJOR_MINOR}.${N}" >> "$GITHUB_OUTPUT"
           echo "code=${N}"              >> "$GITHUB_OUTPUT"
           echo "Staging version: ${MAJOR_MINOR}.${N}+${N}"
