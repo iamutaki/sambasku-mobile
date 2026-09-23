@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LoginUserDto {
 
- String get id; String get username; String get role;
+ String get id; String get username; String get role;@JsonKey(name: 'avatar_url') String? get avatarUrl;
 /// Create a copy of LoginUserDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $LoginUserDtoCopyWith<LoginUserDto> get copyWith => _$LoginUserDtoCopyWithImpl<L
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginUserDto&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.role, role) || other.role == role));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginUserDto&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.role, role) || other.role == role)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,role);
+int get hashCode => Object.hash(runtimeType,id,username,role,avatarUrl);
 
 @override
 String toString() {
-  return 'LoginUserDto(id: $id, username: $username, role: $role)';
+  return 'LoginUserDto(id: $id, username: $username, role: $role, avatarUrl: $avatarUrl)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $LoginUserDtoCopyWith<$Res>  {
   factory $LoginUserDtoCopyWith(LoginUserDto value, $Res Function(LoginUserDto) _then) = _$LoginUserDtoCopyWithImpl;
 @useResult
 $Res call({
- String id, String username, String role
+ String id, String username, String role,@JsonKey(name: 'avatar_url') String? avatarUrl
 });
 
 
@@ -65,12 +65,13 @@ class _$LoginUserDtoCopyWithImpl<$Res>
 
 /// Create a copy of LoginUserDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? role = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? role = null,Object? avatarUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,
+as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String role)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String role, @JsonKey(name: 'avatar_url')  String? avatarUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoginUserDto() when $default != null:
-return $default(_that.id,_that.username,_that.role);case _:
+return $default(_that.id,_that.username,_that.role,_that.avatarUrl);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.id,_that.username,_that.role);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String role)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String role, @JsonKey(name: 'avatar_url')  String? avatarUrl)  $default,) {final _that = this;
 switch (_that) {
 case _LoginUserDto():
-return $default(_that.id,_that.username,_that.role);case _:
+return $default(_that.id,_that.username,_that.role,_that.avatarUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +197,10 @@ return $default(_that.id,_that.username,_that.role);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String role)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String role, @JsonKey(name: 'avatar_url')  String? avatarUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _LoginUserDto() when $default != null:
-return $default(_that.id,_that.username,_that.role);case _:
+return $default(_that.id,_that.username,_that.role,_that.avatarUrl);case _:
   return null;
 
 }
@@ -211,12 +212,13 @@ return $default(_that.id,_that.username,_that.role);case _:
 @JsonSerializable()
 
 class _LoginUserDto implements LoginUserDto {
-  const _LoginUserDto({required this.id, required this.username, required this.role});
+  const _LoginUserDto({required this.id, required this.username, required this.role, @JsonKey(name: 'avatar_url') this.avatarUrl});
   factory _LoginUserDto.fromJson(Map<String, dynamic> json) => _$LoginUserDtoFromJson(json);
 
 @override final  String id;
 @override final  String username;
 @override final  String role;
+@override@JsonKey(name: 'avatar_url') final  String? avatarUrl;
 
 /// Create a copy of LoginUserDto
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginUserDto&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.role, role) || other.role == role));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginUserDto&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.role, role) || other.role == role)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,role);
+int get hashCode => Object.hash(runtimeType,id,username,role,avatarUrl);
 
 @override
 String toString() {
-  return 'LoginUserDto(id: $id, username: $username, role: $role)';
+  return 'LoginUserDto(id: $id, username: $username, role: $role, avatarUrl: $avatarUrl)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$LoginUserDtoCopyWith<$Res> implements $LoginUserDtoCopyWi
   factory _$LoginUserDtoCopyWith(_LoginUserDto value, $Res Function(_LoginUserDto) _then) = __$LoginUserDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String username, String role
+ String id, String username, String role,@JsonKey(name: 'avatar_url') String? avatarUrl
 });
 
 
@@ -268,12 +270,13 @@ class __$LoginUserDtoCopyWithImpl<$Res>
 
 /// Create a copy of LoginUserDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? role = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? role = null,Object? avatarUrl = freezed,}) {
   return _then(_LoginUserDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,
+as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

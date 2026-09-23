@@ -4,11 +4,13 @@ class AuthSession {
     required this.userId,
     required this.username,
     required this.role,
+    this.avatarUrl,
   });
 
   final String userId;
   final String username;
   final String role;
+  final String? avatarUrl;
 
   /// Role verifikator (base-stack Section 22) - dipakai UI menyembunyikan
   /// aksi khusus (antrean review, dsb)

@@ -82,6 +82,7 @@ class SubmitAnonWordUseCase {
         SubmitWordImage(
           url: img.url,
           providerFileId: img.providerFileId,
+          sha: img.sha,
           altText: img.altText,
           isPrimary: primary,
         ),
@@ -92,6 +93,7 @@ class SubmitAnonWordUseCase {
       images[0] = SubmitWordImage(
         url: first.url,
         providerFileId: first.providerFileId,
+        sha: first.sha,
         altText: first.altText,
         isPrimary: true,
       );

@@ -1,15 +1,39 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
+import '../../../dictionary/dictionary_router.dart';
 import '../../domain/explore_category.dart';
 import '../../explore_router.dart';
+import '../widgets/explore_map_hero.dart';
 
 /// Tab Eksplorasi: hub kategori discovery Sambas.
 class ExplorePage extends StatelessWidget {
   const ExplorePage({super.key});
+
+  void _openCategory(BuildContext context, ExploreCategory cat) {
+    unawaited(
+      AnalyticsService.instance.logExploreCategoryTap(
+        categoryId: cat.id,
+        comingSoon: cat.comingSoon,
+      ),
+    );
+
+    // Jembatan ke kamus: daftar kata A-Z (bukan coming-soon).
+    if (cat.id == 'bahasa-budaya') {
+      context.push(DictionaryRouter.list.path);
+      return;
+    }
+
+    context.push(
+      ExploreRouter.category.path.replaceFirst(':id', cat.id),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,18 +43,15 @@ class ExplorePage extends StatelessWidget {
           title: Text('Eksplorasi'),
           suffixes: [ThemeToggleHeaderAction()],
         ),
+        // Map di luar ListView agar platform view tidak ikut di-scroll.
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: ExploreMapHero(),
+        ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              FAlert(
-                title: const Text('Sasaran berikutnya SambasKu'),
-                subtitle: const Text(
-                  'Bukan hanya kamus. Kami menyiapkan wisata, UMKM, event, berita, dan budaya Sambas. Konten di bawah masih dalam persiapan.',
-                ),
-                icon: const Icon(FLucideIcons.sparkles),
-              ),
-              const Gap(15),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -47,9 +68,7 @@ class ExplorePage extends StatelessWidget {
                   final cat = ExploreCategory.all[index];
                   return _CategoryCard(
                     category: cat,
-                    onTap: () => context.push(
-                      ExploreRouter.category.path.replaceFirst(':id', cat.id),
-                    ),
+                    onTap: () => _openCategory(context, cat),
                   );
                 },
               ),

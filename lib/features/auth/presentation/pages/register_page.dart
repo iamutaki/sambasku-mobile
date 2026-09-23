@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth_router.dart';
+import '../../domain/failures/auth_failure.dart';
 import '../providers/auth_login_providers.dart';
 import '../providers/auth_register_providers.dart';
 import '../providers/auth_status_providers.dart';
@@ -42,11 +43,22 @@ class RegisterPage extends HookConsumerWidget {
     });
 
     ref.listen(authRegisterProvider.select((s) => s.errorCode), (_, code) {
-      if (code != 'RATE_LIMITED' || !context.mounted) return;
-      showFToast(
-        context: context,
-        title: Text(state.errorMessage ?? 'Coba lagi nanti'),
-      );
+      if (!context.mounted || code == null) return;
+      if (code == 'RATE_LIMITED') {
+        showFToast(
+          context: context,
+          title: Text(state.errorMessage ?? 'Coba lagi nanti'),
+        );
+        return;
+      }
+      if (code == AuthFailure.googleSignInCanceled ||
+          code == AuthFailure.facebookSignInCanceled) {
+        showFToast(
+          context: context,
+          title: const Text('Daftar dibatalkan'),
+        );
+        ref.read(authRegisterProvider.notifier).acknowledgeSocialCancel();
+      }
     });
 
     // Register password sukses → OTP. Sesi user lama (kalau ada) di-logout dulu
@@ -178,7 +190,9 @@ class RegisterPage extends HookConsumerWidget {
                   onSubmit: canSubmit ? (_) => submit() : null,
                 ),
                 if (state.errorMessage != null &&
-                    state.errorCode != 'RATE_LIMITED') ...[
+                    state.errorCode != 'RATE_LIMITED' &&
+                    state.errorCode != AuthFailure.googleSignInCanceled &&
+                    state.errorCode != AuthFailure.facebookSignInCanceled) ...[
                   const Gap(12),
                   FAlert(
                     variant: .destructive,

@@ -475,7 +475,7 @@ class _SocialRowState extends ConsumerState<_SocialRow> {
       );
 
       final result = await ref
-          .read(wordImageUploadServiceProvider)
+          .read(privateImageUploadServiceProvider)
           .uploadFile(file, folder: _uploadFolder);
       if (!mounted) return;
 

@@ -236,7 +236,10 @@ class WordListPage extends HookConsumerWidget {
         children: [
           FTileGroup(
             physics: const NeverScrollableScrollPhysics(),
-            children: [for (final item in state.items) _WordTile(item: item)],
+            children: [
+              for (final item in state.items)
+                _WordTile(item: item, searchIn: state.searchIn),
+            ],
           ),
           if (state.isLoadingMore) const _LoadingMoreFooter(),
         ],
@@ -246,15 +249,31 @@ class WordListPage extends HookConsumerWidget {
 }
 
 class _WordTile extends StatelessWidget with FTileMixin {
-  const _WordTile({required this.item});
+  const _WordTile({required this.item, required this.searchIn});
 
   final WordSummary item;
 
+  /// `lemma` (Sambas A-Z / saring) atau `translation` (cari Indonesia).
+  final String searchIn;
+
   @override
   Widget build(BuildContext context) {
+    // Sambas: gloss A-Z / sense hasil search.
+    // Indonesia: sense (gloss Sambas) — fallback matched_translation.
+    final gloss = item.sense?.trim();
+    final matched = item.matchedTranslation?.trim();
+    String? subtitle;
+    if (gloss != null && gloss.isNotEmpty) {
+      subtitle = gloss;
+    } else if (searchIn == 'translation' && matched != null && matched.isNotEmpty) {
+      subtitle = matched;
+    } else if (searchIn != 'translation' && item.wordType != 'word') {
+      subtitle = item.wordTypeLabel;
+    }
+
     return FTile(
       title: Text(item.lemma),
-      subtitle: item.wordType != 'word' ? Text(item.wordTypeLabel) : null,
+      subtitle: subtitle != null ? Text(subtitle) : null,
       suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();

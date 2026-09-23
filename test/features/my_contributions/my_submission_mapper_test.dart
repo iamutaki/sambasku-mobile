@@ -26,12 +26,13 @@ void main() {
     expect(item.lemma, 'makatn');
     expect(item.displayTitle, 'makatn');
     expect(item.kindLabel, 'Usul kata baru');
-    expect(item.statusLabel, 'Menunggu');
-    expect(item.canOpenWord, isFalse);
+    expect(item.statusLabel, 'Menunggu pengecekan');
+    // Kata logged-in langsung tayang → word_id ada, bisa dibuka meski pending.
+    expect(item.canOpenWord, isTrue);
     expect(item.isSuggestion, isFalse);
     expect(
       item.listSubtitle('21 Sep 2026 07:00'),
-      'Usul kata baru · Menunggu · 21 Sep 2026 07:00',
+      'Usul kata baru · Menunggu pengecekan · 21 Sep 2026 07:00',
     );
   });
 

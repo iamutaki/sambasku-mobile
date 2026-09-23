@@ -57,7 +57,7 @@ final class LatestWordsNotifierProvider
 }
 
 String _$latestWordsNotifierHash() =>
-    r'440c53a745bf1c6611c1c3fb3ad4fc5fa3a6c67e';
+    r'a6f5a8f931e619bf41ac07bdbfa88b13c56a98dd';
 
 /// Feed beranda. Halaman pertama dimuat sejak build. keepAlive supaya
 /// pindah tab tidak mengulang unduhan dari nol.

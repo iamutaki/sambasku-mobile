@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../dictionary_router.dart';
 import '../../domain/entities/word_of_day.dart';
@@ -54,6 +55,10 @@ class _WordOfDayBody extends StatelessWidget {
         child: InkWell(
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
+            AnalyticsService.instance.log(
+              AnalyticsEvents.wotdTap,
+              params: {'word_id': item.word.id},
+            );
             context.push(
               DictionaryRouter.detail.path.replaceFirst(':id', item.word.id),
             );

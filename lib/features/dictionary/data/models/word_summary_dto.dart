@@ -16,7 +16,9 @@ abstract class WordSummaryDto with _$WordSummaryDto {
     @JsonKey(name: 'is_verified') required bool isVerified,
     /// Hanya terisi saat search_in=translation (Indonesia→Sambas).
     @JsonKey(name: 'matched_translation') String? matchedTranslation,
-    /// Satu baris arti. Hanya GET /api/v1/words/latest.
+    /// Satu baris arti.
+    /// - GET /words/latest: definisi atau terjemahan pertama.
+    /// - GET /words (A-Z): gloss `[n] makan,[v] santap`.
     String? sense,
     /// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
     @JsonKey(name: 'approved_at') String? approvedAt,

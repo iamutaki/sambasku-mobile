@@ -104,7 +104,7 @@ void main() {
 
     expect(signIn.calls, 1);
     expect(repo.receivedToken, 'id-token-google');
-    expect(result?.getRight().toNullable()?.username, 'budi');
+    expect(result.getRight().toNullable()?.username, 'budi');
   });
 
   test('409 EMAIL_ALREADY_EXISTS diteruskan', () async {
@@ -119,19 +119,23 @@ void main() {
     final usecase = LoginWithGoogleUseCase(repo, _FakeSignIn('id-token'));
 
     final result = await usecase();
-    final failure = result?.getLeft().toNullable();
+    final failure = result.getLeft().toNullable();
     expect(failure?.errorCode, 'EMAIL_ALREADY_EXISTS');
     expect(failure?.message, contains('Email sudah terdaftar'));
   });
 
-  test('batal SDK tidak memanggil repository', () async {
+  test('batal SDK → AuthFailure GOOGLE_SIGN_IN_CANCELED, tidak panggil API',
+      () async {
     final repo = _FakeRepo(Either.right(session));
     final usecase = LoginWithGoogleUseCase(repo, _FakeSignIn(null));
 
     final result = await usecase();
+    final failure = result.getLeft().toNullable();
 
-    expect(result, isNull);
     expect(repo.loginWithGoogleCalls, 0);
+    expect(failure?.errorCode, AuthFailure.googleSignInCanceled);
+    expect(failure?.message, 'Masuk dibatalkan.');
+    expect(failure?.isSocialSignInCanceled, isTrue);
   });
 
   test('idToken kosong → AuthFailure generik, tidak panggil API', () async {
@@ -140,18 +144,20 @@ void main() {
 
     final result = await usecase();
     expect(repo.loginWithGoogleCalls, 0);
-    expect(result?.getLeft().toNullable()?.message, 'Tidak bisa masuk dengan Google.');
+    expect(
+      result.getLeft().toNullable()?.message,
+      'Tidak bisa masuk dengan Google.',
+    );
   });
 
-  test('exception SDK → AuthFailure isi pesan StateError', () async {
+  test('exception SDK → AuthFailure pesan singkat, tanpa detail SHA', () async {
     final repo = _FakeRepo(Either.right(session));
     final usecase = LoginWithGoogleUseCase(repo, _ThrowingSignIn());
 
     final result = await usecase();
     expect(repo.loginWithGoogleCalls, 0);
-    expect(
-      result?.getLeft().toNullable()?.message,
-      contains('SHA-1'),
-    );
+    final message = result.getLeft().toNullable()?.message ?? '';
+    expect(message, isNot(contains('SHA-1')));
+    expect(message, 'Tidak bisa masuk dengan Google. Coba lagi.');
   });
 }

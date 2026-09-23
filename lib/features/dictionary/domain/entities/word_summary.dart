@@ -23,7 +23,9 @@ class WordSummary {
   /// tampilkan sebagai "makan → makatn".
   final String? matchedTranslation;
 
-  /// Satu baris arti untuk kartu feed (definisi atau terjemahan).
+  /// Satu baris arti.
+  /// - GET /words/latest: definisi atau terjemahan pertama.
+  /// - GET /words (A-Z) dan GET /words/search: gloss `[n] makan,[v] santap`.
   final String? sense;
 
   /// Waktu persetujuan / tayang. Hanya feed beranda.

@@ -5,17 +5,24 @@ import '../failures/auth_failure.dart';
 import '../ports/facebook_sign_in_port.dart';
 import '../repositories/auth_repository.dart';
 
-/// `null` = user batal di sheet Facebook (bukan failure).
+/// Facebook Sign-In. Batal sheet → [AuthFailure.facebookSignInCanceled].
 class LoginWithFacebookUseCase {
   const LoginWithFacebookUseCase(this._repository, this._signIn);
 
   final AuthRepository _repository;
   final FacebookSignInPort _signIn;
 
-  Future<Either<AuthFailure, AuthSession>?> call() async {
+  Future<Either<AuthFailure, AuthSession>> call() async {
     try {
       final accessToken = await _signIn.authenticate();
-      if (accessToken == null) return null;
+      if (accessToken == null) {
+        return Either.left(
+          const AuthFailure(
+            'Masuk dibatalkan.',
+            errorCode: AuthFailure.facebookSignInCanceled,
+          ),
+        );
+      }
       if (accessToken.trim().isEmpty) {
         return Either.left(
           const AuthFailure(
@@ -27,7 +34,7 @@ class LoginWithFacebookUseCase {
       return _repository.loginWithFacebook(accessToken: accessToken);
     } catch (_) {
       return Either.left(
-        const AuthFailure('Tidak bisa masuk dengan Facebook.'),
+        const AuthFailure('Tidak bisa masuk dengan Facebook. Coba lagi.'),
       );
     }
   }

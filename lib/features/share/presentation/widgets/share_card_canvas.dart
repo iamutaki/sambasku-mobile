@@ -313,19 +313,155 @@ Widget _photoOrGradient({
   );
 }
 
-Widget _classPill(String? label, Color fg, {required ShareFontPair pair}) {
-  if (label == null || label.isEmpty) return const SizedBox.shrink();
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-    decoration: BoxDecoration(
-      color: fg.withValues(alpha: 0.18),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: fg.withValues(alpha: 0.35)),
+List<ShareSenseLine> _effectiveSenses(ShareCardData data) {
+  if (data.senses.isNotEmpty) return data.senses;
+  return [
+    ShareSenseLine(
+      wordClassCode: data.wordClassCode,
+      padanan: data.padanan,
+      definition: data.definition,
     ),
-    child: Text(
-      label,
-      style: _bodyStyle(pair: pair, size: 22, color: fg),
-    ),
+  ];
+}
+
+/// Kelas kata `[n]` sejajar deskripsi; multi-makna bernomor (maks. isi `senses`).
+Widget _meaningCopyBlock({
+  required ShareCardData data,
+  required ShareEditorSettings settings,
+  required _LayoutCallbacks layout,
+  required ShareFontPair pair,
+  required Color lemmaColor,
+  required Color bodyColor,
+  required double padananSize,
+  required double definitionSize,
+  int definitionMaxLines = 5,
+  CrossAxisAlignment align = CrossAxisAlignment.start,
+}) {
+  if (!settings.showWordClass &&
+      !settings.showPadanan &&
+      !settings.showDefinition) {
+    return const SizedBox.shrink();
+  }
+
+  final senses = _effectiveSenses(data);
+  final numbered = settings.showAllMeanings && senses.length > 1;
+  final rows = <Widget>[];
+  for (var i = 0; i < senses.length; i++) {
+    final sense = senses[i];
+    final bracket = settings.showWordClass ? sense.wordClassBracket : null;
+    final pad = settings.showPadanan ? (sense.padanan?.trim() ?? '') : '';
+    final def = settings.showDefinition ? (sense.definition?.trim() ?? '') : '';
+    if (bracket == null && pad.isEmpty && def.isEmpty) continue;
+    if (rows.isNotEmpty) rows.add(const SizedBox(height: 14));
+    rows.add(
+      _senseRow(
+        sense: sense,
+        number: numbered ? i + 1 : null,
+        settings: settings,
+        pair: pair,
+        lemmaColor: lemmaColor,
+        bodyColor: bodyColor,
+        padananSize: padananSize,
+        definitionSize: definitionSize,
+        definitionMaxLines: numbered ? 3 : definitionMaxLines,
+        align: align,
+      ),
+    );
+  }
+  if (rows.isEmpty) return const SizedBox.shrink();
+
+  final column = Column(
+    crossAxisAlignment: align,
+    mainAxisSize: MainAxisSize.min,
+    children: rows,
+  );
+
+  // Multi: satu blok drag. Tunggal: teks mengikuti layout default.
+  if (numbered) {
+    return _laidOut(
+      id: ShareTextElementId.definition,
+      settings: settings,
+      layout: layout,
+      child: column,
+    );
+  }
+  return _laidOut(
+    id: ShareTextElementId.definition,
+    settings: settings,
+    layout: layout,
+    child: column,
+  );
+}
+
+Widget _senseRow({
+  required ShareSenseLine sense,
+  required int? number,
+  required ShareEditorSettings settings,
+  required ShareFontPair pair,
+  required Color lemmaColor,
+  required Color bodyColor,
+  required double padananSize,
+  required double definitionSize,
+  required int definitionMaxLines,
+  required CrossAxisAlignment align,
+}) {
+  final bracket = settings.showWordClass ? sense.wordClassBracket : null;
+  final pad = settings.showPadanan ? (sense.padanan?.trim() ?? '') : '';
+  final def = settings.showDefinition ? (sense.definition?.trim() ?? '') : '';
+  final hasPad = pad.isNotEmpty;
+  final hasDef = def.isNotEmpty;
+  if (bracket == null && !hasPad && !hasDef) {
+    return const SizedBox.shrink();
+  }
+
+  final lead = StringBuffer();
+  if (number != null) lead.write('$number ');
+  if (bracket != null) lead.write('$bracket ');
+  final leadText = lead.toString();
+  final textAlign = align == CrossAxisAlignment.center
+      ? TextAlign.center
+      : TextAlign.start;
+
+  final padStyle = _bodyStyle(
+    pair: pair,
+    size: padananSize,
+    color: lemmaColor,
+  );
+  final defStyle = _bodyStyle(
+    pair: pair,
+    size: definitionSize,
+    color: bodyColor,
+  );
+
+  if (hasPad && hasDef) {
+    return Column(
+      crossAxisAlignment: align,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$leadText→ $pad', textAlign: textAlign, style: padStyle),
+        const SizedBox(height: 8),
+        Text(
+          def,
+          textAlign: textAlign,
+          maxLines: definitionMaxLines,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+          style: defStyle,
+        ),
+      ],
+    );
+  }
+  if (hasPad) {
+    return Text('$leadText→ $pad', textAlign: textAlign, style: padStyle);
+  }
+  // `[n]` sejajar deskripsi
+  return Text(
+    '$leadText$def',
+    textAlign: textAlign,
+    maxLines: definitionMaxLines,
+    overflow: TextOverflow.ellipsis,
+    softWrap: true,
+    style: defStyle,
   );
 }
 
@@ -337,16 +473,34 @@ Widget _variantsUnderLemma({
   TextAlign align = TextAlign.start,
 }) {
   final line = data.variantsLine;
-  if (line == null || line.isEmpty) return const SizedBox.shrink();
-  return Padding(
+  final chip = Padding(
     padding: const EdgeInsets.only(top: 10),
     child: Text(
-      line,
+      data.trustLabel,
       textAlign: align,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: _bodyStyle(pair: pair, size: size, color: color),
+      style: _bodyStyle(pair: pair, size: size * 0.85, color: color),
     ),
+  );
+  if (line == null || line.isEmpty) return chip;
+  return Column(
+    crossAxisAlignment: align == TextAlign.center
+        ? CrossAxisAlignment.center
+        : align == TextAlign.end
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+    children: [
+      chip,
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(
+          line,
+          textAlign: align,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: _bodyStyle(pair: pair, size: size, color: color),
+        ),
+      ),
+    ],
   );
 }
 
@@ -563,17 +717,6 @@ class _UnsplashCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (settings.showWordClass)
-                    _laidOut(
-                      id: ShareTextElementId.wordClass,
-                      settings: settings,
-                      layout: layout,
-                      child: _classPill(
-                        data.wordClassName,
-                        lemmaColor,
-                        pair: pair,
-                      ),
-                    ),
                   const Spacer(),
                   _laidOut(
                     id: ShareTextElementId.lemma,
@@ -594,45 +737,18 @@ class _UnsplashCard extends StatelessWidget {
                     color: lemmaColor,
                     size: 28 * settings.bodyFontScale,
                   ),
-                  if (settings.showPadanan &&
-                      data.padanan != null &&
-                      data.padanan!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _laidOut(
-                      id: ShareTextElementId.padanan,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        '→ ${data.padanan}',
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 44 * settings.bodyFontScale,
-                          color: lemmaColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (settings.showDefinition &&
-                      data.definition != null &&
-                      data.definition!.isNotEmpty) ...[
-                    const SizedBox(height: 28),
-                    _laidOut(
-                      id: ShareTextElementId.definition,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        data.definition!,
-                        maxLines: 6,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: bodySize,
-                          color: bodyColor,
-                        ),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 20),
+                  _meaningCopyBlock(
+                    data: data,
+                    settings: settings,
+                    layout: layout,
+                    pair: pair,
+                    lemmaColor: lemmaColor,
+                    bodyColor: bodyColor,
+                    padananSize: 44 * settings.bodyFontScale,
+                    definitionSize: bodySize,
+                    definitionMaxLines: 6,
+                  ),
                   if (settings.showExample &&
                       data.exampleSentence != null &&
                       data.exampleSentence!.isNotEmpty) ...[
@@ -761,24 +877,6 @@ class _KamusEditorialCard extends StatelessWidget {
                               color: lemmaColor,
                               size: 26 * settings.bodyFontScale,
                             ),
-                            if (settings.showWordClass &&
-                                data.wordClassName != null &&
-                                data.wordClassName!.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              _laidOut(
-                                id: ShareTextElementId.wordClass,
-                                settings: settings,
-                                layout: layout,
-                                child: Text(
-                                  data.wordClassName!,
-                                  style: _bodyStyle(
-                                    pair: pair,
-                                    size: 30 * settings.bodyFontScale,
-                                    color: bodyColor,
-                                  ).copyWith(fontStyle: FontStyle.italic),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
@@ -808,43 +906,17 @@ class _KamusEditorialCard extends StatelessWidget {
                   const SizedBox(height: 36),
                   Container(height: 2, color: bodyColor.withValues(alpha: 0.2)),
                   const SizedBox(height: 36),
-                  if (settings.showDefinition &&
-                      data.definition != null &&
-                      data.definition!.isNotEmpty)
-                    _laidOut(
-                      id: ShareTextElementId.definition,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        data.definition!,
-                        maxLines: 6,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 42 * settings.bodyFontScale,
-                          color: bodyColor,
-                        ),
-                      ),
-                    ),
-                  if (settings.showPadanan &&
-                      data.padanan != null &&
-                      data.padanan!.isNotEmpty) ...[
-                    const SizedBox(height: 28),
-                    _laidOut(
-                      id: ShareTextElementId.padanan,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        'Terjemahan: ${data.padanan}',
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 36 * settings.bodyFontScale,
-                          color: lemmaColor,
-                        ).copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
+                  _meaningCopyBlock(
+                    data: data,
+                    settings: settings,
+                    layout: layout,
+                    pair: pair,
+                    lemmaColor: lemmaColor,
+                    bodyColor: bodyColor,
+                    padananSize: 36 * settings.bodyFontScale,
+                    definitionSize: 42 * settings.bodyFontScale,
+                    definitionMaxLines: 6,
+                  ),
                   if (settings.showExample &&
                       data.exampleSentence != null &&
                       data.exampleSentence!.isNotEmpty) ...[
@@ -928,17 +1000,6 @@ class _PosterHurufCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (settings.showWordClass)
-                  _laidOut(
-                    id: ShareTextElementId.wordClass,
-                    settings: settings,
-                    layout: layout,
-                    child: _classPill(
-                      data.wordClassName,
-                      lemmaColor,
-                      pair: pair,
-                    ),
-                  ),
                 const Spacer(flex: 2),
                 _laidOut(
                   id: ShareTextElementId.lemma,
@@ -964,43 +1025,17 @@ class _PosterHurufCard extends StatelessWidget {
                   size: 32 * settings.bodyFontScale,
                 ),
                 const Spacer(),
-                if (settings.showPadanan &&
-                    data.padanan != null &&
-                    data.padanan!.isNotEmpty)
-                  _laidOut(
-                    id: ShareTextElementId.padanan,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      data.padanan!,
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 48 * settings.bodyFontScale,
-                        color: lemmaColor,
-                      ),
-                    ),
-                  ),
-                if (settings.showDefinition &&
-                    data.definition != null &&
-                    data.definition!.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  _laidOut(
-                    id: ShareTextElementId.definition,
-                    settings: settings,
-                    layout: layout,
-                    child: Text(
-                      data.definition!,
-                      maxLines: 6,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                      style: _bodyStyle(
-                        pair: pair,
-                        size: 34 * settings.bodyFontScale,
-                        color: bodyColor,
-                      ),
-                    ),
-                  ),
-                ],
+                _meaningCopyBlock(
+                  data: data,
+                  settings: settings,
+                  layout: layout,
+                  pair: pair,
+                  lemmaColor: lemmaColor,
+                  bodyColor: bodyColor,
+                  padananSize: 48 * settings.bodyFontScale,
+                  definitionSize: 34 * settings.bodyFontScale,
+                  definitionMaxLines: 6,
+                ),
               ],
             ),
           ),
@@ -1114,69 +1149,24 @@ class _PolaroidCard extends StatelessWidget {
                             size: 24 * settings.bodyFontScale,
                             align: TextAlign.center,
                           ),
-                          if (settings.showPadanan &&
-                              data.padanan != null &&
-                              data.padanan!.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            _laidOut(
-                              id: ShareTextElementId.padanan,
-                              settings: settings,
-                              layout: layout,
-                              child: Text(
-                                data.padanan!,
-                                textAlign: TextAlign.center,
-                                style: _bodyStyle(
-                                  pair: pair,
-                                  size: 34 * settings.bodyFontScale,
-                                  color: bodyColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (settings.showWordClass &&
-                              data.wordClassName != null &&
-                              data.wordClassName!.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            _laidOut(
-                              id: ShareTextElementId.wordClass,
-                              settings: settings,
-                              layout: layout,
-                              child: Text(
-                                data.wordClassName!,
-                                textAlign: TextAlign.center,
-                                style: _bodyStyle(
-                                  pair: pair,
-                                  size: 26 * settings.bodyFontScale,
-                                  color: bodyColor.withValues(alpha: 0.85),
-                                ).copyWith(fontStyle: FontStyle.italic),
-                              ),
-                            ),
-                          ],
+                          const SizedBox(height: 12),
+                          _meaningCopyBlock(
+                            data: data,
+                            settings: settings,
+                            layout: layout,
+                            pair: pair,
+                            lemmaColor: lemmaColor,
+                            bodyColor: bodyColor,
+                            padananSize: 34 * settings.bodyFontScale,
+                            definitionSize: 32 * settings.bodyFontScale,
+                            definitionMaxLines: 4,
+                            align: CrossAxisAlignment.center,
+                          ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 36),
-                  if (settings.showDefinition &&
-                      data.definition != null &&
-                      data.definition!.isNotEmpty)
-                    _laidOut(
-                      id: ShareTextElementId.definition,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        data.definition!,
-                        textAlign: TextAlign.center,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 32 * settings.bodyFontScale,
-                          color: bodyColor,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -1259,7 +1249,7 @@ class _SisiCard extends StatelessWidget {
         ),
       ),
     );
-    final split = ratio == ShareRatioId.post
+    final split = ratio.prefersSideSplit
         ? Row(
             children: [
               Expanded(flex: 5, child: media),
@@ -1491,58 +1481,20 @@ class _KutipanCard extends StatelessWidget {
                     size: 28 * settings.bodyFontScale,
                     align: TextAlign.center,
                   ),
-                  if (settings.showPadanan &&
-                      data.padanan != null &&
-                      data.padanan!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _laidOut(
-                      id: ShareTextElementId.padanan,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        data.padanan!,
-                        textAlign: TextAlign.center,
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 42 * settings.bodyFontScale,
-                          color: lemmaColor,
-                        ).copyWith(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ],
-                  if (settings.showDefinition &&
-                      data.definition != null &&
-                      data.definition!.isNotEmpty) ...[
-                    const SizedBox(height: 28),
-                    _laidOut(
-                      id: ShareTextElementId.definition,
-                      settings: settings,
-                      layout: layout,
-                      child: Text(
-                        data.definition!,
-                        textAlign: TextAlign.center,
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                        style: _bodyStyle(
-                          pair: pair,
-                          size: 34 * settings.bodyFontScale,
-                          color: bodyColor,
-                        ),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 20),
+                  _meaningCopyBlock(
+                    data: data,
+                    settings: settings,
+                    layout: layout,
+                    pair: pair,
+                    lemmaColor: lemmaColor,
+                    bodyColor: bodyColor,
+                    padananSize: 42 * settings.bodyFontScale,
+                    definitionSize: 34 * settings.bodyFontScale,
+                    definitionMaxLines: 5,
+                    align: CrossAxisAlignment.center,
+                  ),
                   const Spacer(),
-                  if (settings.showWordClass)
-                    _laidOut(
-                      id: ShareTextElementId.wordClass,
-                      settings: settings,
-                      layout: layout,
-                      child: _classPill(
-                        data.wordClassName,
-                        lemmaColor,
-                        pair: pair,
-                      ),
-                    ),
                   if (settings.showExample &&
                       data.exampleSentence != null &&
                       data.exampleSentence!.isNotEmpty) ...[
@@ -1645,18 +1597,6 @@ class _KartuCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (settings.showWordClass)
-                          _laidOut(
-                            id: ShareTextElementId.wordClass,
-                            settings: settings,
-                            layout: layout,
-                            child: _classPill(
-                              data.wordClassName,
-                              lemmaColor,
-                              pair: pair,
-                            ),
-                          ),
-                        const SizedBox(height: 20),
                         _laidOut(
                           id: ShareTextElementId.lemma,
                           settings: settings,
@@ -1676,48 +1616,23 @@ class _KartuCard extends StatelessWidget {
                           color: lemmaColor,
                           size: 26 * settings.bodyFontScale,
                         ),
-                        if (settings.showPadanan &&
-                            data.padanan != null &&
-                            data.padanan!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _laidOut(
-                            id: ShareTextElementId.padanan,
-                            settings: settings,
-                            layout: layout,
-                            child: Text(
-                              data.padanan!,
-                              style: _bodyStyle(
-                                pair: pair,
-                                size: 36 * settings.bodyFontScale,
-                                color: lemmaColor,
-                              ).copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 24),
                         Container(
                           height: 2,
                           color: bodyColor.withValues(alpha: 0.22),
                         ),
                         const SizedBox(height: 24),
-                        if (settings.showDefinition &&
-                            data.definition != null &&
-                            data.definition!.isNotEmpty)
-                          _laidOut(
-                            id: ShareTextElementId.definition,
-                            settings: settings,
-                            layout: layout,
-                            child: Text(
-                              data.definition!,
-                              maxLines: 6,
-                              overflow: TextOverflow.ellipsis,
-                              style: _bodyStyle(
-                                pair: pair,
-                                size: 36 * settings.bodyFontScale,
-                                color: bodyColor,
-                              ),
-                            ),
-                          ),
+                        _meaningCopyBlock(
+                          data: data,
+                          settings: settings,
+                          layout: layout,
+                          pair: pair,
+                          lemmaColor: lemmaColor,
+                          bodyColor: bodyColor,
+                          padananSize: 36 * settings.bodyFontScale,
+                          definitionSize: 36 * settings.bodyFontScale,
+                          definitionMaxLines: 6,
+                        ),
                         if (settings.showExample &&
                             data.exampleSentence != null &&
                             data.exampleSentence!.isNotEmpty) ...[
@@ -1770,13 +1685,6 @@ Widget _stackedCopy({
   return Column(
     crossAxisAlignment: align,
     children: [
-      if (settings.showWordClass)
-        _laidOut(
-          id: ShareTextElementId.wordClass,
-          settings: settings,
-          layout: layout,
-          child: _classPill(data.wordClassName, lemmaColor, pair: pair),
-        ),
       const Spacer(),
       _laidOut(
         id: ShareTextElementId.lemma,
@@ -1796,44 +1704,18 @@ Widget _stackedCopy({
             ? TextAlign.center
             : TextAlign.start,
       ),
-      if (settings.showPadanan &&
-          data.padanan != null &&
-          data.padanan!.isNotEmpty) ...[
-        const SizedBox(height: 14),
-        _laidOut(
-          id: ShareTextElementId.padanan,
-          settings: settings,
-          layout: layout,
-          child: Text(
-            data.padanan!,
-            style: _bodyStyle(
-              pair: pair,
-              size: 38 * settings.bodyFontScale,
-              color: lemmaColor,
-            ),
-          ),
-        ),
-      ],
-      if (settings.showDefinition &&
-          data.definition != null &&
-          data.definition!.isNotEmpty) ...[
-        const SizedBox(height: 20),
-        _laidOut(
-          id: ShareTextElementId.definition,
-          settings: settings,
-          layout: layout,
-          child: Text(
-            data.definition!,
-            maxLines: 5,
-            overflow: TextOverflow.ellipsis,
-            style: _bodyStyle(
-              pair: pair,
-              size: 32 * settings.bodyFontScale,
-              color: bodyColor,
-            ),
-          ),
-        ),
-      ],
+      const SizedBox(height: 16),
+      _meaningCopyBlock(
+        data: data,
+        settings: settings,
+        layout: layout,
+        pair: pair,
+        lemmaColor: lemmaColor,
+        bodyColor: bodyColor,
+        padananSize: 38 * settings.bodyFontScale,
+        definitionSize: 32 * settings.bodyFontScale,
+        align: align,
+      ),
       if (settings.showExample &&
           data.exampleSentence != null &&
           data.exampleSentence!.isNotEmpty) ...[

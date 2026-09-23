@@ -13,8 +13,83 @@ import '../../domain/failures/comment_failure.dart';
 import '../providers/comment_providers.dart';
 import '../../../user_profile/user_profile_router.dart';
 
-/// Section komentar pada detail kata (09-api-comment.md). List published
-/// (terbaru dulu) + vote per komentar + composer (pre-moderation).
+/// Buka thread komentar tanpa memanjangkan entri kata.
+Future<void> showWordCommentsSheet(BuildContext context, String wordId) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      final media = MediaQuery.of(sheetContext);
+      final height = (media.size.height - media.viewInsets.bottom) * 0.88;
+      return Padding(
+        padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+        child: SizedBox(
+          height: height,
+          child: WordCommentsSection(wordId: wordId),
+        ),
+      );
+    },
+  );
+}
+
+/// Bar lengket di bawah detail kata. Jumlah mengikuti halaman yang sudah dimuat.
+class WordCommentEntryBar extends ConsumerWidget {
+  const WordCommentEntryBar({super.key, required this.wordId});
+
+  final String wordId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.theme;
+    final async = ref.watch(commentListControllerProvider(wordId));
+    final state = async.value;
+    final count = state?.items.length ?? 0;
+    final label = count == 0
+        ? 'Komentar'
+        : state!.hasMore
+            ? 'Komentar · $count+'
+            : 'Komentar · $count';
+
+    return Material(
+      color: theme.colors.background,
+      child: InkWell(
+        onTap: () => showWordCommentsSheet(context, wordId),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: theme.colors.border)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Icon(
+                FLucideIcons.messageSquare,
+                size: 18,
+                color: theme.colors.foreground,
+              ),
+              const Gap(8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.typography.sm.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                FLucideIcons.chevronUp,
+                size: 16,
+                color: theme.colors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Thread komentar di dalam sheet (09-api-comment.md).
 class WordCommentsSection extends ConsumerStatefulWidget {
   const WordCommentsSection({super.key, required this.wordId});
 
@@ -137,37 +212,49 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
         .watch(commentListControllerProvider(widget.wordId))
         .value;
     final count = listState?.items.length ?? 0;
+    final title = count == 0
+        ? 'Komentar'
+        : (listState?.hasMore ?? false)
+            ? 'Komentar · $count+'
+            : 'Komentar · $count';
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Text(
-              'KOMENTAR',
-              style: theme.typography.sm.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.06,
-                color: theme.colors.mutedForeground,
-                fontSize: 11,
-              ),
+        const Gap(8),
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colors.border,
+              borderRadius: BorderRadius.circular(999),
             ),
-            if (count > 0) ...[
-              const Gap(6),
-              Text(
-                '$count',
-                style: theme.typography.sm.copyWith(
-                  color: theme.colors.mutedForeground,
-                  fontSize: 11,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.typography.md.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
             ],
-          ],
+          ),
         ),
-        const Gap(8),
-        ref
-            .watch(commentListControllerProvider(widget.wordId))
-            .when(
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: ref.watch(commentListControllerProvider(widget.wordId)).when(
               loading: () => const _CommentsSkeleton(),
               error: (error, _) => _CommentsError(
                 message: error is CommentFailure
@@ -233,31 +320,34 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                 ],
               ),
             ),
-        const Gap(10),
-        if (!isAuth)
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Masuk untuk menulis komentar',
-                  style: theme.typography.sm.copyWith(
-                    color: theme.colors.mutedForeground,
-                  ),
-                ),
-              ),
-              FButton(
-                variant: FButtonVariant.outline,
-                onPress: _promptLogin,
-                child: const Text('Masuk'),
-              ),
-            ],
-          )
-        else
-          _Composer(
-            controller: _bodyCtrl,
-            isSubmitting: listState?.isSubmitting ?? false,
-            onSubmit: _sendComment,
           ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: !isAuth
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Masuk untuk menulis komentar',
+                        style: theme.typography.sm.copyWith(
+                          color: theme.colors.mutedForeground,
+                        ),
+                      ),
+                    ),
+                    FButton(
+                      variant: FButtonVariant.outline,
+                      onPress: _promptLogin,
+                      child: const Text('Masuk'),
+                    ),
+                  ],
+                )
+              : _Composer(
+                  controller: _bodyCtrl,
+                  isSubmitting: listState?.isSubmitting ?? false,
+                  onSubmit: _sendComment,
+                ),
+        ),
       ],
     );
   }

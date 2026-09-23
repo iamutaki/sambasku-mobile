@@ -62,6 +62,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   status: dto.status,
                   isVerified: dto.isVerified,
                   matchedTranslation: dto.matchedTranslation,
+                  sense: dto.sense,
                 ),
               )
               .toList(),
@@ -122,6 +123,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   wordType: dto.wordType,
                   status: dto.status,
                   isVerified: dto.isVerified,
+                  sense: dto.sense,
                 ),
               )
               .toList(),
@@ -288,11 +290,18 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             username: dto.verifiedBy!.username,
             role: dto.verifiedBy!.role,
           ),
+    createdBy: dto.createdBy == null
+        ? null
+        : WordVerifier(
+            username: dto.createdBy!.username,
+            role: dto.createdBy!.role,
+          ),
     meanings: dto.meanings
         .map(
           (m) => WordMeaning(
             id: m.id,
             wordClassId: m.wordClass?.id,
+            wordClassCode: m.wordClass?.code,
             // ponytail: format di mapper biar UI cukup pakai wordClassName
             wordClassName: m.wordClass == null
                 ? null

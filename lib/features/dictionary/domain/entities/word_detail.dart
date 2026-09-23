@@ -12,6 +12,7 @@ class WordDetail {
     this.notes,
     this.verifiedAt,
     this.verifiedBy,
+    this.createdBy,
     this.meanings = const [],
     this.categories = const [],
     this.pronunciations = const [],
@@ -33,6 +34,7 @@ class WordDetail {
   final bool selfVerified;
   final String? verifiedAt;
   final WordVerifier? verifiedBy;
+  final WordVerifier? createdBy;
   final List<WordMeaning> meanings;
   final List<WordCategory> categories;
   final List<WordPronunciation> pronunciations;
@@ -49,14 +51,43 @@ class WordDetail {
     _ => 'Kata',
   };
 
-  String get verifierAttributionLabel {
+  String? get creatorAttributionLabel {
+    final username = createdBy?.username;
+    if (username == null || username.isEmpty) return null;
+    return 'Dibuat oleh $username';
+  }
+
+  String? get verifierAttributionLabel {
     final username = verifiedBy?.username;
-    if (username == null || username.isEmpty) {
-      return 'Verifikator tidak diketahui';
-    }
-    return selfVerified
-        ? 'Dibuat dan diverifikasi oleh $username'
-        : 'Diverifikasi oleh $username';
+    if (username == null || username.isEmpty) return null;
+    return 'Diverifikasi oleh $username';
+  }
+
+  /// Satu kalimat kalau orangnya sama, supaya nama tidak tertulis dua kali.
+  bool get authoredAndVerifiedBySamePerson {
+    final creator = createdBy?.username;
+    final verifier = verifiedBy?.username;
+    final hasCreator = creator != null && creator.isNotEmpty;
+    final hasVerifier = verifier != null && verifier.isNotEmpty;
+    if (hasCreator && hasVerifier) return creator == verifier;
+    return selfVerified && hasVerifier;
+  }
+
+  String? get combinedAttributionLabel {
+    if (!authoredAndVerifiedBySamePerson) return null;
+    final name = verifiedBy?.username ?? createdBy?.username;
+    if (name == null || name.isEmpty) return null;
+    return 'Dibuat dan diverifikasi oleh $name';
+  }
+
+  /// Orang yang sama dan perannya tim verifikator, bukan kontributor.
+  bool get combinedByVerifier {
+    if (!authoredAndVerifiedBySamePerson) return false;
+    final role = (verifiedBy?.role ?? createdBy?.role)?.toLowerCase();
+    return role == 'admin' ||
+        role == 'editor' ||
+        role == 'root' ||
+        role == 'reviewer';
   }
 }
 
@@ -71,6 +102,7 @@ class WordMeaning {
   const WordMeaning({
     required this.id,
     this.wordClassId,
+    this.wordClassCode,
     this.wordClassName,
     this.definition,
     required this.orderIndex,
@@ -80,11 +112,21 @@ class WordMeaning {
 
   final String id;
   final String? wordClassId;
+
+  /// Kode singkat kelas kata dari API (`n`, `v`, `adj`, …) untuk format `[n]`.
+  final String? wordClassCode;
   final String? wordClassName;
   final String? definition;
   final int orderIndex;
   final List<WordTranslation> translations;
   final List<WordExample> examples;
+
+  /// Label bracket kamus, mis. `[n]`. Kosong jika kode tidak ada.
+  String? get wordClassBracket {
+    final code = wordClassCode?.trim();
+    if (code == null || code.isEmpty) return null;
+    return '[${code.toLowerCase()}]';
+  }
 }
 
 class WordTranslation {

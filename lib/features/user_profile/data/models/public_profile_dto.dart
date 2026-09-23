@@ -10,6 +10,7 @@ abstract class PublicProfileDto with _$PublicProfileDto {
     required String role,
     @JsonKey(name: 'is_verifier') @Default(false) bool isVerifier,
     @JsonKey(name: 'joined_at') required String joinedAt,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
     required PublicProfileStatsDto stats,
   }) = _PublicProfileDto;
 
@@ -24,8 +25,33 @@ abstract class PublicProfileStatsDto with _$PublicProfileStatsDto {
     @Default(0)
     int contributionsApproved,
     @JsonKey(name: 'verifications_done') @Default(0) int verificationsDone,
+    @JsonKey(name: 'comments_published') @Default(0) int commentsPublished,
   }) = _PublicProfileStatsDto;
 
   factory PublicProfileStatsDto.fromJson(Map<String, dynamic> json) =>
       _$PublicProfileStatsDtoFromJson(json);
+}
+
+@freezed
+abstract class PublicActivityItemDto with _$PublicActivityItemDto {
+  const factory PublicActivityItemDto({
+    required String kind,
+    @JsonKey(name: 'occurred_at') required String occurredAt,
+    @JsonKey(name: 'word_id') String? wordId,
+    String? lemma,
+    required String summary,
+  }) = _PublicActivityItemDto;
+
+  factory PublicActivityItemDto.fromJson(Map<String, dynamic> json) =>
+      _$PublicActivityItemDtoFromJson(json);
+}
+
+@freezed
+abstract class PublicActivityDto with _$PublicActivityDto {
+  const factory PublicActivityDto({
+    @Default([]) List<PublicActivityItemDto> items,
+  }) = _PublicActivityDto;
+
+  factory PublicActivityDto.fromJson(Map<String, dynamic> json) =>
+      _$PublicActivityDtoFromJson(json);
 }

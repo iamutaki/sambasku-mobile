@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../search_miss/domain/entities/search_miss.dart';
 import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
@@ -118,6 +119,17 @@ class ActivityPage extends ConsumerWidget {
                               color: theme.colors.mutedForeground,
                             ),
                             onPress: () {
+                              AnalyticsService.instance.log(
+                                AnalyticsEvents.searchMissTap,
+                                params: {'miss_id': item.id},
+                              );
+                              AnalyticsService.instance.log(
+                                AnalyticsEvents.contributeStart,
+                                params: {
+                                  'guest': 1,
+                                  'from': 'search_miss',
+                                },
+                              );
                               final q = Uri(
                                 queryParameters: <String, String>{
                                   'lemma': item.term,
@@ -163,7 +175,13 @@ class _BlankContributeTile extends StatelessWidget {
           title: const Text('Usul kata baru'),
           subtitle: const Text('Isi form kosong dari awal'),
           suffix: const Icon(FLucideIcons.chevronRight),
-          onPress: () => context.push('/contribute'),
+          onPress: () {
+            AnalyticsService.instance.log(
+              AnalyticsEvents.contributeStart,
+              params: {'from': 'blank'},
+            );
+            context.push('/contribute');
+          },
         ),
       ],
     );

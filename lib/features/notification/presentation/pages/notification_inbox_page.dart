@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../my_contributions/my_contributions_router.dart';
@@ -13,11 +15,16 @@ import '../../domain/failures/notification_failure.dart';
 import '../../domain/providers/notification_domain_providers.dart';
 import '../providers/notification_providers.dart';
 
-class NotificationInboxPage extends ConsumerWidget {
+class NotificationInboxPage extends HookConsumerWidget {
   const NotificationInboxPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useEffect(() {
+      AnalyticsService.instance.log(AnalyticsEvents.notificationOpen);
+      return null;
+    }, const []);
+
     final auth = ref.watch(authStatusProvider);
 
     return FScaffold(
@@ -237,6 +244,13 @@ class _NotificationTile extends ConsumerWidget with FTileMixin {
       ),
       suffix: const Icon(FLucideIcons.chevronRight),
       onPress: () async {
+        AnalyticsService.instance.log(
+          AnalyticsEvents.notificationItemTap,
+          params: {
+            'type': item.type,
+            'target_kind': item.targetKind,
+          },
+        );
         if (item.isUnread) {
           await ref.read(markNotificationReadUseCaseProvider)(item.id);
           ref

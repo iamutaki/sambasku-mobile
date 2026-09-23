@@ -3,17 +3,19 @@ import 'package:fpdart/fpdart.dart';
 import '../entities/submit_word_result.dart';
 import '../failures/contribution_failure.dart';
 
-/// Satu gambar siap dikirim (hasil upload ImageKit).
+/// Satu gambar siap dikirim (hasil upload GitHub/CDN).
 class SubmitWordImage {
   const SubmitWordImage({
     required this.url,
     required this.providerFileId,
+    this.sha,
     this.altText,
     this.isPrimary = false,
   });
 
   final String url;
   final String providerFileId;
+  final String? sha;
   final String? altText;
   final bool isPrimary;
 }

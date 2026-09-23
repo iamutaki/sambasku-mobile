@@ -56,6 +56,7 @@ class ContributeImagesField extends ConsumerWidget {
             AttachmentUploadedImage(
               url: dto.url,
               providerFileId: dto.providerFileId,
+              sha: dto.sha,
               altText: dto.altText,
               isPrimary: dto.isPrimary,
             ),
@@ -73,6 +74,7 @@ List<SubmitWordImage> readySubmitImages(List<AttachmentImageSlot> slots) {
       SubmitWordImage(
         url: s.url,
         providerFileId: s.providerFileId,
+        sha: s.sha,
         altText: s.altText,
         isPrimary: s.isPrimary,
       ),
@@ -86,6 +88,7 @@ CreateWordImageDto? contributeDtoOf(AttachmentImageSlot slot) {
   return CreateWordImageDto(
     url: u.url,
     providerFileId: u.providerFileId,
+    sha: u.sha,
     altText: u.altText,
     isPrimary: u.isPrimary,
   );

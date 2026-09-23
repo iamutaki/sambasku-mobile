@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sambasku_mobile/app.dart';
+import 'package:sambasku_mobile/core/services/analytics_service.dart';
 import 'package:sambasku_mobile/core/theme/forui_palette_controller.dart';
 import 'package:sambasku_mobile/core/theme/theme_mode_controller.dart';
 import 'package:sambasku_mobile/features/onboarding/data/onboarding_prefs.dart';
@@ -87,6 +89,13 @@ void main() {
     F.appFlavor = Flavor.staging;
     OnboardingPrefs.done = true;
   });
+
+  setUp(() {
+    AnalyticsService.debugReset();
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  tearDown(AnalyticsService.debugReset);
 
   testWidgets('App bootstrap - HOME tab terender tanpa error', (
     WidgetTester tester,

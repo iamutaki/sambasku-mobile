@@ -128,7 +128,7 @@ class _AboutTab extends StatelessWidget {
           title: 'Usulkan',
           body:
               'Warga mengusulkan kata baru atau perbaikan. Usulan '
-              'masuk antrean verifikasi sebelum tayang di kamus. '
+              'langsung tayang dengan label Menunggu pengecekan. '
               'Kontributor bisa mengajukan diri jadi verifikator.',
         ),
         Gap(16),

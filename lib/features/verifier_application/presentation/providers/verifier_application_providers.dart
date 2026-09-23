@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/verifier_application.dart';
 import '../../domain/providers/verifier_application_domain_providers.dart';
 import '../../domain/usecases/submit_verifier_application_use_case.dart';
@@ -60,13 +61,16 @@ class VerifierApplicationNotifier extends _$VerifierApplicationNotifier {
         isSubmitting: false,
         errorMessage: failure.message,
       ),
-      (application) => state = state.copyWith(
-        isSubmitting: false,
-        application: application,
-        successMessage: isResubmit
-            ? 'Pengajuan dikirim ulang. Menunggu review.'
-            : 'Pengajuan terkirim. Menunggu review.',
-      ),
+      (application) {
+        state = state.copyWith(
+          isSubmitting: false,
+          application: application,
+          successMessage: isResubmit
+              ? 'Pengajuan dikirim ulang. Menunggu review.'
+              : 'Pengajuan terkirim. Menunggu review.',
+        );
+        AnalyticsService.instance.log(AnalyticsEvents.verifierApplySubmit);
+      },
     );
   }
 }

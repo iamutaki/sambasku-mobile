@@ -26,7 +26,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
           ),
         );
       }
-      return Either.right(_map(response.data!));
+      return Either.right(_mapProfile(response.data!));
     } on DioException catch (error) {
       return Either.left(_mapDio(error));
     } catch (error) {
@@ -34,14 +34,49 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     }
   }
 
-  PublicProfile _map(PublicProfileDto dto) => PublicProfile(
+  @override
+  Future<Either<UserProfileFailure, List<PublicActivityItem>>> getActivity(
+    String username,
+  ) async {
+    try {
+      final response = await _remoteDatasource.getActivity(username);
+      if (response.success == false || response.data == null) {
+        return Either.left(
+          UserProfileFailure(
+            response.message ?? 'Gagal memuat aktivitas',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+      return Either.right(
+        response.data!.items.map(_mapActivity).toList(growable: false),
+      );
+    } on DioException catch (error) {
+      return Either.left(_mapDio(error));
+    } catch (error) {
+      return Either.left(UserProfileFailure(error.toString()));
+    }
+  }
+
+  PublicProfile _mapProfile(PublicProfileDto dto) => PublicProfile(
     username: dto.username,
     role: dto.role,
     isVerifier: dto.isVerifier,
     joinedAt: dto.joinedAt,
     contributionsApproved: dto.stats.contributionsApproved,
     verificationsDone: dto.stats.verificationsDone,
+    commentsPublished: dto.stats.commentsPublished,
+    avatarUrl: dto.avatarUrl,
   );
+
+  PublicActivityItem _mapActivity(PublicActivityItemDto dto) =>
+      PublicActivityItem(
+        kind: dto.kind,
+        occurredAt: dto.occurredAt,
+        summary: dto.summary,
+        wordId: dto.wordId,
+        lemma: dto.lemma,
+      );
 
   UserProfileFailure _mapDio(DioException error) {
     final data = error.response?.data;

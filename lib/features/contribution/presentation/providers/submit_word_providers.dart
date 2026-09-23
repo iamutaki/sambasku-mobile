@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/network/auth_token_storage.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/providers/contribution_domain_providers.dart';
@@ -53,6 +55,9 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
       clearResult: true,
     );
 
+    final guest = !(await AuthTokenStorage.instance.getIsAuth());
+    await AnalyticsService.instance.logContributeSubmit(guest: guest);
+
     final usecase = ref.read(submitAnonWordUseCaseProvider);
     final result = await usecase(SubmitAnonWordParams(
       lemma: lemma,
@@ -76,6 +81,10 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
           failure: failure,
           errorMessage: failure.isValidationError ? null : failure.message,
         );
+        AnalyticsService.instance.logContributeFail(
+          guest: guest,
+          errorCode: failure.errorCode,
+        );
       },
       (success) {
         state = state.copyWith(
@@ -83,6 +92,10 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
           result: success,
           clearFailure: true,
           clearErrorMessage: true,
+        );
+        AnalyticsService.instance.logContributeSuccess(
+          guest: guest,
+          wordId: success.wordId,
         );
       },
     );

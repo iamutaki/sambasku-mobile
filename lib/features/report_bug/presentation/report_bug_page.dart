@@ -12,6 +12,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../shared/widgets/attachment_images_field.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../auth/presentation/providers/auth_status_providers.dart';
 import '../data/bug_report_providers.dart';
 import '../domain/bug_report_models.dart';
@@ -100,6 +101,15 @@ class ReportBugPage extends HookConsumerWidget {
           ],
           appVersion: info.version,
           platform: platform,
+        );
+
+        AnalyticsService.instance.log(
+          AnalyticsEvents.reportBugSubmit,
+          params: {
+            'has_word': 0,
+            'has_comment': 0,
+            'has_images': ready.isEmpty ? 0 : 1,
+          },
         );
 
         if (!context.mounted) return;

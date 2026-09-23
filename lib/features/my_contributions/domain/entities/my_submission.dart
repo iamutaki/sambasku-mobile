@@ -55,12 +55,11 @@ class MySubmission {
       case 'corrected':
         return 'Dikoreksi';
       default:
-        return 'Menunggu';
+        return 'Menunggu pengecekan';
     }
   }
 
-  bool get canOpenWord =>
-      wordId != null && wordId!.isNotEmpty && status != 'pending';
+  bool get canOpenWord => wordId != null && wordId!.isNotEmpty;
 
   String get displayTitle {
     final value = lemma?.trim();

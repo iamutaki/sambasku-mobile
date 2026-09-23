@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$WordSummaryDto {
 
  String get id; String get lemma;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'language_code') String get languageCode;@JsonKey(name: 'word_type') String get wordType; String get status;@JsonKey(name: 'is_verified') bool get isVerified;/// Hanya terisi saat search_in=translation (Indonesia→Sambas).
-@JsonKey(name: 'matched_translation') String? get matchedTranslation;/// Satu baris arti. Hanya GET /api/v1/words/latest.
+@JsonKey(name: 'matched_translation') String? get matchedTranslation;/// Satu baris arti.
+/// - GET /words/latest: definisi atau terjemahan pertama.
+/// - GET /words (A-Z): gloss `[n] makan,[v] santap`.
  String? get sense;/// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
 @JsonKey(name: 'approved_at') String? get approvedAt;
 /// Create a copy of WordSummaryDto
@@ -233,7 +235,9 @@ class _WordSummaryDto implements WordSummaryDto {
 @override@JsonKey(name: 'is_verified') final  bool isVerified;
 /// Hanya terisi saat search_in=translation (Indonesia→Sambas).
 @override@JsonKey(name: 'matched_translation') final  String? matchedTranslation;
-/// Satu baris arti. Hanya GET /api/v1/words/latest.
+/// Satu baris arti.
+/// - GET /words/latest: definisi atau terjemahan pertama.
+/// - GET /words (A-Z): gloss `[n] makan,[v] santap`.
 @override final  String? sense;
 /// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
 @override@JsonKey(name: 'approved_at') final  String? approvedAt;

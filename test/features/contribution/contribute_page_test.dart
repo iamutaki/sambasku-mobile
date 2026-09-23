@@ -3,11 +3,13 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:sambasku_mobile/core/models/api_response.dart';
 import 'package:sambasku_mobile/core/network/network_providers.dart';
+import 'package:sambasku_mobile/core/services/analytics_service.dart';
 import 'package:sambasku_mobile/features/contribution/domain/entities/submit_word_result.dart';
 import 'package:sambasku_mobile/features/contribution/domain/failures/contribution_failure.dart';
 import 'package:sambasku_mobile/features/contribution/domain/providers/contribution_domain_providers.dart';
@@ -49,6 +51,13 @@ class _FakeSubmitUsecase implements SubmitAnonWordUseCase {
 /// selalu muncul sebagai toast FToaster, VALIDATION_ERROR tetap menampilkan
 /// error inline per field.
 void main() {
+  setUp(() {
+    AnalyticsService.debugReset();
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  tearDown(AnalyticsService.debugReset);
+
   Future<void> pumpContribute(
     WidgetTester tester, {
     required ContributionFailure failure,

@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../domain/failures/contribution_failure.dart';
@@ -84,6 +85,14 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final guest = !(ref.read(authStatusProvider).value?.isAuth ?? false);
+      AnalyticsService.instance.log(
+        AnalyticsEvents.contributeStart,
+        params: {
+          'guest': guest ? 1 : 0,
+          'from': widget.initialSearchMissId != null ? 'search_miss' : 'form',
+        },
+      );
       ref
           .read(submitWordProvider.notifier)
           .initPrefill(
@@ -189,8 +198,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final isAuth = ref.watch(authStatusProvider).value?.isAuth ?? false;
 
     ref.listen<SubmitWordState>(submitWordProvider, (prev, next) {
-      final dynamic success = next.successResult;
-      if (success != null) {
+      if (next.result != null && prev?.result == null) {
         // ponytail: show lemma user typed, not server ULID (useless to contributors)
         _showSuccessDialog(context, _lemmaCtrl.text.trim());
         return;
@@ -251,8 +259,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         children: [
           Text(
             isAuth
-                ? 'Usulan masuk antrean verifikasi sebelum tayang.'
-                : 'Dikirim sebagai tamu · masuk antrean verifikasi.',
+                ? 'Kata langsung tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
+                : 'Dikirim sebagai tamu. Kata belum tayang. Tim akan memeriksanya dulu.',
             style: theme.typography.sm.copyWith(
               color: theme.colors.mutedForeground,
             ),
@@ -262,7 +270,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           FTextField(
             control: FTextFieldControl.managed(controller: _lemmaCtrl),
             label: const Text('Lemma *'),
-            hint: 'Contoh: makatn',
+            hint: 'Contoh: kata',
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
@@ -597,7 +605,13 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   Future<void> _showSuccessDialog(BuildContext context, String lemma) async {
     final theme = context.theme;
-    return showDialog<void>(
+    final isAuth = ref.read(authStatusProvider).value?.isAuth ?? false;
+    final successText = isAuth
+        ? (lemma.isNotEmpty
+            ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
+            : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
+        : 'Dikirim sebagai tamu. Kata belum tayang. Tim akan memeriksanya dulu.';
+    final choice = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -610,32 +624,39 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              lemma.isNotEmpty
-                  ? '"$lemma" masuk antrean verifikasi tim.'
-                  : 'Kata masuk antrean verifikasi tim.',
+              successText,
               style: theme.typography.sm,
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.go('/');
-            },
+            onPressed: () => Navigator.of(ctx).pop('home'),
             child: const Text('Ke beranda'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.invalidate(myContributionsListControllerProvider);
-              context.push('/contributions');
-            },
+            onPressed: () => Navigator.of(ctx).pop('list'),
             child: const Text('Lihat usulan'),
           ),
         ],
       ),
     );
+    if (!context.mounted) return;
+    // Form sudah terkirim. Jangan biarkan /contribute tetap di bawah
+    // halaman berikutnya: tombol kembali akan membuka isian yang sama lagi.
+    switch (choice) {
+      case 'list':
+        ref.invalidate(myContributionsListControllerProvider);
+        context.pushReplacement('/contributions');
+      case 'home':
+        context.go('/');
+      default:
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
+    }
   }
 }
 

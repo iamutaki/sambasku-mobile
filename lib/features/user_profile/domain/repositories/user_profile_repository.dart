@@ -7,4 +7,8 @@ abstract interface class UserProfileRepository {
   Future<Either<UserProfileFailure, PublicProfile>> getByUsername(
     String username,
   );
+
+  Future<Either<UserProfileFailure, List<PublicActivityItem>>> getActivity(
+    String username,
+  );
 }

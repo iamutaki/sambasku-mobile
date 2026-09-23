@@ -20,6 +20,7 @@ abstract class WordDetailDto with _$WordDetailDto {
     @JsonKey(name: 'self_verified') @Default(false) bool selfVerified,
     @JsonKey(name: 'verified_at') String? verifiedAt,
     @JsonKey(name: 'verified_by') WordVerifierDto? verifiedBy,
+    @JsonKey(name: 'created_by') WordVerifierDto? createdBy,
     @Default([]) List<MeaningDto> meanings,
     @Default([]) List<CategoryDto> categories,
     @Default([]) List<PronunciationDto> pronunciations,

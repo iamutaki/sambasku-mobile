@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../vote/domain/providers/vote_domain_providers.dart';
 import '../../domain/entities/word_comment.dart';
@@ -109,6 +110,10 @@ class CommentListController extends _$CommentListController {
       (_) {
         // Invalidate container: refetch list (status/body akurat dari server).
         ref.invalidateSelf();
+        AnalyticsService.instance.log(
+          AnalyticsEvents.commentSubmit,
+          params: {'word_id': wordId},
+        );
         return null;
       },
     );

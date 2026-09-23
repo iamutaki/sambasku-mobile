@@ -12,7 +12,11 @@ class GoogleSignInAdapter implements GoogleSignInPort {
   @override
   Future<String?> authenticate() async {
     final serverClientId = Env.googleWebClientId?.trim();
-    if (serverClientId == null || serverClientId.isEmpty) return null;
+    if (serverClientId == null || serverClientId.isEmpty) {
+      throw StateError(
+        'Masuk dengan Google belum siap di perangkat ini. Coba lagi nanti.',
+      );
+    }
 
     try {
       if (!_initialized) {
@@ -30,20 +34,26 @@ class GoogleSignInAdapter implements GoogleSignInPort {
       return idToken;
     } on GoogleSignInException catch (error, stack) {
       _log('GoogleSignInException code=${error.code}', error, stack);
-      if (error.code == GoogleSignInExceptionCode.canceled) {
-        // Credential Manager memetakan SHA-1/package salah ke canceled
-        // SETELAH akun dipilih. Di debug jangan diam.
-        if (kDebugMode) {
-          throw StateError(
-            'Google Sign-In dibatalkan atau gagal konfigurasi. '
-            'Jika akun sudah dipilih: daftarkan SHA-1 debug + package '
-            '(com.iamutaki.sambasku.staging) di GCP project yang sama '
-            'dengan Web client ID. [${error.description}]',
-          );
-        }
+
+      // User dismiss / batal / interrupt → null (toast "dibatalkan" di UI).
+      if (error.code == GoogleSignInExceptionCode.canceled ||
+          error.code == GoogleSignInExceptionCode.interrupted) {
         return null;
       }
-      rethrow;
+
+      if (error.code == GoogleSignInExceptionCode.clientConfigurationError) {
+        _log(
+          'clientConfigurationError — cek SHA-1 debug + package '
+          'com.iamutaki.sambasku.staging di GCP (Web client ID yang sama)',
+          error,
+          stack,
+        );
+        throw StateError(
+          'Masuk dengan Google belum siap di perangkat ini. Coba lagi nanti.',
+        );
+      }
+
+      throw StateError('Tidak bisa masuk dengan Google. Coba lagi.');
     } catch (error, stack) {
       _log('authenticate gagal', error, stack);
       rethrow;

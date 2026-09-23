@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
@@ -11,10 +12,12 @@ import 'core/services/device_id_service.dart';
 import 'core/services/device_registration_holder.dart';
 import 'core/services/device_registration_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/analytics_service.dart';
 import 'core/theme/forui_palette_controller.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'features/device/data/datasources/device_remote_datasource.dart';
 import 'features/device/data/repositories/device_repository_impl.dart';
+import 'features/notification/presentation/providers/notification_providers.dart';
 import 'features/onboarding/data/onboarding_prefs.dart';
 import 'flavors.dart';
 
@@ -29,6 +32,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// - atau `--dart-define=FLAVOR=...` (fallback lokal)
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // TextureView di Android — lebih andal saat map berdampingan dengan scroll.
+  MapLibreMap.useHybridComposition = true;
+  // Abaikan hasil; preWarm fire-and-forget untuk cold start map lebih cepat.
+  MapLibreMap.preWarm();
 
   const flutterFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR');
   const dartFlavor = String.fromEnvironment('FLAVOR', defaultValue: 'staging');
@@ -50,6 +58,7 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // Izin notifikasi diminta di onboarding slide 3, bukan di cold start.
   await NotificationService.init();
+  await AnalyticsService.instance.init();
 
   final fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
   debugPrint('FCM token: ${fcmToken.isEmpty ? "(empty)" : "${fcmToken.substring(0, 12)}..."}');
@@ -67,6 +76,13 @@ Future<void> main() async {
   );
   DeviceRegistrationHolder.instance = registrationService;
   await registrationService.start();
+
+  // Bridge FCM → Riverpod: keepAlive inbox/unread tidak auto-refetch.
+  NotificationService.onNotificationsMayHaveChanged = () {
+    container.invalidate(unreadNotificationCountControllerProvider);
+    container.invalidate(notificationInboxListControllerProvider);
+  };
+  NotificationService.attachAppLifecycle();
 
   // retry: null = matikan auto-retry Riverpod 3 (default: 10x backoff ~47s).
   // Failure 4xx tidak transient - retry manual via tombol "Coba lagi" di UI;

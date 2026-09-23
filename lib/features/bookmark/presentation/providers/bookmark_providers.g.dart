@@ -64,7 +64,7 @@ final class BookmarkToggleControllerProvider
 }
 
 String _$bookmarkToggleControllerHash() =>
-    r'de5d152786cc405ffe48f607df38fb9df38f2f17';
+    r'36bfd5a48563373d9d600e2f3c4a461c3d86de33';
 
 /// State bookmark satu kata (1 keluarga = 1 wordId). Guest = selalu
 /// unbookmarked; saat login, seed status dari GET /bookmarks/my?word_ids=.

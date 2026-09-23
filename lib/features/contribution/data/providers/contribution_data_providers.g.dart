@@ -200,4 +200,52 @@ final class WordImageUploadServiceProvider
 }
 
 String _$wordImageUploadServiceHash() =>
-    r'78f1b1b6e063133c1c086bd233a009a17a1720fd';
+    r'd873e5b0c7151921c984e53d0a8f19d5dd5f6ffc';
+
+@ProviderFor(privateImageUploadService)
+final privateImageUploadServiceProvider = PrivateImageUploadServiceProvider._();
+
+final class PrivateImageUploadServiceProvider
+    extends
+        $FunctionalProvider<
+          PrivateImageUploadService,
+          PrivateImageUploadService,
+          PrivateImageUploadService
+        >
+    with $Provider<PrivateImageUploadService> {
+  PrivateImageUploadServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'privateImageUploadServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$privateImageUploadServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<PrivateImageUploadService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  PrivateImageUploadService create(Ref ref) {
+    return privateImageUploadService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PrivateImageUploadService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PrivateImageUploadService>(value),
+    );
+  }
+}
+
+String _$privateImageUploadServiceHash() =>
+    r'57f98555afaca5073c2e2257159134cc18f8da04';

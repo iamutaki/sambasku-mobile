@@ -54,7 +54,7 @@ final class ThemeModeControllerProvider
 }
 
 String _$themeModeControllerHash() =>
-    r'b42984ea5166a3fcd4ce021330c26eb6a08bd881';
+    r'6f2a9a8b2bd67deab4badef02be52c80439c94f4';
 
 /// Preferensi tema: toggle menyimpan light/dark/system ke SharedPreferences.
 ///

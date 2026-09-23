@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/utils/file_persist_helper.dart';
 import '../../../../shared/utils/permission_helper.dart';
 import '../../dictionary/domain/entities/word_detail.dart';
@@ -27,6 +28,10 @@ Future<void> showWordShareSheet(
   required WordDetail detail,
   required ShareBackgroundRepository backgrounds,
 }) {
+  AnalyticsService.instance.log(
+    AnalyticsEvents.shareStart,
+    params: {'word_id': detail.id},
+  );
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -58,6 +63,32 @@ String? pickPadanan(WordMeaning meaning) {
   return null;
 }
 
+ShareSenseLine senseLineFromMeaning(WordMeaning meaning) {
+  final definition = meaning.definition?.trim();
+  return ShareSenseLine(
+    wordClassCode: meaning.wordClassCode,
+    padanan: pickPadanan(meaning),
+    definition: (definition == null || definition.isEmpty || definition == '-')
+        ? null
+        : definition,
+  );
+}
+
+/// Maks. 3 makna untuk kartu; urut `orderIndex` naik.
+List<ShareSenseLine> senseLinesForCard(
+  List<WordMeaning> meanings, {
+  required bool allMeanings,
+  required WordMeaning selected,
+  int max = 3,
+}) {
+  if (!allMeanings || meanings.length <= 1) {
+    return [senseLineFromMeaning(selected)];
+  }
+  final sorted = [...meanings]
+    ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+  return sorted.take(max).map(senseLineFromMeaning).toList(growable: false);
+}
+
 ShareCardData buildCardData({
   required WordDetail detail,
   required WordMeaning meaning,
@@ -66,11 +97,18 @@ ShareCardData buildCardData({
   String? provider,
   bool isVideo = false,
 }) {
+  final senses = senseLinesForCard(
+    detail.meanings,
+    allMeanings: settings.showAllMeanings,
+    selected: meaning,
+  );
   return ShareCardData(
     lemma: detail.lemma,
     wordClassName: meaning.wordClassName,
+    wordClassCode: meaning.wordClassCode,
     definition: meaning.definition,
     padanan: pickPadanan(meaning),
+    senses: senses,
     exampleSentence: settings.showExample && meaning.examples.isNotEmpty
         ? meaning.examples.first.sourceSentence
         : null,
@@ -78,6 +116,7 @@ ShareCardData buildCardData({
     provider: provider,
     isVideo: isVideo,
     variantsLine: spellingVariantsLine(detail),
+    isVerified: detail.isVerified,
   );
 }
 
@@ -232,7 +271,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
   Future<void> _loadBackgrounds(int page) async {
     setState(() => _loadingBg = true);
     final q = buildShareQuery(widget.detail, _meaning);
-    final orientation = _ratio == ShareRatioId.story ? 'portrait' : 'square';
+    final orientation = _ratio.stockOrientation;
     final results = await Future.wait([
       widget.backgrounds.listBackgrounds(
         q,
@@ -456,6 +495,10 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
           sharePositionOrigin: origin,
         );
       }
+      AnalyticsService.instance.log(
+        AnalyticsEvents.shareComplete,
+        params: {'word_id': widget.detail.id},
+      );
     } catch (e) {
       if (!mounted) return;
       showFToast(
@@ -970,13 +1013,31 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
                     labeledChipRow(
                       title: 'Makna',
                       chips: [
+                        styleChip(
+                          label: 'Semua',
+                          selected: _settings.showAllMeanings,
+                          onSelected: (_) {
+                            setState(() {
+                              _settings = _settings.copyWith(
+                                showAllMeanings: true,
+                              );
+                            });
+                          },
+                        ),
                         for (var i = 0; i < widget.detail.meanings.length; i++)
                           styleChip(
-                            label: widget.detail.meanings[i].wordClassName ??
+                            label: widget.detail.meanings[i].wordClassBracket ??
+                                widget.detail.meanings[i].wordClassName ??
                                 'Makna ${i + 1}',
-                            selected: _meaningIndex == i,
+                            selected: !_settings.showAllMeanings &&
+                                _meaningIndex == i,
                             onSelected: (_) {
-                              setState(() => _meaningIndex = i);
+                              setState(() {
+                                _meaningIndex = i;
+                                _settings = _settings.copyWith(
+                                  showAllMeanings: false,
+                                );
+                              });
                               _loadBackgrounds(1);
                             },
                           ),

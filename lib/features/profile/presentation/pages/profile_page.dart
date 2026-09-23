@@ -4,11 +4,15 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../auth/presentation/models/auth_status_state.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../notification/notification_router.dart';
+import '../../../review/domain/review_access.dart';
+import '../../../review/presentation/providers/review_providers.dart';
 import '../../../notification/presentation/providers/notification_providers.dart';
+import '../../../user_profile/user_profile_router.dart';
 import '../widgets/appearance_tiles.dart';
 import '../widgets/notification_header_action.dart';
 
@@ -105,6 +109,7 @@ class ProfilePage extends ConsumerWidget {
                           suffix: const Icon(FLucideIcons.chevronRight),
                           onPress: () => context.push('/verifier-application'),
                         ),
+                      if (canReviewQueue(status.role)) const _ReviewQueueTile(),
                       FTile(
                         prefix: const Icon(FLucideIcons.keyRound),
                         title: const Text('Ubah Password'),
@@ -174,9 +179,17 @@ class ProfilePage extends ConsumerWidget {
                         enabled: !status.isLoggingOut,
                         onPress: status.isLoggingOut
                             ? null
-                            : () => ref
-                                  .read(authStatusProvider.notifier)
-                                  .logout(),
+                            : () async {
+                                await ref
+                                    .read(authStatusProvider.notifier)
+                                    .logout();
+                                if (!context.mounted) return;
+                                showFToast(
+                                  context: context,
+                                  title: const Text('Berhasil keluar'),
+                                  variant: FToastVariant.primary,
+                                );
+                              },
                       ),
                     ],
                   ),
@@ -186,6 +199,38 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ReviewQueueTile extends ConsumerWidget with FTileMixin {
+  const _ReviewQueueTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending = ref.watch(reviewQueueHasPendingProvider).value ?? false;
+    return FTile(
+      prefix: const Icon(FLucideIcons.shieldCheck),
+      title: const Text('Tinjau usulan'),
+      subtitle: Text(pending ? 'Ada usulan yang menunggu' : 'Antrean review kontribusi'),
+      suffix: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (pending)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(0xFFF59E0B),
+                  shape: BoxShape.circle,
+                ),
+                child: SizedBox(width: 8, height: 8),
+              ),
+            ),
+          const Icon(FLucideIcons.chevronRight),
+        ],
+      ),
+      onPress: () => context.push('/review'),
     );
   }
 }
@@ -224,7 +269,7 @@ class _IdentityTileGroup extends StatelessWidget {
         ? (ProfilePage.roleLabels[status.role!] ?? status.role!)
         : null;
     final subtitle = status.isAuth
-        ? (roleLabel ?? 'Kelola akun dan keamanan')
+        ? 'Lihat profil & ganti foto'
         : 'Masuk untuk berkontribusi kata';
 
     return FTileGroup(
@@ -232,10 +277,21 @@ class _IdentityTileGroup extends StatelessWidget {
         FTile(
           prefix: _ProfileAvatar(
             name: status.isAuth ? displayName : null,
+            imageUrl: status.avatarUrl,
             size: 40,
           ),
           title: Text(displayName),
-          subtitle: Text(subtitle),
+          subtitle: Text(
+            status.isAuth
+                ? (roleLabel != null ? '$roleLabel · $subtitle' : subtitle)
+                : subtitle,
+          ),
+          suffix: status.isAuth
+              ? const Icon(FLucideIcons.chevronRight)
+              : null,
+          onPress: status.isAuth && username != null && username.isNotEmpty
+              ? () => UserProfileRouter.open(context, username)
+              : null,
         ),
       ],
     );
@@ -243,7 +299,46 @@ class _IdentityTileGroup extends StatelessWidget {
 }
 
 class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({required this.name, this.size = 40});
+  const _ProfileAvatar({required this.name, this.imageUrl, this.size = 40});
+
+  final String? name;
+  final String? imageUrl;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = displayImageUrl(imageUrl, width: 256) ?? imageUrl;
+    if (display != null && display.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          display,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            if (imageUrl != null &&
+                imageUrl!.isNotEmpty &&
+                imageUrl != display) {
+              return Image.network(
+                imageUrl!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    _InitialsOrIcon(name: name, size: size),
+              );
+            }
+            return _InitialsOrIcon(name: name, size: size);
+          },
+        ),
+      );
+    }
+    return _InitialsOrIcon(name: name, size: size);
+  }
+}
+
+class _InitialsOrIcon extends StatelessWidget {
+  const _InitialsOrIcon({required this.name, required this.size});
 
   final String? name;
   final double size;

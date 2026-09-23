@@ -37,11 +37,8 @@ class VerifyEmailPage extends HookConsumerWidget {
     useListenable(code);
     final remaining = useState(startCooldown ? _resendCooldown.inSeconds : 0);
 
-    useEffect(() {
-      ref.invalidate(authVerifyProvider);
-      return null;
-    }, [email]);
-
+    // Provider autoDispose + ValueKey(email) di router sudah state baru per email.
+    // Jangan invalidate di sini: useEffect flutter_hooks jalan sinkron saat build.
     useEffect(() {
       if (remaining.value <= 0) return null;
       final timer = Timer(const Duration(seconds: 1), () {

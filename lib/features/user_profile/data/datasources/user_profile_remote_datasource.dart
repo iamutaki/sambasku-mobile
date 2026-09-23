@@ -6,7 +6,7 @@ import '../models/public_profile_dto.dart';
 
 part 'user_profile_remote_datasource.g.dart';
 
-/// GET /api/v1/users/:username (19-api-profil-publik.md). Publik, tanpa auth.
+/// GET /api/v1/users/:username (+ activity). Publik, tanpa auth.
 @RestApi()
 abstract interface class UserProfileRemoteDatasource {
   factory UserProfileRemoteDatasource(
@@ -17,6 +17,11 @@ abstract interface class UserProfileRemoteDatasource {
 
   @GET('/api/v1/users/{username}')
   Future<ApiResponse<PublicProfileDto>> getByUsername(
+    @Path('username') String username,
+  );
+
+  @GET('/api/v1/users/{username}/activity')
+  Future<ApiResponse<PublicActivityDto>> getActivity(
     @Path('username') String username,
   );
 }

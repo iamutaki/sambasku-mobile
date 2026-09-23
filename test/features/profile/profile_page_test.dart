@@ -10,6 +10,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:sambasku_mobile/core/network/auth_token_storage.dart';
 import 'package:sambasku_mobile/core/network/network_providers.dart';
+import 'package:sambasku_mobile/core/services/analytics_service.dart';
 import 'package:sambasku_mobile/features/auth/data/providers/auth_data_providers.dart';
 import 'package:sambasku_mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:sambasku_mobile/features/auth/domain/failures/auth_failure.dart';
@@ -122,6 +123,9 @@ class _ThrowingAdapter implements HttpClientAdapter {
 /// Widget test Profile (mobile-base-stack Section 10): status login vs
 /// tamu menentukan tombol "Keluar" / "Masuk / Login", dan logout berfungsi.
 void main() {
+  setUp(AnalyticsService.debugReset);
+  tearDown(AnalyticsService.debugReset);
+
   Future<void> pumpProfile(
     WidgetTester tester, {
     Map<String, Object> prefs = const {},
@@ -154,7 +158,7 @@ void main() {
           supportedLocales: FLocalizations.supportedLocales,
           home: FTheme(
             data: FThemes.zinc.light.touch,
-            child: const ProfilePage(),
+            child: const FToaster(child: ProfilePage()),
           ),
         ),
       ),
@@ -193,6 +197,7 @@ void main() {
     );
 
     expect(find.text('budi'), findsOneWidget);
+    expect(find.text('Tinjau usulan'), findsNothing);
     expect(find.text('Masuk / Login'), findsNothing);
     expect(find.text('Daftar'), findsNothing);
     expect(find.text('Keluar'), findsOneWidget);
@@ -208,6 +213,17 @@ void main() {
     expect(find.text('Masuk / Login'), findsOneWidget);
     expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Keluar'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(FToast),
+        matching: find.text('Berhasil keluar'),
+      ),
+      findsOneWidget,
+    );
+
+    // biarkan toast auto-dismiss supaya tidak ada pending timer di teardown
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(milliseconds: 300));
   });
 
   testWidgets('sudah login - tile Vote dan Komentar membuka route', (tester) async {

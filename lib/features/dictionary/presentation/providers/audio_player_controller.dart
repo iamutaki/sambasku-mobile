@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/analytics_service.dart';
+
 part 'audio_player_controller.g.dart';
 
 enum AudioTilePlaybackState { idle, loading, playing, paused, error }
@@ -217,6 +219,15 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
       state = current.copyWith(playbackState: AudioTilePlaybackState.paused);
       return;
     }
+
+    // Play (bukan pause) → analytics sekali per tap play.
+    AnalyticsService.instance.log(
+      AnalyticsEvents.audioPlay,
+      params: {
+        'word_id': wordId,
+        'has_audio': 1,
+      },
+    );
 
     if (current.activeAudioId == audioId &&
         (current.playbackState == AudioTilePlaybackState.paused ||
