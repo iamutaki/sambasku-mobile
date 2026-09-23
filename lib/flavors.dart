@@ -16,8 +16,7 @@ class F {
   /// `flutter run --flavor staging --dart-define=SCREENSHOT_MODE=true`
   static const hideDevChrome = bool.fromEnvironment('SCREENSHOT_MODE');
 
-  static String get title =>
-      isStaging ? 'SambasKu Staging' : 'SambasKu';
+  static String get title => isStaging ? 'SambasKu' : 'SambasKu';
 
   /// Path aset logo in-app + sumber ikon launcher (pola jnn_mobile).
   static String get logoAsset =>

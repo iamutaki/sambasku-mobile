@@ -13,8 +13,10 @@ part 'auth_login_providers.g.dart';
 @riverpod
 bool googleAuthEnabled(Ref ref) => isGoogleAuthConfigured();
 
+/// Sementara dimatikan di semua flavor (staging + production).
+/// Nyalakan lagi: `=> isFacebookAuthConfigured();`
 @riverpod
-bool facebookAuthEnabled(Ref ref) => isFacebookAuthConfigured();
+bool facebookAuthEnabled(Ref ref) => false;
 
 @riverpod
 class AuthLoginNotifier extends _$AuthLoginNotifier {

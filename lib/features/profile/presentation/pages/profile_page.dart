@@ -117,6 +117,13 @@ class ProfilePage extends ConsumerWidget {
                         suffix: const Icon(FLucideIcons.chevronRight),
                         onPress: () => context.push('/change-password'),
                       ),
+                      FTile(
+                        prefix: const Icon(FLucideIcons.userRoundX),
+                        title: const Text('Hapus akun'),
+                        subtitle: const Text('Hapus akun dan data pribadi'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/delete-account'),
+                      ),
                     ],
                   ),
                   const Gap(14),

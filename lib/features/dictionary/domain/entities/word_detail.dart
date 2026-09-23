@@ -1,3 +1,5 @@
+import '../../../../shared/utils/public_account_name.dart';
+
 /// Detail kata lengkap (domain) - hasil GET /api/v1/words/:id.
 class WordDetail {
   const WordDetail({
@@ -54,13 +56,13 @@ class WordDetail {
   String? get creatorAttributionLabel {
     final username = createdBy?.username;
     if (username == null || username.isEmpty) return null;
-    return 'Dibuat oleh $username';
+    return 'Dibuat oleh ${displayPublicUsername(username)}';
   }
 
   String? get verifierAttributionLabel {
     final username = verifiedBy?.username;
     if (username == null || username.isEmpty) return null;
-    return 'Diverifikasi oleh $username';
+    return 'Diverifikasi oleh ${displayPublicUsername(username)}';
   }
 
   /// Satu kalimat kalau orangnya sama, supaya nama tidak tertulis dua kali.
@@ -77,7 +79,7 @@ class WordDetail {
     if (!authoredAndVerifiedBySamePerson) return null;
     final name = verifiedBy?.username ?? createdBy?.username;
     if (name == null || name.isEmpty) return null;
-    return 'Dibuat dan diverifikasi oleh $name';
+    return 'Dibuat dan diverifikasi oleh ${displayPublicUsername(name)}';
   }
 
   /// Orang yang sama dan perannya tim verifikator, bukan kontributor.

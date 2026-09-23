@@ -1,5 +1,4 @@
 import 'package:envied/envied.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../flavors.dart';
 
@@ -32,12 +31,8 @@ abstract final class Env {
   @EnviedField(varName: 'FACEBOOK_APP_ID_PRODUCTION', optional: true)
   static const String? facebookAppIdProduction = _Env.facebookAppIdProduction;
 
-  /// Base URL API sesuai flavor aktif
+  /// Base URL API sesuai flavor aktif (staging build → staging host, dst.).
   static String get apiHost {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      // production host kosong = belum rilis - jangan crash diam-diam
-      return apiHostStaging;
-    }
     return F.isStaging || apiHostProduction == null
         ? apiHostStaging
         : apiHostProduction!;
@@ -45,9 +40,6 @@ abstract final class Env {
 
   /// Client ID Google mengikuti backend yang sedang dihubungi (`apiHost`).
   static String? get googleWebClientId {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      return _nonEmpty(googleWebClientIdStaging);
-    }
     if (F.isStaging || apiHostProduction == null) {
       return _nonEmpty(googleWebClientIdStaging);
     }
@@ -57,9 +49,6 @@ abstract final class Env {
 
   /// App ID Facebook mengikuti backend yang sedang dihubungi (`apiHost`).
   static String? get facebookAppId {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      return _nonEmpty(facebookAppIdStaging);
-    }
     if (F.isStaging || apiHostProduction == null) {
       return _nonEmpty(facebookAppIdStaging);
     }

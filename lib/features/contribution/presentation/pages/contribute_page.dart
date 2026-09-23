@@ -66,6 +66,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   String? _dialectId;
   bool _dialectSeeded = false;
+  /// Id kelas kata `umum` setelah referensi termuat. Dipakai makna baru.
+  String? _umumWordClassId;
   /// API `word_type`: word | idiom | peribahasa | ungkapan
   String _wordType = 'word';
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
@@ -143,6 +145,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     _onFieldEdited();
     setState(() {
       final draft = _MeaningDraft();
+      draft.wordClassId = _umumWordClassId;
       draft.defCtrl.addListener(_onFieldEdited);
       draft.trCtrl.addListener(_onFieldEdited);
       _meanings.add(draft);
@@ -190,6 +193,34 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       } else {
         _dialectSeeded = true;
       }
+    }
+
+    // Isi kelas kata `umum` pada makna yang belum dipilih user.
+    final wordClassItems = wordClassesAsync.value;
+    final umum = wordClassItems
+        ?.where((e) => e.code.toLowerCase() == 'umum')
+        .firstOrNull;
+    if (umum != null &&
+        _meanings.any((m) => m.wordClassId == null || m.wordClassId!.isEmpty)) {
+      final umumId = umum.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        var changed = _umumWordClassId != umumId;
+        for (final m in _meanings) {
+          if (m.wordClassId == null || m.wordClassId!.isEmpty) {
+            m.wordClassId = umumId;
+            changed = true;
+          }
+        }
+        if (!changed) return;
+        setState(() => _umumWordClassId = umumId);
+      });
+    } else if (umum != null && _umumWordClassId != umum.id) {
+      final umumId = umum.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _umumWordClassId == umumId) return;
+        setState(() => _umumWordClassId = umumId);
+      });
     }
 
     final state = ref.watch(submitWordProvider);
@@ -476,19 +507,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _openKbbiSheet(int index) async {
-    // Baca status fresh (bukan snapshot build) - loading/stale previous
-    // isAuth:false setelah login sempat bikin toast palsu.
-    final auth = await ref.read(authStatusProvider.future);
-    if (!mounted) return;
-    if (!auth.isAuth) {
-      showFToast(
-        context: context,
-        title: const Text('Masuk dulu untuk ambil definisi dari KBBI'),
-      );
-      if (mounted) context.push('/login');
-      return;
-    }
-
+    // Lookup KBBI publik - tamu tidak perlu login.
     final draft = _meanings[index];
     final dio = ref.read(dioProvider);
     final picked = await showKbbiDefinitionSheet(

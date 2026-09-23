@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/constants/env.dart';
+import '../../../flavors.dart';
 import '../domain/ports/google_sign_in_port.dart';
 
 class GoogleSignInAdapter implements GoogleSignInPort {
@@ -42,9 +43,13 @@ class GoogleSignInAdapter implements GoogleSignInPort {
       }
 
       if (error.code == GoogleSignInExceptionCode.clientConfigurationError) {
+        final packageName = F.isStaging
+            ? 'com.iamutaki.sambasku.staging'
+            : 'com.iamutaki.sambasku';
         _log(
-          'clientConfigurationError — cek SHA-1 debug + package '
-          'com.iamutaki.sambasku.staging di GCP (Web client ID yang sama)',
+          'clientConfigurationError — di GCP (project Web client yang sama) '
+          'daftarkan OAuth Android: package $packageName + SHA-1 keystore '
+          'yang menandatangani build (upload JKS lokal / Play App Signing)',
           error,
           stack,
         );

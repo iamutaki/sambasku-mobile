@@ -10,6 +10,7 @@ import '../../features/bookmark/bookmark_router.dart';
 import '../../features/my_comments/my_comments_router.dart';
 import '../../features/my_votes/my_votes_router.dart';
 import '../../features/change_password/change_password_router.dart';
+import '../../features/delete_account/delete_account_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
 import '../../features/my_contributions/my_contributions_router.dart';
@@ -52,6 +53,7 @@ class AppRouter {
       ...OnboardingRouter.routes,
       ...AuthRouter.routes,
       ...ChangePasswordRouter.routes,
+      ...DeleteAccountRouter.routes,
       ...AboutRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,

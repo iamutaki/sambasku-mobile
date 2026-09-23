@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,7 +82,8 @@ class _DevToolOverlayState extends State<DevToolOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    if (F.appFlavor == Flavor.production || F.hideDevChrome) {
+    // Production release/profile: sembunyikan. Local debug (semua flavor): tampil.
+    if (F.hideDevChrome || (F.appFlavor == Flavor.production && !kDebugMode)) {
       return widget.child;
     }
 

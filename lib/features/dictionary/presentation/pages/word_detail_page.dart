@@ -26,6 +26,7 @@ import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_detail.dart';
 import '../../domain/failures/dictionary_failure.dart';
 import '../providers/word_detail_providers.dart';
+import '../../../../shared/utils/public_account_name.dart';
 import '../../../user_profile/user_profile_router.dart';
 import '../../../share/data/share_background_repository.dart';
 import '../../../share/presentation/share_sheet.dart';
@@ -1157,7 +1158,7 @@ class _AttributionLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    final tappable = username != 'anonim';
+    final tappable = isLinkablePublicUsername(username);
     final textStyle = theme.typography.sm.copyWith(
       color: theme.colors.mutedForeground,
       fontWeight: FontWeight.w500,
@@ -1209,9 +1210,9 @@ class _AttributionLine extends StatelessWidget {
 void showVerifierAttributionSheet(BuildContext context, WordDetail detail) {
   final verifiedAt = formatDateTimeIso(detail.verifiedAt);
   final profiles = <String>{
-    if (detail.createdBy != null && detail.createdBy!.username != 'anonim')
+    if (isLinkablePublicUsername(detail.createdBy?.username))
       detail.createdBy!.username,
-    if (detail.verifiedBy != null && detail.verifiedBy!.username != 'anonim')
+    if (isLinkablePublicUsername(detail.verifiedBy?.username))
       detail.verifiedBy!.username,
   };
 

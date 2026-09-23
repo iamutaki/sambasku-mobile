@@ -66,6 +66,14 @@
         <meta-data
             android:name="com.facebook.sdk.ClientToken"
             android:value="@string/facebook_client_token" />
+        <!-- Login Facebook sedang dimatikan. Jangan kirim event atau
+             Advertising ID ke Meta sampai tombolnya dihidupkan lagi. -->
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+            android:value="false" />
     </application>
     <queries>
         <package android:name="com.facebook.katana" />

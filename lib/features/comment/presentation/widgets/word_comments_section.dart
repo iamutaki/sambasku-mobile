@@ -11,6 +11,7 @@ import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_comment.dart';
 import '../../domain/failures/comment_failure.dart';
 import '../providers/comment_providers.dart';
+import '../../../../shared/utils/public_account_name.dart';
 import '../../../user_profile/user_profile_router.dart';
 
 /// Buka thread komentar tanpa memanjangkan entri kata.
@@ -287,10 +288,9 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                             ? (value) => _toggleVote(c, value)
                             : null,
                         onDelete: canDelete ? () => _deleteComment(c) : null,
-                        onUsernameTap: c.username == null
-                            ? null
-                            : () =>
-                                  UserProfileRouter.open(context, c.username!),
+                        onUsernameTap: isLinkablePublicUsername(c.username)
+                            ? () => UserProfileRouter.open(context, c.username!)
+                            : null,
                       );
                     }),
                   if (state.hasMore) ...[
@@ -372,7 +372,7 @@ class _CommentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final isRedacted = !comment.isPublished;
-    final username = comment.username ?? 'Pengguna terhapus';
+    final username = displayPublicUsername(comment.username);
     final rest = [
       if (dateLabel.isNotEmpty) dateLabel,
       if (comment.isTakenDown) 'dihapus moderator',
