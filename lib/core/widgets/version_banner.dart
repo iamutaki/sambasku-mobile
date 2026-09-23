@@ -19,7 +19,7 @@ class _VersionBannerState extends State<VersionBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (!F.isStaging) return widget.child;
+    if (!F.isStaging || F.hideDevChrome) return widget.child;
 
     return FutureBuilder<PackageInfo>(
       future: _packageInfo,

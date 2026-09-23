@@ -1,6 +1,7 @@
 name: Deploy (Production)
 
-# Build flavor `production` → GitHub Release + draft upload Play Console.
+# Build flavor `production` → GitHub Release + draft ke track internal.
+# Promote ke production manual di Play Console.
 # Trigger: push branch `main` (atau workflow_dispatch).
 #
 # Secrets GitHub (Settings → Secrets → Actions):
@@ -142,13 +143,14 @@ jobs:
           fail_on_unmatched_files: true
           make_latest: "true"
 
-      # Draft saja — tidak auto-publish. Review & roll out tetap di Play Console.
+      # Draft di internal testing — tidak auto-publish. Promote ke production
+      # tetap manual di Play Console (Internal testing → Promote release).
       - name: Upload draft ke Google Play Console
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PLAY_PACKAGE_NAME }}
           releaseFiles: build/app/outputs/bundle/productionRelease/app-production-release.aab
-          track: production
+          tracks: internal
           status: draft
           releaseName: ${{ steps.version.outputs.name }} (${{ steps.version.outputs.code }})

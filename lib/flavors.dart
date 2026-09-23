@@ -12,6 +12,10 @@ class F {
 
   static bool get isStaging => appFlavor == Flavor.staging;
 
+  /// Sembunyikan ribbon versi dan floating devtool, flavor tetap staging.
+  /// `flutter run --flavor staging --dart-define=SCREENSHOT_MODE=true`
+  static const hideDevChrome = bool.fromEnvironment('SCREENSHOT_MODE');
+
   static String get title =>
       isStaging ? 'SambasKu Staging' : 'SambasKu';
 
