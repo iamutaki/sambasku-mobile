@@ -255,7 +255,8 @@ void main() {
     expect(params, isNotNull);
     expect(params!.lemma, 'makatn');
     expect(params.wordType, 'word');
-    expect(params.dialectId, isNull);
+    // Mode Dasar tetap kirim dialek umum (API menolak dialect_id: null).
+    expect(params.dialectId, 'd-umum');
     expect(params.meanings, hasLength(1));
     expect(params.meanings.first.definition, '-');
     expect(params.meanings.first.isHaveDefinition, isFalse);

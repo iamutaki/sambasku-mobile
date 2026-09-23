@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sambasku_mobile/core/network/auth_token_storage.dart';
+import 'package:sambasku_mobile/core/network/failover/api_host_resolver.dart';
 import 'package:sambasku_mobile/core/network/interceptors/auth_interceptor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,10 +32,15 @@ void main() {
 
     dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
     dio.httpClientAdapter = adapter;
+    // Satu tier saja: test ini soal alur 401, bukan failover.
+    ApiHostResolver.instance.configure(
+      primaryHost: 'https://api.test',
+      fallbackHosts: const [],
+    );
     dio.interceptors.add(
       AuthInterceptor(
         tokenStorage: storage,
-        baseUrl: 'https://api.test',
+        hostResolver: ApiHostResolver.instance,
         refreshDio: refreshDio,
       ),
     );
@@ -74,6 +80,41 @@ void main() {
       expect(await storage.getIsAuth(), isFalse);
     },
   );
+
+  test('401 pada /auth/google tidak memicu POST /auth/refresh', () async {
+    var refreshHits = 0;
+    var googleHits = 0;
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        refreshHits++;
+        return _json(200, {
+          'success': true,
+          'data': {
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          },
+        });
+      }
+      if (options.path.contains('/auth/google')) {
+        googleHits++;
+        return _json(401, {
+          'success': false,
+          'error_code': 'INVALID_GOOGLE_TOKEN',
+          'message': 'Tidak bisa masuk dengan Google.',
+        });
+      }
+      return _json(500, {'success': false});
+    };
+
+    await expectLater(
+      () => dio.post('/api/v1/auth/google', data: {'id_token': 'tok'}),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(googleHits, 1);
+    expect(refreshHits, 0);
+    expect(await storage.getAccessToken(), 'stale-access');
+  });
 
   test('401 pada /device/revoke tidak memicu POST /auth/refresh', () async {
     var refreshHits = 0;

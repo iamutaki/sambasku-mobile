@@ -14,6 +14,16 @@ abstract final class Env {
   @EnviedField(varName: 'SAMBASKU_API_HOST_PRODUCTION', optional: true)
   static const String? apiHostProduction = _Env.apiHostProduction;
 
+  /// Tier cadangan produksi, urut. Dipakai circuit breaker di
+  /// `core/network/failover/` - layar tidak tahu ada lebih dari satu host.
+  @EnviedField(varName: 'SAMBASKU_API_HOST_FALLBACK_PRODUCTION', optional: true)
+  static const String? apiHostFallbackProduction =
+      _Env.apiHostFallbackProduction;
+
+  @EnviedField(varName: 'SAMBASKU_API_HOST_FALLBACK2_PRODUCTION', optional: true)
+  static const String? apiHostFallback2Production =
+      _Env.apiHostFallback2Production;
+
   /// Web OAuth client ID per env (sama dengan API `GOOGLE_CLIENT_ID`
   /// di wrangler/`.env` yang matching). Dipakai sebagai `serverClientId`.
   @EnviedField(varName: 'GOOGLE_WEB_CLIENT_ID_STAGING', optional: true)
@@ -36,6 +46,18 @@ abstract final class Env {
     return F.isStaging || apiHostProduction == null
         ? apiHostStaging
         : apiHostProduction!;
+  }
+
+  /// Host cadangan setelah [apiHost], urut tier 2 lalu tier 3.
+  ///
+  /// Kosong di staging: flavor itu tidak punya cadangan, jadi circuit breaker
+  /// tidak punya tujuan pindah dan diam saja.
+  static List<String> get apiHostFallbacks {
+    if (F.isStaging || apiHostProduction == null) return const [];
+    return [
+      _nonEmpty(apiHostFallbackProduction),
+      _nonEmpty(apiHostFallback2Production),
+    ].whereType<String>().toList(growable: false);
   }
 
   /// Client ID Google mengikuti backend yang sedang dihubungi (`apiHost`).

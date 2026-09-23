@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/theme/f_colors_x.dart';
 import '../../../../core/utils/format_datetime.dart';
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../domain/entities/my_submission.dart';
 import '../../domain/failures/my_contribution_failure.dart';
@@ -219,10 +221,39 @@ class _SubmissionTile extends StatelessWidget with FTileMixin {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
     final date = formatDateTimeIso(item.createdAt);
+    final statusColor = switch (item.status) {
+      'approved' => theme.colors.success,
+      'rejected' => theme.colors.destructive,
+      'corrected' => theme.colors.primary,
+      _ => theme.colors.warning,
+    };
+
+    final subtitleSpans = <InlineSpan>[
+      TextSpan(text: '${item.kindLabel} · '),
+      TextSpan(
+        text: item.statusLabel,
+        style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+      ),
+      if (date.isNotEmpty) TextSpan(text: ' · $date'),
+    ];
+    if (item.status == 'rejected') {
+      final comment = item.reviewComment?.trim() ?? '';
+      if (comment.isNotEmpty) {
+        final short = comment.length > 60
+            ? '${comment.substring(0, 60)}...'
+            : comment;
+        subtitleSpans.add(TextSpan(text: ' · $short'));
+      }
+    }
+
     return FTile(
       title: Text(item.displayTitle),
-      subtitle: Text(item.listSubtitle(date)),
+      subtitle: Text.rich(TextSpan(children: subtitleSpans)),
+      prefix: item.isPendingReview
+          ? const PendingReviewBadgeIcon(size: 16)
+          : null,
       suffix: const Icon(FLucideIcons.chevronRight),
       onPress: () => context.push(
         MyContributionsRouter.detailPath(kind: item.kind, id: item.id),

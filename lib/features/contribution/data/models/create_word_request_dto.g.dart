@@ -39,7 +39,7 @@ Map<String, dynamic> _$CreateWordRequestDtoToJson(
 ) => <String, dynamic>{
   'lemma': instance.lemma,
   'language_id': instance.languageId,
-  'dialect_id': instance.dialectId,
+  'dialect_id': ?instance.dialectId,
   'word_type': instance.wordType,
   'meanings': instance.meanings,
   'category_ids': instance.categoryIds,

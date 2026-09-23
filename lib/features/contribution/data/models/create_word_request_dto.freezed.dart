@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CreateWordRequestDto {
 
- String get lemma;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'dialect_id') String? get dialectId;@JsonKey(name: 'word_type') String get wordType;@JsonKey(name: 'meanings') List<CreateWordMeaningDto> get meanings;@JsonKey(name: 'category_ids') List<String> get categoryIds;@JsonKey(name: 'notes', includeIfNull: false) String? get notes;@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? get variants;@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? get relatedWords;@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? get images;@JsonKey(name: 'search_miss_id', includeIfNull: false) String? get searchMissId;
+ String get lemma;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'dialect_id', includeIfNull: false) String? get dialectId;@JsonKey(name: 'word_type') String get wordType;@JsonKey(name: 'meanings') List<CreateWordMeaningDto> get meanings;@JsonKey(name: 'category_ids') List<String> get categoryIds;@JsonKey(name: 'notes', includeIfNull: false) String? get notes;@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? get variants;@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? get relatedWords;@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? get images;@JsonKey(name: 'search_miss_id', includeIfNull: false) String? get searchMissId;
 /// Create a copy of CreateWordRequestDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $CreateWordRequestDtoCopyWith<$Res>  {
   factory $CreateWordRequestDtoCopyWith(CreateWordRequestDto value, $Res Function(CreateWordRequestDto) _then) = _$CreateWordRequestDtoCopyWithImpl;
 @useResult
 $Res call({
- String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'dialect_id') String? dialectId,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'meanings') List<CreateWordMeaningDto> meanings,@JsonKey(name: 'category_ids') List<String> categoryIds,@JsonKey(name: 'notes', includeIfNull: false) String? notes,@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? variants,@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? relatedWords,@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? images,@JsonKey(name: 'search_miss_id', includeIfNull: false) String? searchMissId
+ String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'dialect_id', includeIfNull: false) String? dialectId,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'meanings') List<CreateWordMeaningDto> meanings,@JsonKey(name: 'category_ids') List<String> categoryIds,@JsonKey(name: 'notes', includeIfNull: false) String? notes,@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? variants,@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? relatedWords,@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? images,@JsonKey(name: 'search_miss_id', includeIfNull: false) String? searchMissId
 });
 
 
@@ -163,7 +163,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id')  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id', includeIfNull: false)  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CreateWordRequestDto() when $default != null:
 return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_that.meanings,_that.categoryIds,_that.notes,_that.variants,_that.relatedWords,_that.images,_that.searchMissId);case _:
@@ -184,7 +184,7 @@ return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id')  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id', includeIfNull: false)  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordRequestDto():
 return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_that.meanings,_that.categoryIds,_that.notes,_that.variants,_that.relatedWords,_that.images,_that.searchMissId);case _:
@@ -204,7 +204,7 @@ return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id')  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String lemma, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'dialect_id', includeIfNull: false)  String? dialectId, @JsonKey(name: 'word_type')  String wordType, @JsonKey(name: 'meanings')  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids')  List<String> categoryIds, @JsonKey(name: 'notes', includeIfNull: false)  String? notes, @JsonKey(name: 'variants', includeIfNull: false)  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false)  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false)  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false)  String? searchMissId)?  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordRequestDto() when $default != null:
 return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_that.meanings,_that.categoryIds,_that.notes,_that.variants,_that.relatedWords,_that.images,_that.searchMissId);case _:
@@ -219,12 +219,12 @@ return $default(_that.lemma,_that.languageId,_that.dialectId,_that.wordType,_tha
 @JsonSerializable()
 
 class _CreateWordRequestDto implements CreateWordRequestDto {
-  const _CreateWordRequestDto({required this.lemma, @JsonKey(name: 'language_id') required this.languageId, @JsonKey(name: 'dialect_id') this.dialectId, @JsonKey(name: 'word_type') this.wordType = 'word', @JsonKey(name: 'meanings') required final  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids') final  List<String> categoryIds = const [], @JsonKey(name: 'notes', includeIfNull: false) this.notes, @JsonKey(name: 'variants', includeIfNull: false) final  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false) final  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false) final  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false) this.searchMissId}): _meanings = meanings,_categoryIds = categoryIds,_variants = variants,_relatedWords = relatedWords,_images = images;
+  const _CreateWordRequestDto({required this.lemma, @JsonKey(name: 'language_id') required this.languageId, @JsonKey(name: 'dialect_id', includeIfNull: false) this.dialectId, @JsonKey(name: 'word_type') this.wordType = 'word', @JsonKey(name: 'meanings') required final  List<CreateWordMeaningDto> meanings, @JsonKey(name: 'category_ids') final  List<String> categoryIds = const [], @JsonKey(name: 'notes', includeIfNull: false) this.notes, @JsonKey(name: 'variants', includeIfNull: false) final  List<CreateWordVariantDto>? variants, @JsonKey(name: 'related_words', includeIfNull: false) final  List<CreateWordRelatedWordDto>? relatedWords, @JsonKey(name: 'images', includeIfNull: false) final  List<CreateWordImageDto>? images, @JsonKey(name: 'search_miss_id', includeIfNull: false) this.searchMissId}): _meanings = meanings,_categoryIds = categoryIds,_variants = variants,_relatedWords = relatedWords,_images = images;
   factory _CreateWordRequestDto.fromJson(Map<String, dynamic> json) => _$CreateWordRequestDtoFromJson(json);
 
 @override final  String lemma;
 @override@JsonKey(name: 'language_id') final  String languageId;
-@override@JsonKey(name: 'dialect_id') final  String? dialectId;
+@override@JsonKey(name: 'dialect_id', includeIfNull: false) final  String? dialectId;
 @override@JsonKey(name: 'word_type') final  String wordType;
  final  List<CreateWordMeaningDto> _meanings;
 @override@JsonKey(name: 'meanings') List<CreateWordMeaningDto> get meanings {
@@ -303,7 +303,7 @@ abstract mixin class _$CreateWordRequestDtoCopyWith<$Res> implements $CreateWord
   factory _$CreateWordRequestDtoCopyWith(_CreateWordRequestDto value, $Res Function(_CreateWordRequestDto) _then) = __$CreateWordRequestDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'dialect_id') String? dialectId,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'meanings') List<CreateWordMeaningDto> meanings,@JsonKey(name: 'category_ids') List<String> categoryIds,@JsonKey(name: 'notes', includeIfNull: false) String? notes,@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? variants,@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? relatedWords,@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? images,@JsonKey(name: 'search_miss_id', includeIfNull: false) String? searchMissId
+ String lemma,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'dialect_id', includeIfNull: false) String? dialectId,@JsonKey(name: 'word_type') String wordType,@JsonKey(name: 'meanings') List<CreateWordMeaningDto> meanings,@JsonKey(name: 'category_ids') List<String> categoryIds,@JsonKey(name: 'notes', includeIfNull: false) String? notes,@JsonKey(name: 'variants', includeIfNull: false) List<CreateWordVariantDto>? variants,@JsonKey(name: 'related_words', includeIfNull: false) List<CreateWordRelatedWordDto>? relatedWords,@JsonKey(name: 'images', includeIfNull: false) List<CreateWordImageDto>? images,@JsonKey(name: 'search_miss_id', includeIfNull: false) String? searchMissId
 });
 
 

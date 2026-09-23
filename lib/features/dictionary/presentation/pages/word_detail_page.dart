@@ -17,6 +17,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/image_preview.dart';
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../../vote/domain/entities/vote_target.dart';
@@ -267,32 +268,27 @@ class _DetailBody extends ConsumerWidget {
                           ),
                         )
                       else
-                        Text(
-                          'Menunggu pengecekan',
-                          style: theme.typography.xs.copyWith(
-                            color: theme.colors.mutedForeground,
-                            fontWeight: FontWeight.w600,
+                        Semantics(
+                          button: true,
+                          label: 'Menunggu pengecekan',
+                          child: GestureDetector(
+                            onTap: () => showPendingReviewInfo(context),
+                            child: const PendingReviewBadgeIcon(),
                           ),
                         ),
                     ],
                   ),
-                  if (!detail.isVerified) ...[
+                  if (!detail.isVerified &&
+                      detail.status == 'published' &&
+                      canReviewQueue(
+                        ref.watch(authStatusProvider).value?.role,
+                      )) ...[
                     const Gap(6),
-                    Text(
-                      'Kata ini belum diperiksa tim Sambasku. Artinya atau terjemahannya bisa saja kurang tepat.',
-                      style: theme.typography.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
+                    FButton(
+                      variant: .outline,
+                      onPress: () => _openWordReview(context, ref, wordId),
+                      child: const Text('Tinjau'),
                     ),
-                    if (detail.status == 'published' &&
-                        canReviewQueue(ref.watch(authStatusProvider).value?.role)) ...[
-                      const Gap(8),
-                      FButton(
-                        variant: .outline,
-                        onPress: () => _openWordReview(context, ref, wordId),
-                        child: const Text('Tinjau'),
-                      ),
-                    ],
                   ],
                   const Gap(2),
                   Text(

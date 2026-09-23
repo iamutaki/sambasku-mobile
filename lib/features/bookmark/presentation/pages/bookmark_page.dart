@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../domain/entities/bookmark_item.dart';
@@ -229,6 +230,9 @@ class _BookmarkRow extends ConsumerWidget {
         children: [
           if (item.word.isVerified) ...[
             const VerifiedBadgeIcon(size: 16),
+            const Gap(4),
+          ] else if (!unavailable) ...[
+            const PendingReviewBadgeIcon(size: 16),
             const Gap(4),
           ],
           _RemoveButton(wordId: item.wordId),

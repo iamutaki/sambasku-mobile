@@ -8,6 +8,7 @@ import 'core/theme/forui_palettes.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'core/widgets/version_banner.dart';
 import 'flavors.dart';
+import 'shared/dev_tool/api_host/api_host_inspector.dart';
 import 'shared/dev_tool/dev_tool.dart';
 import 'shared/dev_tool/storage_inspector/secure_storage_inspector.dart';
 import 'shared/dev_tool/storage_inspector/shared_pref_inspector.dart';
@@ -44,6 +45,7 @@ class App extends ConsumerWidget {
               child: DevToolOverlay(
                 inspectors: [
                   NetworkMonitorInspector(),
+                  ApiHostInspector(),
                   SharedPrefInspector(),
                   SecureStorageInspector(),
                 ],

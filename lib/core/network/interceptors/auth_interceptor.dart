@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../auth_token_storage.dart';
+import '../failover/api_host_resolver.dart';
 
 /// Key di [RequestOptions.extra] untuk melewati refresh+retry pada 401.
 const kSkipAuthRefreshExtra = 'skipAuthRefresh';
@@ -12,7 +13,8 @@ const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 ///   Bearer valid dan akan loop jika dipanggil di sini)
 ///
 /// Path yang di-skip (tidak trigger refresh):
-/// - `/auth/login|refresh|register|verify-email|resend-otp`
+/// - `/auth/login|google|facebook|refresh|register|verify-email|resend-otp`
+///   401 di login sosial adalah token penyedia ditolak, bukan sesi kedaluwarsa.
 /// - `/device/revoke` (detach FCM; 401 di sini tidak boleh memicu refresh)
 /// - request dengan `extra[kSkipAuthRefreshExtra] == true`
 ///
@@ -21,14 +23,15 @@ const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required AuthTokenStorage tokenStorage,
-    required String baseUrl,
+    required ApiHostResolver hostResolver,
     Dio? refreshDio,
   }) : _tokenStorage = tokenStorage,
+       _hostResolver = hostResolver,
        _refreshDio =
            refreshDio ??
            Dio(
              BaseOptions(
-               baseUrl: baseUrl,
+               baseUrl: hostResolver.activeHost,
                connectTimeout: const Duration(seconds: 15),
                receiveTimeout: const Duration(seconds: 15),
                sendTimeout: const Duration(seconds: 15),
@@ -41,6 +44,12 @@ class AuthInterceptor extends Interceptor {
            );
 
   final AuthTokenStorage _tokenStorage;
+
+  /// Dibaca ULANG tiap refresh. `_refreshDio` tidak punya interceptor, jadi
+  /// `baseUrl`-nya tidak ikut ditulis FailoverInterceptor; kalau host aktif
+  /// tidak disalin lagi di sini, pencarian pindah tier sementara refresh token
+  /// tetap menembak tier 1 yang sedang mati.
+  final ApiHostResolver _hostResolver;
   final Dio _refreshDio;
   Future<bool>? _refreshFuture;
   bool _clearingSession = false;
@@ -94,6 +103,8 @@ class AuthInterceptor extends Interceptor {
     if (options.extra[kSkipAuthRefreshExtra] == true) return true;
     final path = options.path;
     return path.contains('/auth/login') ||
+        path.contains('/auth/google') ||
+        path.contains('/auth/facebook') ||
         path.contains('/auth/refresh') ||
         path.contains('/auth/register') ||
         path.contains('/auth/verify-email') ||
@@ -127,6 +138,13 @@ class AuthInterceptor extends Interceptor {
     if (refreshToken == null) return false;
 
     try {
+      final tier = _hostResolver.activeTier;
+      _refreshDio.options.baseUrl = tier.host;
+      // Refresh tidak boleh menunggu cold start 75s - session recovery
+      // yang menggantung main isolate terasa sebagai ANR.
+      _refreshDio.options.connectTimeout = kDefaultTierTimeout;
+      _refreshDio.options.receiveTimeout = kDefaultTierTimeout;
+      _refreshDio.options.sendTimeout = kDefaultTierTimeout;
       final response = await _refreshDio.post<Map<String, dynamic>>(
         '/api/v1/auth/refresh',
         data: {'refresh_token': refreshToken},

@@ -62,7 +62,7 @@ final class WordDetailAudioPlayerProvider
 }
 
 String _$wordDetailAudioPlayerHash() =>
-    r'0350286bbfd0673067a7ea325b2bd7adc23f4bb7';
+    r'ef44fce6bb6dfcac8d01dc06e654e308549538fc';
 
 /// Satu [AudioPlayer] per halaman detail kata.
 

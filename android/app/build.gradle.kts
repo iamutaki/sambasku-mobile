@@ -47,8 +47,9 @@ android {
     }
 
     buildTypes {
-        // Pakai upload JKS juga di debug supaya SHA-1 Google Sign-In sama
-        // dengan release (flutter run ≠ ~/.android/debug.keystore).
+        // Upload JKS di debug supaya SHA-1 Google Sign-In sama dengan APK
+        // sideload/CI. Play Store menandatangani ulang dengan App signing
+        // key; SHA itu didaftarkan terpisah di project GCP Web client.
         debug {
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")

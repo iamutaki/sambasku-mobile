@@ -291,7 +291,7 @@ class AuthRepositoryImpl implements AuthRepository {
   /// ramah user dari backend - jangan ditimpa)
   String _mapDioError(DioException error) {
     final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
       final message = data['message'];
       if (message is String && message.isNotEmpty) {
         if (error.response?.statusCode == 429) {
@@ -314,7 +314,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   String? _mapErrorCode(DioException error) {
     final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
       final code = data['error_code'];
       if (code is String && code.isNotEmpty) return code;
     }

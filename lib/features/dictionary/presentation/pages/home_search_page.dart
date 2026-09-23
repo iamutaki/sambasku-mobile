@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/utils/format_datetime.dart';
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../dictionary_router.dart';
@@ -224,6 +225,9 @@ class _FeedCard extends StatelessWidget {
                   if (item.isVerified) ...[
                     const Gap(8),
                     const VerifiedBadgeIcon(size: 14),
+                  ] else ...[
+                    const Gap(8),
+                    const PendingReviewBadgeIcon(size: 14),
                   ],
                 ],
               ),

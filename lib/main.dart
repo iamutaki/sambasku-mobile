@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/network/auth_token_storage.dart';
+import 'core/network/failover/api_host_resolver.dart';
 import 'core/network/network_providers.dart';
 import 'core/services/device_id_service.dart';
 import 'core/services/device_registration_holder.dart';
@@ -22,6 +25,7 @@ import 'features/device/data/repositories/device_repository_impl.dart';
 import 'features/notification/presentation/providers/notification_providers.dart';
 import 'features/onboarding/data/onboarding_prefs.dart';
 import 'flavors.dart';
+import 'shared/dev_tool/dev_tool_overlay.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -55,6 +59,13 @@ Future<void> main() async {
     orElse: () => Flavor.staging,
   );
 
+  // Daftar tier API harus siap SEBELUM dioProvider dibaca di bawah - Dio
+  // mengambil baseUrl awalnya dari resolver.
+  ApiHostResolver.instance.configureFromEnv();
+  // Paksa-tier hanya dihormati saat perkakas dev hidup; build production milik
+  // pengguna tidak boleh terkunci di tier cadangan karena preferensi lama.
+  if (devToolsEnabled) await ApiHostResolver.instance.loadForcedTier();
+
   // Prefs sebelum runApp: frame pertama = preferensi tersimpan, bukan
   // ThemeMode.system (ikut device) yang lalu jump setelah hydrate async.
   final prefs = await SharedPreferences.getInstance();
@@ -68,8 +79,9 @@ Future<void> main() async {
   await NotificationService.init();
   await AnalyticsService.instance.init();
 
-  final fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
-  debugPrint('FCM token: ${fcmToken.isEmpty ? "(empty)" : "${fcmToken.substring(0, 12)}..."}');
+  // getToken() bisa beberapa detik di OEM tertentu. Jangan ditunggu sebelum
+  // frame pertama - DeviceRegistrationService.start() (setelah frame)
+  // sudah fetch token sendiri.
 
   // Container agar device repo memakai Dio yang sama (dengan AuthInterceptor).
   final container = ProviderContainer(
@@ -80,10 +92,9 @@ Future<void> main() async {
     repository: DeviceRepositoryImpl(DeviceRemoteDatasource(dio)),
     tokenStorage: AuthTokenStorage.instance,
     deviceIdService: DeviceIdService(prefs: prefs),
-    initialFcmToken: fcmToken,
+    initialFcmToken: '',
   );
   DeviceRegistrationHolder.instance = registrationService;
-  await registrationService.start();
 
   // Bridge FCM → Riverpod: keepAlive inbox/unread tidak auto-refetch.
   NotificationService.onNotificationsMayHaveChanged = () {
@@ -101,4 +112,10 @@ Future<void> main() async {
       child: const App(),
     ),
   );
+
+  // HTTP register device SETELAH frame pertama. Kalau DevTool memaksa
+  // tier 3 (Render tidur), menunggu 75s di sini sebelum runApp = ANR.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(registrationService.start());
+  });
 }

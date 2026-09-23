@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../dictionary_router.dart';
 import '../../domain/entities/word_summary.dart';
@@ -274,7 +275,9 @@ class _WordTile extends StatelessWidget with FTileMixin {
     return FTile(
       title: Text(item.lemma),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
+      suffix: item.isVerified
+          ? const VerifiedBadgeIcon()
+          : const PendingReviewBadgeIcon(),
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();
         context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));

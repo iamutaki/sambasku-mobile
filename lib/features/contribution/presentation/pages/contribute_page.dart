@@ -732,6 +732,20 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final translationLanguageId =
         languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
+    // Mode Dasar juga kirim dialek umum bila sudah termuat. Jangan kirim
+    // `dialect_id: null` — Zod `.optional()` menolak null (bukan omit).
+    var dialectId = _dialectId;
+    if ((dialectId == null || dialectId.isEmpty) && languageId.isNotEmpty) {
+      final dialectItems = ref
+          .read(_referenceDialectsProvider(languageId))
+          .value;
+      dialectId =
+          dialectItems?.where((e) => e.isDefault).firstOrNull?.id ??
+          dialectItems
+              ?.where((e) => e.code.toLowerCase() == 'umum')
+              .firstOrNull
+              ?.id;
+    }
     final notes = _relations.notesText.trim();
     final meanings = _advanced
         ? [
@@ -759,7 +773,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       lemma: _lemmaCtrl.text,
       languageId: languageId,
       meanings: meanings,
-      dialectId: _advanced ? _dialectId : null,
+      dialectId: dialectId,
       wordType: _advanced ? _wordType : 'word',
       categoryIds: [],
       notes: _advanced && notes.isNotEmpty ? notes : null,
@@ -1361,7 +1375,7 @@ class _ContributeModeChips extends StatelessWidget {
       children: [
         Expanded(
           child: _ModeChip(
-            label: 'Sederhana',
+            label: 'Dasar',
             selected: !advanced,
             onTap: () => onChanged(false),
           ),
