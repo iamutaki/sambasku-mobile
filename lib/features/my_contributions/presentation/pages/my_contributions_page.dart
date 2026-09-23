@@ -280,7 +280,9 @@ class _SkeletonTile extends StatelessWidget with FTileMixin {
   Widget build(BuildContext context) {
     return FTile(
       title: const Text('lemma contoh usulan'),
-      subtitle: const Text('Usul kata baru · Menunggu · 21 Sep 2026 00:00'),
+      subtitle: const Text(
+        'Usul kata baru · Menunggu pengecekan · 21 Sep 2026 00:00',
+      ),
     );
   }
 }

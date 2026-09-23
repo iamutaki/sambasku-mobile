@@ -10,6 +10,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:forui/forui.dart';
 import 'package:sambasku_mobile/core/network/auth_token_storage.dart';
 import 'package:sambasku_mobile/core/network/network_providers.dart';
+import 'package:sambasku_mobile/core/services/analytics_service.dart';
 import 'package:sambasku_mobile/features/auth/data/providers/auth_data_providers.dart';
 import 'package:sambasku_mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:sambasku_mobile/features/auth/domain/failures/auth_failure.dart';
@@ -122,6 +123,9 @@ class _ThrowingAdapter implements HttpClientAdapter {
 /// Widget test Profile (mobile-base-stack Section 10): status login vs
 /// tamu menentukan tombol "Keluar" / "Masuk / Login", dan logout berfungsi.
 void main() {
+  setUp(AnalyticsService.debugReset);
+  tearDown(AnalyticsService.debugReset);
+
   Future<void> pumpProfile(
     WidgetTester tester, {
     Map<String, Object> prefs = const {},

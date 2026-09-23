@@ -45,8 +45,7 @@ abstract final class AnalyticsEvents {
 /// Abstraksi Firebase Analytics. Page/notifier memanggil ini, bukan
 /// `FirebaseAnalytics` langsung.
 class AnalyticsService {
-  AnalyticsService._({FirebaseAnalytics? analytics})
-      : _analytics = analytics ?? FirebaseAnalytics.instance;
+  AnalyticsService._({FirebaseAnalytics? analytics}) : _injected = analytics;
 
   static AnalyticsService? _instance;
 
@@ -59,8 +58,16 @@ class AnalyticsService {
     _instance = service;
   }
 
-  final FirebaseAnalytics _analytics;
+  /// Injected (tes) atau di-resolve lazy saat [init] — jangan sentuh
+  /// `FirebaseAnalytics.instance` di konstruktor: widget test tidak
+  /// menginisialisasi Firebase, sementara router/logout/contribute
+  /// sudah memanggil [instance] sebelum `main()` sempat `init()`.
+  final FirebaseAnalytics? _injected;
+  FirebaseAnalytics? _resolved;
   bool _ready = false;
+
+  FirebaseAnalytics get _analytics =>
+      _injected ?? (_resolved ??= FirebaseAnalytics.instance);
 
   /// Panggil sekali setelah `Firebase.initializeApp()`.
   Future<void> init() async {
