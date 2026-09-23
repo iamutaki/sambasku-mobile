@@ -97,7 +97,7 @@ void main() {
 
     expect(signIn.calls, 1);
     expect(repo.receivedToken, 'fb-access-token');
-    expect(result?.getRight().toNullable()?.username, 'budi');
+    expect(result.getRight().toNullable()?.username, 'budi');
   });
 
   test('409 EMAIL_ALREADY_EXISTS diteruskan', () async {
@@ -112,19 +112,23 @@ void main() {
     final usecase = LoginWithFacebookUseCase(repo, _FakeSignIn('fb-token'));
 
     final result = await usecase();
-    final failure = result?.getLeft().toNullable();
+    final failure = result.getLeft().toNullable();
     expect(failure?.errorCode, 'EMAIL_ALREADY_EXISTS');
     expect(failure?.message, contains('Email sudah terdaftar'));
   });
 
-  test('batal SDK tidak memanggil repository', () async {
+  test('batal SDK → AuthFailure FACEBOOK_SIGN_IN_CANCELED, tidak panggil API',
+      () async {
     final repo = _FakeRepo(Either.right(session));
     final usecase = LoginWithFacebookUseCase(repo, _FakeSignIn(null));
 
     final result = await usecase();
+    final failure = result.getLeft().toNullable();
 
-    expect(result, isNull);
     expect(repo.loginWithFacebookCalls, 0);
+    expect(failure?.errorCode, AuthFailure.facebookSignInCanceled);
+    expect(failure?.message, 'Masuk dibatalkan.');
+    expect(failure?.isSocialSignInCanceled, isTrue);
   });
 
   test('accessToken kosong → AuthFailure generik, tidak panggil API', () async {
@@ -134,7 +138,7 @@ void main() {
     final result = await usecase();
     expect(repo.loginWithFacebookCalls, 0);
     expect(
-      result?.getLeft().toNullable()?.message,
+      result.getLeft().toNullable()?.message,
       'Tidak bisa masuk dengan Facebook.',
     );
   });
