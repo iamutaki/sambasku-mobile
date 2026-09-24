@@ -39,6 +39,12 @@ class _StubDictionaryRepository implements DictionaryRepository {
       throw UnimplementedError();
 
   @override
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(
+    String lemma,
+  ) async =>
+      throw UnimplementedError();
+
+  @override
   Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async =>
       throw UnimplementedError();
 
