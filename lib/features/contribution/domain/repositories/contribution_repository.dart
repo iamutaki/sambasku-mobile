@@ -3,11 +3,12 @@ import 'package:fpdart/fpdart.dart';
 import '../entities/submit_word_result.dart';
 import '../failures/contribution_failure.dart';
 
-/// Satu gambar siap dikirim (hasil upload GitHub/CDN).
+/// Satu gambar siap dikirim (upload GitHub ATAU stock Media Explorer).
 class SubmitWordImage {
   const SubmitWordImage({
     required this.url,
     required this.providerFileId,
+    this.provider,
     this.sha,
     this.altText,
     this.isPrimary = false,
@@ -15,6 +16,8 @@ class SubmitWordImage {
 
   final String url;
   final String providerFileId;
+  /// Stock: pexels|… ; upload: null.
+  final String? provider;
   final String? sha;
   final String? altText;
   final bool isPrimary;
@@ -67,6 +70,7 @@ abstract interface class ContributionRepository {
     /// `word` | `idiom` | `peribahasa` | `ungkapan` (API `word_type`).
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     // Ejaan alternatif (variasi penulisan, docs/api/11) - dikirim sebagai
     // variants[] variant_type 'alternative'.

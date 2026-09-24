@@ -41,7 +41,7 @@ class LinkedAccountsRepositoryImpl implements LinkedAccountsRepository {
       if (response.success == false) {
         return Either.left(
           LinkedAccountsFailure(
-            response.message ?? 'Gagal menghubungkan Google',
+            response.message ?? 'Gagal menambahkan ke akun terhubung',
             errorCode: response.errorCode,
           ),
         );
@@ -61,13 +61,13 @@ class LinkedAccountsRepositoryImpl implements LinkedAccountsRepository {
       if (response.success == false) {
         return Either.left(
           LinkedAccountsFailure(
-            response.message ?? 'Gagal melepas Google',
+            response.message ?? 'Gagal melepas dari akun terhubung',
             errorCode: response.errorCode,
           ),
         );
       }
       return Either.right(
-        response.data?.message ?? 'Akun Google berhasil dilepas.',
+        response.data?.message ?? 'Berhasil dilepas dari akun terhubung.',
       );
     } on DioException catch (error) {
       return Either.left(_mapDio(error));

@@ -28,6 +28,7 @@ import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/report_bug/report_bug_router.dart';
 import '../../features/review/presentation/providers/review_providers.dart';
 import '../../features/review/review_router.dart';
+import '../../features/translation_help/translation_help_router.dart';
 import '../../features/user_profile/user_profile_router.dart';
 import '../../features/verifier_application/verifier_application_router.dart';
 import '../../shared/splash/splash_router.dart';
@@ -69,6 +70,7 @@ class AppRouter {
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,
       ...ReportBugRouter.routes,
+      ...TranslationHelpRouter.routes,
       ...ReviewRouter.routes,
       ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
@@ -127,7 +129,7 @@ class AppRouter {
   );
 
   /// Tamu BOLEH pakai app (pencarian publik). Redirect:
-  /// - onboarding belum selesai → /onboarding
+  /// - onboarding belum selesai → /onboarding (kecuali deep link publik / auth)
   /// - onboarding selesai tapi masih di /onboarding → HOME
   /// - user sudah login tapi masih di /login → HOME
   /// Register, verify-email, forgot/reset tidak di-redirect: daftar akun
@@ -138,10 +140,19 @@ class AppRouter {
     GoRouterState state,
   ) async {
     final loc = state.matchedLocation;
+    final path = state.uri.path;
+    final query = state.uri.query;
+
+    // HTTPS / custom scheme: /hapus-akun → rute native hapus akun.
+    if (path == '/hapus-akun' || loc == '/hapus-akun') {
+      return query.isEmpty ? '/delete-account' : '/delete-account?$query';
+    }
+
     final onboardingDone = OnboardingPrefs.done;
     final isOnboarding = loc == OnboardingRouter.onboarding.path;
+    final isDeepLinkFriendly = _isDeepLinkFriendlyPath(path);
 
-    if (!onboardingDone && !isOnboarding) {
+    if (!onboardingDone && !isOnboarding && !isDeepLinkFriendly) {
       return OnboardingRouter.onboarding.path;
     }
     if (onboardingDone && isOnboarding) {
@@ -152,6 +163,22 @@ class AppRouter {
     if (isAuth && loc == AuthRouter.login.path) return '/';
 
     return null;
+  }
+
+  /// Path yang boleh dibuka dari deep link sebelum onboarding selesai.
+  static bool _isDeepLinkFriendlyPath(String path) {
+    if (path == AuthRouter.resetPassword.path ||
+        path == AuthRouter.forgotPassword.path ||
+        path == AuthRouter.verifyEmail.path ||
+        path == AuthRouter.register.path ||
+        path == DeleteAccountRouter.deleteAccount.path ||
+        path == '/hapus-akun') {
+      return true;
+    }
+    if (path.startsWith('/words/')) return true;
+    if (path.startsWith('/users/')) return true;
+    if (path.startsWith('/translation-helps')) return true;
+    return false;
   }
 }
 

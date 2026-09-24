@@ -41,11 +41,26 @@ abstract final class Env {
   @EnviedField(varName: 'FACEBOOK_APP_ID_PRODUCTION', optional: true)
   static const String? facebookAppIdProduction = _Env.facebookAppIdProduction;
 
+  /// Domain web publik (share URL + dokumentasi deep link). Staging vs prod.
+  @EnviedField(varName: 'SAMBASKU_WEB_APP_URL_STAGING', optional: true)
+  static const String? webAppUrlStaging = _Env.webAppUrlStaging;
+
+  @EnviedField(varName: 'SAMBASKU_WEB_APP_URL_PRODUCTION', optional: true)
+  static const String? webAppUrlProduction = _Env.webAppUrlProduction;
+
   /// Base URL API sesuai flavor aktif (staging build → staging host, dst.).
   static String get apiHost {
     return F.isStaging || apiHostProduction == null
         ? apiHostStaging
         : apiHostProduction!;
+  }
+
+  /// Origin situs publik sesuai flavor (untuk caption share / deep link).
+  static String? get webAppUrl {
+    if (F.isStaging || webAppUrlProduction == null) {
+      return _nonEmpty(webAppUrlStaging) ?? 'https://sambasku-web-staging.iamutaki.com';
+    }
+    return _nonEmpty(webAppUrlProduction) ?? 'https://sambasku.com';
   }
 
   /// Host cadangan setelah [apiHost], urut tier 2 lalu tier 3.

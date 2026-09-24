@@ -346,6 +346,8 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
           'action': 'add',
           'url': dto.url,
           'provider_file_id': dto.providerFileId,
+          if (dto.provider != null) 'provider': dto.provider,
+          if (dto.sha != null) 'sha': dto.sha,
           'alt_text': dto.altText,
           'is_primary': dto.isPrimary,
         });

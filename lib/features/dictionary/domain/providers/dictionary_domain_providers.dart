@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/providers/dictionary_data_providers.dart';
 import '../usecases/get_word_by_id_use_case.dart';
+import '../usecases/get_word_by_lemma_use_case.dart';
 import '../usecases/get_word_of_day_use_case.dart';
 import '../usecases/list_latest_words_use_case.dart';
 import '../usecases/list_words_use_case.dart';
@@ -24,6 +25,10 @@ ListLatestWordsUseCase listLatestWordsUseCase(Ref ref) =>
 @riverpod
 GetWordByIdUseCase getWordByIdUseCase(Ref ref) =>
     GetWordByIdUseCase(ref.watch(dictionaryRepositoryProvider));
+
+@riverpod
+GetWordByLemmaUseCase getWordByLemmaUseCase(Ref ref) =>
+    GetWordByLemmaUseCase(ref.watch(dictionaryRepositoryProvider));
 
 @riverpod
 GetWordOfDayUseCase getWordOfDayUseCase(Ref ref) =>

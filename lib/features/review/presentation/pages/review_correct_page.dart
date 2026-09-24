@@ -144,7 +144,7 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         ).showSnackBar(SnackBar(content: Text(message)));
         if (failure.isAlreadyDecided) {
           invalidateReviewQueue(ref);
-          context.pop();
+          context.go('/review');
         }
       },
       (decision) {
@@ -159,8 +159,7 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(label)));
-        context.pop();
-        context.pop();
+        context.go('/review');
       },
     );
   }

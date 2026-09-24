@@ -119,8 +119,8 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       FTile(
                         prefix: const Icon(FLucideIcons.link),
-                        title: const Text('Akun Google'),
-                        subtitle: const Text('Hubungkan atau lepas login Google'),
+                        title: const Text('Akun Terhubung'),
+                        subtitle: const Text('Kelola login yang terhubung ke akun'),
                         suffix: const Icon(FLucideIcons.chevronRight),
                         onPress: () => context.push('/linked-accounts'),
                       ),

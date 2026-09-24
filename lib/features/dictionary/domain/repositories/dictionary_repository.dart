@@ -18,6 +18,9 @@ abstract interface class DictionaryRepository {
   /// Detail kata by id. 404 WORD_NOT_FOUND → Failure.
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id);
 
+  /// Detail kata published by lemma (URL publik web / deep link).
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(String lemma);
+
   /// Kata hari ini. Right(null) = korpus published kosong (bukan error).
   Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay();
 

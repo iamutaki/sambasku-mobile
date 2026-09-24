@@ -1,5 +1,51 @@
 import '../../../../shared/utils/public_account_name.dart';
 
+/// Closed enum `usage_labels` (sinkron API / console).
+const kUsageLabels = <String>[
+  'kasar',
+  'tabu',
+  'informal',
+  'halus',
+  'seksual',
+  'diskriminatif',
+];
+
+/// Register: gaya/pantangan berbahasa.
+const kRegisterUsageLabels = <String>['kasar', 'tabu', 'informal', 'halus'];
+
+/// Peringatan: sensitivitas isi makna.
+const kWarningUsageLabels = <String>['seksual', 'diskriminatif'];
+
+/// Label UI (ID) untuk kode `usage_labels`.
+String usageLabelLabel(String code) => switch (code) {
+  'kasar' => 'Kasar',
+  'tabu' => 'Tabu',
+  'informal' => 'Informal',
+  'halus' => 'Halus',
+  'seksual' => 'Seksual',
+  'diskriminatif' => 'Diskriminatif',
+  _ => code,
+};
+
+/// Badge lebih menonjol: kasar/tabu/seksual/diskriminatif.
+bool isProminentUsageLabel(String code) =>
+    code == 'kasar' ||
+    code == 'tabu' ||
+    code == 'seksual' ||
+    code == 'diskriminatif';
+
+/// `halus` dan `kasar` saling bertentangan.
+bool hasConflictingUsageLabels(Iterable<String> labels) {
+  var hasHalus = false;
+  var hasKasar = false;
+  for (final code in labels) {
+    if (code == 'halus') hasHalus = true;
+    if (code == 'kasar') hasKasar = true;
+    if (hasHalus && hasKasar) return true;
+  }
+  return false;
+}
+
 /// Detail kata lengkap (domain) - hasil GET /api/v1/words/:id.
 class WordDetail {
   const WordDetail({
@@ -17,6 +63,7 @@ class WordDetail {
     this.createdBy,
     this.meanings = const [],
     this.categories = const [],
+    this.usageLabels = const [],
     this.pronunciations = const [],
     this.audios = const [],
     this.images = const [],
@@ -39,6 +86,9 @@ class WordDetail {
   final WordVerifier? createdBy;
   final List<WordMeaning> meanings;
   final List<WordCategory> categories;
+
+  /// Kode register & peringatan (`usage_labels` API).
+  final List<String> usageLabels;
   final List<WordPronunciation> pronunciations;
   final List<WordAudio> audios;
   final List<WordImage> images;

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'word_public_url.dart';
+
 String shareProviderLabel(String id) => switch (id) {
       'pexels' => 'Pexels',
       'pixabay' => 'Pixabay',
@@ -150,10 +152,12 @@ class ShareCardData {
     final pad = (padanan != null && padanan!.isNotEmpty) ? padanan! : lemma;
     final variants = variantsLine;
     final base = variants != null && variants.isNotEmpty
-        ? '"$lemma" ($variants) — $pad · kamus bahasa Sambas #SambasKu'
-        : '"$lemma" — $pad · kamus bahasa Sambas #SambasKu';
-    if (isVerified) return base;
-    return '$base\nArti belum diperiksa tim Sambasku.';
+        ? '"$lemma" ($variants) - $pad · kamus bahasa Sambas #SambasKu'
+        : '"$lemma" - $pad · kamus bahasa Sambas #SambasKu';
+    final url = wordPublicUrl(lemma);
+    final withUrl = url == null ? base : '$base\n$url';
+    if (isVerified) return withUrl;
+    return '$withUrl\nArti belum diperiksa tim Sambasku.';
   }
 
   String get copyText {

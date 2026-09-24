@@ -10,6 +10,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../my_contributions/my_contributions_router.dart';
+import '../../../translation_help/translation_help_router.dart';
 import '../../domain/entities/inbox_notification.dart';
 import '../../domain/failures/notification_failure.dart';
 import '../../domain/providers/notification_domain_providers.dart';
@@ -259,10 +260,29 @@ class _NotificationTile extends ConsumerWidget with FTileMixin {
           ref.read(unreadNotificationCountControllerProvider.notifier).decrement();
         }
         if (!context.mounted) return;
+        if (item.type == 'campaign' || item.targetKind == 'campaign') {
+          // Campaign tanpa deep link word/contribution → tetap di inbox.
+          return;
+        }
         if (item.targetKind == 'word') {
-          showFToast(
-            context: context,
-            title: Text(item.body),
+          if (item.targetId.isEmpty) {
+            showFToast(
+              context: context,
+              title: Text(item.body),
+            );
+            return;
+          }
+          await context.push('/words/${item.targetId}');
+          return;
+        }
+        if (item.targetKind == 'translation_help' ||
+            item.type.startsWith('translation_help')) {
+          if (item.targetId.isEmpty) {
+            await context.push(TranslationHelpRouter.mine.path);
+            return;
+          }
+          await context.push(
+            TranslationHelpRouter.detailPath(item.targetId),
           );
           return;
         }

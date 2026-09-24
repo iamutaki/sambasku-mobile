@@ -5,7 +5,11 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/network/network_providers.dart';
 import '../../../../shared/widgets/attachment_images_field.dart';
+import '../../../share/data/share_background_repository.dart';
+import '../../../share/domain/share_models.dart';
+import '../../../share/presentation/share_image_explorer_sheet.dart';
 import '../../data/models/create_word_image_dto.dart';
 import '../../data/providers/contribution_data_providers.dart';
 import '../../domain/repositories/contribution_repository.dart';
@@ -14,7 +18,7 @@ import '../../domain/repositories/contribution_repository.dart';
 typedef ContributeImageSlot = AttachmentImageSlot;
 
 /// Field gambar usul kata - thin wrapper di atas [AttachmentImagesField]
-/// (token admin `/words`, max 3, wajib login).
+/// (token admin `/words`, max 3, wajib login + Media Explorer stock).
 class ContributeImagesField extends ConsumerWidget {
   const ContributeImagesField({
     super.key,
@@ -42,6 +46,7 @@ class ContributeImagesField extends ConsumerWidget {
           : () {
               context.push('/login');
             },
+      onPickStockImage: () => _pickStockImage(context, ref),
       upload: (File file, {required bool isPrimary}) async {
         final service = ref.read(wordImageUploadServiceProvider);
         final result = await service.uploadFile(file, isPrimary: isPrimary);
@@ -65,6 +70,29 @@ class ContributeImagesField extends ConsumerWidget {
       },
     );
   }
+
+  Future<AttachmentUploadedImage?> _pickStockImage(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final selected = await showShareMediaExplorer(
+      context,
+      backgrounds: ShareBackgroundRepository(ref.read(dioProvider)),
+      photoOnly: true,
+    );
+    if (selected == null || selected.kind != ShareMediaKind.photo) {
+      return null;
+    }
+    final photographer = selected.photographer.trim().isEmpty
+        ? shareProviderLabel(selected.provider)
+        : selected.photographer.trim();
+    return AttachmentUploadedImage(
+      url: selected.url,
+      providerFileId: selected.id,
+      provider: selected.provider,
+      altText: 'Foto: $photographer / ${selected.provider}',
+    );
+  }
 }
 
 /// Map slot siap → domain image untuk submit kata.
@@ -74,6 +102,7 @@ List<SubmitWordImage> readySubmitImages(List<AttachmentImageSlot> slots) {
       SubmitWordImage(
         url: s.url,
         providerFileId: s.providerFileId,
+        provider: s.provider,
         sha: s.sha,
         altText: s.altText,
         isPrimary: s.isPrimary,
@@ -88,6 +117,7 @@ CreateWordImageDto? contributeDtoOf(AttachmentImageSlot slot) {
   return CreateWordImageDto(
     url: u.url,
     providerFileId: u.providerFileId,
+    provider: u.provider,
     sha: u.sha,
     altText: u.altText,
     isPrimary: u.isPrimary,

@@ -50,7 +50,7 @@ class LinkedAccountsNotifier extends _$LinkedAccountsNotifier {
         (_) => state = state.copyWith(
           isBusy: false,
           googleLinked: true,
-          infoMessage: 'Akun Google berhasil dihubungkan.',
+          infoMessage: 'Berhasil ditambahkan ke akun terhubung.',
           clearError: true,
         ),
       );

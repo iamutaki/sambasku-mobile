@@ -35,6 +35,11 @@ _WordDetailDto _$WordDetailDtoFromJson(
           ?.map((e) => CategoryDto.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  usageLabels:
+      (json['usage_labels'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   pronunciations:
       (json['pronunciations'] as List<dynamic>?)
           ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
@@ -85,6 +90,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'created_by': instance.createdBy,
       'meanings': instance.meanings,
       'categories': instance.categories,
+      'usage_labels': instance.usageLabels,
       'pronunciations': instance.pronunciations,
       'audios': instance.audios,
       'images': instance.images,

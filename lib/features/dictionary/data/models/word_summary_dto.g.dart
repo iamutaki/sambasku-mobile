@@ -18,6 +18,11 @@ _WordSummaryDto _$WordSummaryDtoFromJson(Map<String, dynamic> json) =>
       matchedTranslation: json['matched_translation'] as String?,
       sense: json['sense'] as String?,
       approvedAt: json['approved_at'] as String?,
+      usageLabels:
+          (json['usage_labels'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$WordSummaryDtoToJson(_WordSummaryDto instance) =>
@@ -32,4 +37,5 @@ Map<String, dynamic> _$WordSummaryDtoToJson(_WordSummaryDto instance) =>
       'matched_translation': instance.matchedTranslation,
       'sense': instance.sense,
       'approved_at': instance.approvedAt,
+      'usage_labels': instance.usageLabels,
     };

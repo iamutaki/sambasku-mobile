@@ -53,14 +53,27 @@
             <meta-data
               android:name="flutter_deeplinking_enabled"
               android:value="true" />
+            <!-- Custom scheme: sambasku://app/... (sama semua flavor) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data
-                    android:scheme="sambasku"
-                    android:host="app"
-                    android:pathPrefix="/reset-password" />
+                <data android:scheme="sambasku" android:host="app" android:pathPrefix="/reset-password" />
+                <data android:scheme="sambasku" android:host="app" android:pathPrefix="/words" />
+                <data android:scheme="sambasku" android:host="app" android:pathPrefix="/users" />
+                <data android:scheme="sambasku" android:host="app" android:pathPrefix="/hapus-akun" />
+                <data android:scheme="sambasku" android:host="app" android:pathPrefix="/delete-account" />
+            </intent-filter>
+            <!-- App Links HTTPS: host dari manifestPlaceholders.deepLinkHost
+                 (staging / production di flavorizr.gradle.kts). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="${deepLinkHost}" android:pathPrefix="/words" />
+                <data android:scheme="https" android:host="${deepLinkHost}" android:pathPrefix="/reset-password" />
+                <data android:scheme="https" android:host="${deepLinkHost}" android:pathPrefix="/hapus-akun" />
+                <data android:scheme="https" android:host="${deepLinkHost}" android:pathPrefix="/users" />
             </intent-filter>
         </activity>
         <meta-data

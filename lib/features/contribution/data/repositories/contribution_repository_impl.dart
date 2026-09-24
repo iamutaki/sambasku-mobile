@@ -27,6 +27,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],
@@ -40,6 +41,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
             (img) => CreateWordImageDto(
               url: img.url,
               providerFileId: img.providerFileId,
+              provider: img.provider,
               sha: img.sha,
               altText: img.altText,
               isPrimary: img.isPrimary,
@@ -98,6 +100,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
         wordType: wordType,
         meanings: meaningDtos,
         categoryIds: categoryIds,
+        usageLabels: usageLabels,
         notes: notes,
         variants: variantDtos.isEmpty ? null : variantDtos,
         relatedWords: relatedDtos.isEmpty ? null : relatedDtos,

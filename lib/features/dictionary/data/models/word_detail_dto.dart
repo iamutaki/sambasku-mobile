@@ -23,6 +23,7 @@ abstract class WordDetailDto with _$WordDetailDto {
     @JsonKey(name: 'created_by') WordVerifierDto? createdBy,
     @Default([]) List<MeaningDto> meanings,
     @Default([]) List<CategoryDto> categories,
+    @JsonKey(name: 'usage_labels') @Default([]) List<String> usageLabels,
     @Default([]) List<PronunciationDto> pronunciations,
     @Default([]) List<WordAudioDto> audios,
     @Default([]) List<WordImageDto> images,

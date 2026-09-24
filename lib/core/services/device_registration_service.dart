@@ -52,6 +52,11 @@ class DeviceRegistrationService {
   Future<void> revokeBestEffort() async {
     _revoking = true;
     try {
+      try {
+        await _messaging.unsubscribeFromTopic('sambasku_campaigns');
+      } catch (e) {
+        debugPrint('FCM topic unsubscribe failed: $e');
+      }
       final udid = await _deviceIdService.getDeviceId();
       await _repository.revokeDevice(udid: udid);
     } catch (e) {
@@ -96,6 +101,12 @@ class DeviceRegistrationService {
         udid: udid,
         fcmToken: _lastFcmToken,
       );
+      // Topic broadcast campaign (semua device aktif).
+      try {
+        await _messaging.subscribeToTopic('sambasku_campaigns');
+      } catch (e) {
+        debugPrint('FCM topic subscribe failed: $e');
+      }
     } catch (e) {
       debugPrint('device register failed: $e');
     }

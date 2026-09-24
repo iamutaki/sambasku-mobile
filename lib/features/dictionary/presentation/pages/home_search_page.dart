@@ -16,6 +16,7 @@ import '../models/latest_words_state.dart';
 import '../providers/latest_words_providers.dart';
 import '../providers/word_of_day_providers.dart';
 import '../widgets/word_of_day_card.dart';
+import '../../../translation_help/presentation/widgets/translation_help_home_banner.dart';
 
 /// Tab HOME: feed kata yang sudah disetujui. Pencarian pindah ke
 /// Daftar Kata A-Z (kolom cari hanya pintu masuk, langsung fokus).
@@ -131,6 +132,7 @@ class HomeSearchPage extends HookConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
         children: [
           const WordOfDayCard(),
+          const TranslationHelpHomeBanner(),
           const _FeedHeading(),
           if (state.errorMessage != null)
             Padding(

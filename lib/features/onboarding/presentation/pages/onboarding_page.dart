@@ -9,6 +9,9 @@ import '../../../../core/widgets/brand_logo.dart';
 import '../../data/onboarding_prefs.dart';
 
 /// Onboarding first-install: welcome → fitur → izin notifikasi.
+///
+/// Tema mengikuti [MaterialApp.themeMode]: SharedPreferences jika ada,
+/// selain itu [ThemeMode.system].
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -80,93 +83,80 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     return FScaffold(
       childPad: false,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colors.background,
-              theme.colors.primary.withValues(alpha: 0.08),
-              theme.colors.background,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Gap(50),
-                const Center(child: BrandLogo(size: 168)),
-                const Gap(16),
-                Expanded(
-                  child: PageView.builder(
-                    controller: _controller,
-                    itemCount: _slides.length,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    itemBuilder: (context, i) {
-                      final slide = _slides[i];
-                      return _SlideContent(
-                        title: slide.title,
-                        body: slide.body,
-                        icon: slide.icon,
-                      );
-                    },
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_slides.length, (i) {
-                    final active = i == _index;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      height: 8,
-                      width: active ? 22 : 8,
-                      decoration: BoxDecoration(
-                        color: active
-                            ? theme.colors.primary
-                            : theme.colors.mutedForeground.withValues(
-                                alpha: 0.35,
-                              ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Gap(50),
+              const Center(child: BrandMark(size: 168)),
+              const Gap(16),
+              Expanded(
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _slides.length,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  itemBuilder: (context, i) {
+                    final slide = _slides[i];
+                    return _SlideContent(
+                      title: slide.title,
+                      body: slide.body,
+                      icon: slide.icon,
                     );
-                  }),
+                  },
                 ),
-                const Gap(24),
-                if (!isLast)
-                  FButton(
-                    onPress: _busy ? null : _next,
-                    child: const Text('Lanjut'),
-                  )
-                else ...[
-                  FButton(
-                    onPress: _busy
-                        ? null
-                        : () => _finish(requestPermission: true),
-                    child: _busy
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: FCircularProgress(),
-                          )
-                        : const Text('Izinkan notifikasi'),
-                  ),
-                  const Gap(10),
-                  FButton(
-                    variant: .ghost,
-                    onPress: _busy
-                        ? null
-                        : () => _finish(requestPermission: false),
-                    child: const Text('Nanti'),
-                  ),
-                ],
-                const Gap(8),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_slides.length, (i) {
+                  final active = i == _index;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 8,
+                    width: active ? 22 : 8,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? theme.colors.primary
+                          : theme.colors.mutedForeground.withValues(
+                              alpha: 0.35,
+                            ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  );
+                }),
+              ),
+              const Gap(24),
+              if (!isLast)
+                FButton(
+                  onPress: _busy ? null : _next,
+                  child: const Text('Lanjut'),
+                )
+              else ...[
+                FButton(
+                  onPress: _busy
+                      ? null
+                      : () => _finish(requestPermission: true),
+                  child: _busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: FCircularProgress(),
+                        )
+                      : const Text('Izinkan notifikasi'),
+                ),
+                const Gap(10),
+                FButton(
+                  variant: .ghost,
+                  onPress: _busy
+                      ? null
+                      : () => _finish(requestPermission: false),
+                  child: const Text('Nanti'),
+                ),
               ],
-            ),
+              const Gap(8),
+            ],
           ),
         ),
       ),

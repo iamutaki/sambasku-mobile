@@ -8,7 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'file_persist_helper.dart';
 import 'permission_helper.dart';
 
-enum PhotoPickSource { camera, gallery, file }
+enum PhotoPickSource { camera, gallery, file, mediaExplorer }
 
 /// Shows the "Pilih Sumber" bottom sheet.
 void showImageSheetDrawer(
@@ -20,9 +20,12 @@ void showImageSheetDrawer(
   Function(File image)? onPicked,
   Function(File image, PhotoPickSource source)? onPickedWithSource,
   Function()? onRemoved,
+  /// Dipanggil setelah sheet ditutup — buka Media Explorer (stock).
+  VoidCallback? onMediaExplorer,
   bool cameraPicker = true,
   bool galleryPicker = true,
   bool filePicker = true,
+  bool mediaExplorerPicker = false,
   bool requireGpsForCamera = false,
   // Kompresi picker (mobile-base-stack §9.1) - tanpa paket ekstra.
   double maxWidth = 1600,
@@ -111,6 +114,15 @@ void showImageSheetDrawer(
                             onPicked?.call(file);
                           },
                         ),
+                      ),
+                    if (mediaExplorerPicker && onMediaExplorer != null)
+                      _SourceButton(
+                        icon: Icons.travel_explore_outlined,
+                        label: 'Explorer',
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          onMediaExplorer();
+                        },
                       ),
                     _SourceButton(
                       icon: Icons.restart_alt,

@@ -55,6 +55,11 @@ class SubmitAnonWordUseCase {
         .where((e) => e.isNotEmpty)
         .toList(growable: false);
 
+    final usageLabels = params.usageLabels
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+
     final seenVariants = <String>{};
     final spellingVariants = params.spellingVariants
         .map((e) => e.trim())
@@ -87,6 +92,7 @@ class SubmitAnonWordUseCase {
         SubmitWordImage(
           url: img.url,
           providerFileId: img.providerFileId,
+          provider: img.provider,
           sha: img.sha,
           altText: img.altText,
           isPrimary: primary,
@@ -98,6 +104,7 @@ class SubmitAnonWordUseCase {
       images[0] = SubmitWordImage(
         url: first.url,
         providerFileId: first.providerFileId,
+        provider: first.provider,
         sha: first.sha,
         altText: first.altText,
         isPrimary: true,
@@ -115,6 +122,7 @@ class SubmitAnonWordUseCase {
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
       wordType: wordType,
       categoryIds: categoryIds,
+      usageLabels: usageLabels,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
       relatedWords: relatedWords,
@@ -152,6 +160,7 @@ class SubmitAnonWordParams {
     this.dialectId,
     this.wordType = 'word',
     this.categoryIds = const [],
+    this.usageLabels = const [],
     this.notes,
     this.spellingVariants = const [],
     this.relatedWords = const [],
@@ -168,6 +177,7 @@ class SubmitAnonWordParams {
   /// `word` | `idiom` | `peribahasa` | `ungkapan`
   final String wordType;
   final List<String> categoryIds;
+  final List<String> usageLabels;
   final String? notes;
   final List<String> spellingVariants;
   final List<SubmitWordRelation> relatedWords;

@@ -90,9 +90,7 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
         title: const Text('Usulan ini sudah diproses'),
         description: Text(failure.message),
       );
-      ref.read(reviewQueueProvider(const ReviewQueueQuery()).notifier).drop(widget.id);
-      invalidateReviewQueue(ref);
-      context.pop();
+      _returnToQueue();
       return;
     }
     showFToast(
@@ -103,10 +101,14 @@ class _ReviewDetailPageState extends ConsumerState<ReviewDetailPage> {
   }
 
   void _done(String message) {
-    ref.read(reviewQueueProvider(const ReviewQueueQuery()).notifier).drop(widget.id);
-    invalidateReviewQueue(ref);
     showFToast(context: context, title: Text(message));
-    context.pop();
+    _returnToQueue();
+  }
+
+  /// Invalidate antrean + ganti stack ke listing (buang detail/correct).
+  void _returnToQueue() {
+    invalidateReviewQueue(ref);
+    context.go('/review');
   }
 
   @override

@@ -29,6 +29,7 @@ abstract class CreateWordRequestDto with _$CreateWordRequestDto {
     @JsonKey(name: 'word_type') @Default('word') String wordType,
     @JsonKey(name: 'meanings') required List<CreateWordMeaningDto> meanings,
     @JsonKey(name: 'category_ids') @Default([]) List<String> categoryIds,
+    @JsonKey(name: 'usage_labels') @Default([]) List<String> usageLabels,
     @JsonKey(name: 'notes', includeIfNull: false) String? notes,
     @JsonKey(name: 'variants', includeIfNull: false)
     List<CreateWordVariantDto>? variants,

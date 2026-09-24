@@ -33,6 +33,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Default supaya IDE resolve ${deepLinkHost}; di-override per flavor
+        // di flavorizr.gradle.kts.
+        manifestPlaceholders["deepLinkHost"] = "sambasku-web-staging.iamutaki.com"
     }
 
     if (keystorePropertiesFile.exists()) {

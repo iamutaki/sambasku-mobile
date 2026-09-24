@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/utils/ulid.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../review/domain/review_access.dart';
 import '../../../review/presentation/providers/review_providers.dart';
@@ -56,8 +57,24 @@ class WordDetailPage extends HookConsumerWidget {
     final async = ref.watch(wordDetailProvider(wordId));
     final theme = context.theme;
 
+    // Deep link lemma → ganti URL ke ULID kanonis supaya history/bookmark
+    // dan navigasi internal selalu pakai id.
+    useEffect(() {
+      final detail = async.asData?.value;
+      if (detail == null) return null;
+      if (looksLikeUlid(wordId) && detail.id == wordId) return null;
+      if (detail.id == wordId) return null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        context.replace('/words/${detail.id}');
+      });
+      return null;
+    }, [async, wordId]);
+
+    final resolvedId = async.asData?.value.id ?? wordId;
+
     return StopAudioOnLeave(
-      wordId: wordId,
+      wordId: resolvedId,
       child: FScaffold(
         childPad: true,
         header: FHeader.nested(
@@ -71,9 +88,9 @@ class WordDetailPage extends HookConsumerWidget {
             FHeaderAction(
               icon: const Icon(FLucideIcons.history),
               semanticsLabel: 'Riwayat perubahan',
-              onPress: () => context.push('/words/$wordId/history'),
+              onPress: () => context.push('/words/$resolvedId/history'),
             ),
-            _WordBookmarkHeaderAction(wordId: wordId),
+            _WordBookmarkHeaderAction(wordId: resolvedId),
           ],
         ),
         child: async.when(
@@ -126,7 +143,7 @@ class WordDetailPage extends HookConsumerWidget {
               ),
             );
           },
-          data: (detail) => _DetailBody(detail: detail, wordId: wordId),
+          data: (detail) => _DetailBody(detail: detail, wordId: detail.id),
         ),
       ),
     );
@@ -184,6 +201,92 @@ Future<void> _openWordReview(BuildContext context, WidgetRef ref, String wordId)
     }
     context.push('/review?wordId=$wordId');
   });
+}
+
+/// Ikon menunggu pengecekan. Untuk verifikator, aksi Tinjau ada di bottom
+/// sheet yang sama polanya dengan [showVerifierAttributionSheet].
+class _PendingStatusBadge extends StatelessWidget {
+  const _PendingStatusBadge({
+    required this.offerReview,
+    required this.onReview,
+  });
+
+  final bool offerReview;
+  final VoidCallback onReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Menunggu pengecekan',
+      child: GestureDetector(
+        onTap: () {
+          if (offerReview) {
+            showPendingReviewSheet(context, onReview: onReview);
+            return;
+          }
+          showPendingReviewInfo(context);
+        },
+        child: const PendingReviewBadgeIcon(),
+      ),
+    );
+  }
+}
+
+void showPendingReviewSheet(
+  BuildContext context, {
+  required VoidCallback onReview,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      final theme = sheetContext.theme;
+      return Material(
+        color: Theme.of(sheetContext).colorScheme.surface,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Menunggu pengecekan',
+                        style: theme.typography.lg.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Kata ini belum diperiksa tim Sambasku. Artinya atau terjemahannya bisa saja kurang tepat.',
+                  style: theme.typography.sm,
+                ),
+                const Gap(12),
+                FButton(
+                  onPress: () {
+                    Navigator.of(sheetContext).pop();
+                    onReview();
+                  },
+                  child: const Text('Tinjau'),
+                ),
+                const Gap(8),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _DetailBody extends ConsumerWidget {
@@ -268,28 +371,16 @@ class _DetailBody extends ConsumerWidget {
                           ),
                         )
                       else
-                        Semantics(
-                          button: true,
-                          label: 'Menunggu pengecekan',
-                          child: GestureDetector(
-                            onTap: () => showPendingReviewInfo(context),
-                            child: const PendingReviewBadgeIcon(),
-                          ),
+                        _PendingStatusBadge(
+                          offerReview: detail.status == 'published' &&
+                              canReviewQueue(
+                                ref.watch(authStatusProvider).value?.role,
+                              ),
+                          onReview: () =>
+                              _openWordReview(context, ref, wordId),
                         ),
                     ],
                   ),
-                  if (!detail.isVerified &&
-                      detail.status == 'published' &&
-                      canReviewQueue(
-                        ref.watch(authStatusProvider).value?.role,
-                      )) ...[
-                    const Gap(6),
-                    FButton(
-                      variant: .outline,
-                      onPress: () => _openWordReview(context, ref, wordId),
-                      child: const Text('Tinjau'),
-                    ),
-                  ],
                   const Gap(2),
                   Text(
                     detail.wordTypeLabel,
@@ -333,19 +424,25 @@ class _DetailBody extends ConsumerWidget {
           ),
         ],
 
-        if (detail.categories.isNotEmpty) ...[
+        if (detail.usageLabels.isNotEmpty || detail.categories.isNotEmpty) ...[
           const Gap(8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: detail.categories
-                .map(
-                  (c) => FBadge(
-                    variant: FBadgeVariant.secondary,
-                    child: Text(c.name),
-                  ),
-                )
-                .toList(),
+            children: [
+              for (final code in detail.usageLabels)
+                FBadge(
+                  variant: isProminentUsageLabel(code)
+                      ? FBadgeVariant.primary
+                      : FBadgeVariant.secondary,
+                  child: Text(usageLabelLabel(code)),
+                ),
+              for (final c in detail.categories)
+                FBadge(
+                  variant: FBadgeVariant.secondary,
+                  child: Text(c.name),
+                ),
+            ],
           ),
         ],
 

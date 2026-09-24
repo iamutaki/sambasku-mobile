@@ -17,6 +17,7 @@ class _FakeRepo implements ContributionRepository {
   List<SubmitWordMeaning>? meanings;
   String? dialectId;
   List<String>? categoryIds;
+  List<String>? usageLabels;
   String? notes;
   List<String>? spellingVariants;
   List<SubmitWordRelation>? relatedWords;
@@ -32,6 +33,7 @@ class _FakeRepo implements ContributionRepository {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],
@@ -44,6 +46,7 @@ class _FakeRepo implements ContributionRepository {
     this.meanings = meanings;
     this.dialectId = dialectId;
     this.categoryIds = categoryIds;
+    this.usageLabels = usageLabels;
     this.notes = notes;
     this.spellingVariants = spellingVariants;
     this.relatedWords = relatedWords;

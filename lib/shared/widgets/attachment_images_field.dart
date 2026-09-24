@@ -7,12 +7,14 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../utils/image_sheet_drawer.dart';
+import 'cached_network_image_with_fallback.dart';
 
-/// Hasil upload CDN siap dikirim di body submit.
+/// Hasil upload CDN ATAU referensi stock Media Explorer.
 class AttachmentUploadedImage {
   const AttachmentUploadedImage({
     required this.url,
     required this.providerFileId,
+    this.provider,
     this.sha,
     this.altText,
     this.isPrimary = false,
@@ -20,6 +22,8 @@ class AttachmentUploadedImage {
 
   final String url;
   final String providerFileId;
+  /// Stock: pexels|pixabay|… ; upload GitHub: null (diisi API).
+  final String? provider;
   final String? sha;
   final String? altText;
   final bool isPrimary;
@@ -34,6 +38,7 @@ class AttachmentUploadFailure {
 }
 
 /// Slot lokal + status upload (upload segera setelah pilih).
+/// Stock Media Explorer: [localPath] kosong, [uploaded] langsung terisi.
 class AttachmentImageSlot {
   const AttachmentImageSlot({
     required this.id,
@@ -50,6 +55,7 @@ class AttachmentImageSlot {
   final bool error;
 
   bool get isReady => uploaded != null && !uploading && !error;
+  bool get isNetworkOnly => localPath.isEmpty && uploaded != null;
 
   AttachmentImageSlot copyWith({
     AttachmentUploadedImage? uploaded,
@@ -75,7 +81,7 @@ typedef AttachmentUploadFn =
 
 /// Field lampiran gambar kanonik (mobile-base-stack §9.1).
 ///
-/// Forui + sheet Kamera/Galeri + upload segera + overlay progress/error.
+/// Forui + sheet Kamera/Galeri/(Media Explorer) + upload segera + overlay.
 /// Token/folder di-inject lewat [upload] per fitur.
 class AttachmentImagesField extends StatefulWidget {
   const AttachmentImagesField({
@@ -91,6 +97,8 @@ class AttachmentImagesField extends StatefulWidget {
     this.disabledActionLabel,
     this.onDisabledAction,
     this.onUnavailable,
+    /// Buka Media Explorer (foto stock). Null = opsi Explorer disembunyikan.
+    this.onPickStockImage,
   });
 
   final bool enabled;
@@ -107,6 +115,9 @@ class AttachmentImagesField extends StatefulWidget {
 
   /// Dipanggil sekali saat `IMAGE_UPLOAD_UNAVAILABLE` (UI sembunyikan field).
   final VoidCallback? onUnavailable;
+
+  /// Return null jika user batal; selain itu slot stock langsung `done`.
+  final Future<AttachmentUploadedImage?> Function()? onPickStockImage;
 
   @override
   State<AttachmentImagesField> createState() => _AttachmentImagesFieldState();
@@ -127,6 +138,12 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
       context,
       picker: _picker,
       filePicker: false,
+      mediaExplorerPicker: widget.onPickStockImage != null,
+      onMediaExplorer: widget.onPickStockImage == null
+          ? null
+          : () {
+              _handleStockPick();
+            },
       maxWidth: 1600,
       imageQuality: 80,
       onPicked: _handlePicked,
@@ -135,6 +152,38 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
         Navigator.of(context).pop();
       },
     );
+  }
+
+  Future<void> _handleStockPick() async {
+    final pick = widget.onPickStockImage;
+    if (pick == null || !mounted) return;
+    if (widget.images.length >= widget.maxImages) {
+      _toast('Maksimal ${widget.maxImages} gambar');
+      return;
+    }
+
+    final uploaded = await pick();
+    if (!mounted || uploaded == null) return;
+    if (widget.images.length >= widget.maxImages) {
+      _toast('Maksimal ${widget.maxImages} gambar');
+      return;
+    }
+
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final isPrimary = widget.images.isEmpty;
+    final slot = AttachmentImageSlot(
+      id: id,
+      localPath: '',
+      uploaded: AttachmentUploadedImage(
+        url: uploaded.url,
+        providerFileId: uploaded.providerFileId,
+        provider: uploaded.provider,
+        sha: uploaded.sha,
+        altText: uploaded.altText,
+        isPrimary: isPrimary,
+      ),
+    );
+    widget.onChanged([...widget.images, slot]);
   }
 
   Future<void> _handlePicked(File file) async {
@@ -278,6 +327,13 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
       );
     }
 
+    final hintParts = <String>[
+      'Kamera/galeri',
+      if (widget.onPickStockImage != null) 'Media Explorer',
+      'maks ${widget.maxSizeMb} MB',
+      'hingga ${widget.maxImages}',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -299,7 +355,7 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
         ),
         const Gap(4),
         Text(
-          'Kamera/galeri · maks ${widget.maxSizeMb} MB · hingga ${widget.maxImages}',
+          hintParts.join(' · '),
           style: theme.typography.sm.copyWith(
             color: theme.colors.mutedForeground,
             fontSize: 11,
@@ -319,6 +375,7 @@ class _Thumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final networkUrl = slot.uploaded?.url;
     return SizedBox(
       width: 88,
       height: 88,
@@ -328,17 +385,30 @@ class _Thumb extends StatelessWidget {
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                File(slot.localPath),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => ColoredBox(
-                  color: theme.colors.muted,
-                  child: Icon(
-                    FLucideIcons.image,
-                    color: theme.colors.mutedForeground,
-                  ),
-                ),
-              ),
+              child: slot.localPath.isNotEmpty
+                  ? Image.file(
+                      File(slot.localPath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => ColoredBox(
+                        color: theme.colors.muted,
+                        child: Icon(
+                          FLucideIcons.image,
+                          color: theme.colors.mutedForeground,
+                        ),
+                      ),
+                    )
+                  : (networkUrl != null && networkUrl.isNotEmpty)
+                      ? CachedNetworkImageWithFallback(
+                          imageUrl: networkUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : ColoredBox(
+                          color: theme.colors.muted,
+                          child: Icon(
+                            FLucideIcons.image,
+                            color: theme.colors.mutedForeground,
+                          ),
+                        ),
             ),
           ),
           if (slot.uploading)

@@ -9,6 +9,7 @@ import '../../../../core/widgets/theme_toggle_header_action.dart';
 import '../../../search_miss/domain/entities/search_miss.dart';
 import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
 import '../../../search_miss/presentation/widgets/search_miss_skeleton_list.dart';
+import '../../../translation_help/translation_help_router.dart';
 
 /// Tab KONTRIBUSI: CTA usul kosong + daftar search-miss untuk dipilih.
 class ActivityPage extends ConsumerWidget {
@@ -182,6 +183,13 @@ class _BlankContributeTile extends StatelessWidget {
             );
             context.push('/contribute');
           },
+        ),
+        FTile(
+          prefix: Icon(FLucideIcons.languages, color: theme.colors.primary),
+          title: const Text('Bantuan Terjemahan'),
+          subtitle: const Text('Minta bantuan teks atau foto'),
+          suffix: const Icon(FLucideIcons.chevronRight),
+          onPress: () => context.push(TranslationHelpRouter.feed.path),
         ),
       ],
     );

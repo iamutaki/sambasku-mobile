@@ -9,6 +9,7 @@ void main() {
 
     expect(dto.notes, isNull);
     expect(dto.lemma, 'somet');
+    expect(dto.usageLabels, isEmpty);
     expect(dto.meanings, hasLength(1));
 
     final examples = dto.meanings.first.examples;
@@ -37,6 +38,15 @@ void main() {
     expect(dto.targetSentence, isNull);
     expect(dto.sourceType, isNull);
     expect(dto.audios, isEmpty);
+  });
+
+  test('WordDetailDto mem-parse usage_labels', () {
+    final dto = WordDetailDto.fromJson({
+      ...sometDetail,
+      'usage_labels': ['kasar', 'informal'],
+    });
+
+    expect(dto.usageLabels, ['kasar', 'informal']);
   });
 }
 

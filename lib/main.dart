@@ -17,6 +17,7 @@ import 'core/services/device_id_service.dart';
 import 'core/services/device_registration_holder.dart';
 import 'core/services/device_registration_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/notification_navigation.dart';
 import 'core/services/analytics_service.dart';
 import 'core/theme/forui_palette_controller.dart';
 import 'core/theme/theme_mode_controller.dart';
@@ -101,6 +102,12 @@ Future<void> main() async {
     container.invalidate(unreadNotificationCountControllerProvider);
     container.invalidate(notificationInboxListControllerProvider);
   };
+  NotificationService.onNotificationOpened = (payload) {
+    // Tunggu frame supaya GoRouter sudah punya navigator.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigateFromNotificationPayload(payload);
+    });
+  };
   NotificationService.attachAppLifecycle();
 
   // retry: null = matikan auto-retry Riverpod 3 (default: 10x backoff ~47s).
@@ -117,5 +124,6 @@ Future<void> main() async {
   // tier 3 (Render tidur), menunggu 75s di sini sebelum runApp = ANR.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(registrationService.start());
+    unawaited(NotificationService.handleInitialMessage());
   });
 }

@@ -63,6 +63,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   isVerified: dto.isVerified,
                   matchedTranslation: dto.matchedTranslation,
                   sense: dto.sense,
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -124,6 +125,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   status: dto.status,
                   isVerified: dto.isVerified,
                   sense: dto.sense,
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -186,6 +188,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   approvedAt: dto.approvedAt == null
                       ? null
                       : DateTime.tryParse(dto.approvedAt!),
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -206,6 +209,46 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id) async {
     try {
       final response = await _remoteDatasource.getWordById(id);
+
+      if (response.success == false) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Kata tidak ditemukan',
+            errorCode: response.errorCode,
+          ),
+        );
+      }
+
+      final dto = response.data;
+      if (dto == null) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Kata tidak ditemukan',
+            errorCode: response.errorCode ?? 'WORD_NOT_FOUND',
+          ),
+        );
+      }
+
+      return Either.right(_mapDetail(dto));
+    } on DioException catch (error) {
+      return Either.left(
+        _mapDio(
+          error,
+          fallback: 'Gagal memuat detail kata',
+          notFoundMessage: 'Kata tidak ditemukan',
+        ),
+      );
+    } catch (error) {
+      return Either.left(DictionaryFailure(error.toString()));
+    }
+  }
+
+  @override
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(
+    String lemma,
+  ) async {
+    try {
+      final response = await _remoteDatasource.getWordByLemma(lemma);
 
       if (response.success == false) {
         return Either.left(
@@ -335,6 +378,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
     categories: dto.categories
         .map((c) => WordCategory(id: c.id, name: c.name))
         .toList(),
+    usageLabels: List<String>.from(dto.usageLabels),
     pronunciations: dto.pronunciations
         .map((p) => WordPronunciation(notation: p.notation, value: p.value))
         .toList(),

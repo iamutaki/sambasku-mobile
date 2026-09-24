@@ -23,7 +23,8 @@ enum _RecordPhase { idle, requestingPermission, recording, trim, submitting }
 /// Durasi potongan minimum (detik) — hindari cuplikan hampir kosong.
 const _minSelectionSec = 0.3;
 
-/// Sheet rekam: izin → rekam WAV → potong (slider) → pratinjau → kirim.
+/// Sheet rekam: izin → rekam WAV → (opsional potong) → pratinjau → kirim.
+/// Rentang awal selalu seluruh rekaman; potong diam hanya lewat "Otomatis".
 Future<void> showRecordPronunciationSheet(
   BuildContext context, {
   required WidgetRef ref,
@@ -296,19 +297,15 @@ class _RecordPronunciationSheetState
     try {
       final file = File(filePath);
       final total = await wavDurationSeconds(file);
-      final bounds = await detectWavSpeechBounds(file);
       final peaks = await computeWavPeaks(file);
       if (!mounted) return;
+      // Rentang awal = seluruh rekaman. Pemotongan diam hanya lewat tombol
+      // "Otomatis", supaya awal/akhir ucapan tidak terpotong sendiri.
       setState(() {
         _totalSec = total <= 0
             ? (_elapsedSec.clamp(1, _maxSeconds)).toDouble()
             : total;
-        final minEnd = math.min(_minSelectionSec, _totalSec).toDouble();
-        final start = bounds.$1
-            .clamp(0.0, math.max(0.0, _totalSec - minEnd))
-            .toDouble();
-        final end = bounds.$2.clamp(start + minEnd, _totalSec).toDouble();
-        _range = RangeValues(start, end);
+        _range = RangeValues(0, _totalSec);
         _peaks = peaks;
         _trimBusy = false;
       });
@@ -768,9 +765,7 @@ class _RecordPronunciationSheetState
                           ? null
                           : _submit,
                       child: Text(
-                        _phase == _RecordPhase.submitting
-                            ? 'Mengirim…'
-                            : 'Kirim potongan',
+                        _phase == _RecordPhase.submitting ? 'Mengirim…' : 'Kirim',
                       ),
                     ),
                   ),

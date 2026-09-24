@@ -9,6 +9,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../dictionary/domain/entities/word_detail.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
@@ -81,6 +82,10 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
   /// API `word_type`: word | idiom | peribahasa | ungkapan. Default kata.
   String _wordType = 'word';
+
+  /// Register & peringatan (`usage_labels`). Default kosong.
+  final Set<String> _usageLabels = {};
+
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
 
@@ -401,6 +406,31 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 style: theme.typography.sm.copyWith(height: 1.4),
               ),
             ],
+            const Gap(12),
+            const _FieldCaption(
+              'Register',
+              info:
+                  'Opsional. Gaya atau pantangan berbahasa. '
+                  'Halus dan Kasar tidak bisa dipilih bersamaan.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kRegisterUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            const Gap(12),
+            const _FieldCaption(
+              'Peringatan',
+              info: 'Opsional. Sensitivitas isi makna.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kWarningUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            _inlineError(notifier.errorFor('usage_labels')),
           ] else ...[
             const Gap(12),
             const _FieldCaption('Jenis'),
@@ -413,6 +443,31 @@ class _ContributePageState extends ConsumerState<ContributePage> {
               },
             ),
             _inlineError(notifier.errorFor('word_type')),
+            const Gap(12),
+            const _FieldCaption(
+              'Register',
+              info:
+                  'Opsional. Gaya atau pantangan berbahasa. '
+                  'Halus dan Kasar tidak bisa dipilih bersamaan.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kRegisterUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            const Gap(12),
+            const _FieldCaption(
+              'Peringatan',
+              info: 'Opsional. Sensitivitas isi makna.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kWarningUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            _inlineError(notifier.errorFor('usage_labels')),
             const Gap(8),
 
             const _FieldCaption('Dialek'),
@@ -564,6 +619,24 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     });
   }
 
+  void _toggleUsageLabel(String code) {
+    _onFieldEdited();
+    final selected = _usageLabels.contains(code);
+    if (!selected) {
+      final next = {..._usageLabels, code};
+      if (hasConflictingUsageLabels(next)) {
+        showFToast(
+          context: context,
+          title: const Text('Halus dan Kasar tidak bisa dipilih bersamaan'),
+        );
+        return;
+      }
+      setState(() => _usageLabels.add(code));
+      return;
+    }
+    setState(() => _usageLabels.remove(code));
+  }
+
   Future<void> _openDialectSheet(List<_OptionItem> items) async {
     final picked = await showDialectPickerSheet(
       context,
@@ -699,6 +772,13 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         return;
       }
     } else {
+      if (hasConflictingUsageLabels(_usageLabels)) {
+        showFToast(
+          context: context,
+          title: const Text('Halus dan Kasar tidak bisa dipilih bersamaan'),
+        );
+        return;
+      }
       final incomplete = _meanings.indexWhere((m) => !m.modePicked);
       if (incomplete >= 0) {
         showFToast(
@@ -778,6 +858,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       dialectId: dialectId,
       wordType: _advanced ? _wordType : 'word',
       categoryIds: [],
+      usageLabels: _usageLabels.toList(growable: false),
       notes: _advanced && notes.isNotEmpty ? notes : null,
       spellingVariants: _advanced
           ? _parseCsv(_relations.variantsText)
@@ -1459,6 +1540,39 @@ class _WordTypeChips extends StatelessWidget {
                   ? FBadgeVariant.primary
                   : FBadgeVariant.secondary,
               child: Text(opt.label),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Multi-select Register / Peringatan (`usage_labels`).
+class _UsageLabelChips extends StatelessWidget {
+  const _UsageLabelChips({
+    required this.options,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final List<String> options;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final code in options)
+          GestureDetector(
+            onTap: () => onToggle(code),
+            child: FBadge(
+              variant: selected.contains(code)
+                  ? FBadgeVariant.primary
+                  : FBadgeVariant.secondary,
+              child: Text(usageLabelLabel(code)),
             ),
           ),
       ],

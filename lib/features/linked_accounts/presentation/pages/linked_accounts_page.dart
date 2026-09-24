@@ -21,7 +21,7 @@ class LinkedAccountsPage extends ConsumerWidget {
     return FScaffold(
       childPad: true,
       header: FHeader.nested(
-        title: const Text('Akun terhubung'),
+        title: const Text('Akun Terhubung'),
         prefixes: [
           FHeaderAction.back(
             onPress: () =>
@@ -33,18 +33,20 @@ class LinkedAccountsPage extends ConsumerWidget {
         child: state.isLoading
             ? const Center(child: FCircularProgress())
             : ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 children: [
                   FTileGroup(
                     label: const Text('Google'),
                     children: [
                       FTile(
                         prefix: const Icon(FLucideIcons.link),
-                        title: const Text('Akun Google'),
+                        title: const Text('Google'),
                         subtitle: Text(
                           state.googleLinked
-                              ? 'Terhubung — bisa masuk dengan Google'
+                              ? 'Terhubung — bisa dipakai untuk masuk'
                               : 'Belum terhubung',
                         ),
                       ),
@@ -72,8 +74,9 @@ class LinkedAccountsPage extends ConsumerWidget {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(dialogContext).pop(false),
+                                      onPressed: () => Navigator.of(
+                                        dialogContext,
+                                      ).pop(false),
                                       child: const Text('Batal'),
                                     ),
                                     TextButton(
@@ -92,18 +95,18 @@ class LinkedAccountsPage extends ConsumerWidget {
                             },
                       child: state.isBusy
                           ? const FCircularProgress()
-                          : const Text('Lepas tautan Google'),
+                          : const Text('Lepas tautan'),
                     )
                   else
                     FButton(
                       onPress: state.isBusy
                           ? null
                           : () => ref
-                              .read(linkedAccountsProvider.notifier)
-                              .linkGoogle(),
+                                .read(linkedAccountsProvider.notifier)
+                                .linkGoogle(),
                       child: state.isBusy
                           ? const FCircularProgress()
-                          : const Text('Hubungkan Google'),
+                          : const Text('Hubungkan'),
                     ),
                 ],
               ),

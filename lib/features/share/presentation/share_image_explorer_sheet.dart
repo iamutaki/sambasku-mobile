@@ -11,11 +11,13 @@ import 'widgets/share_skeleton.dart';
 const _photoProviders = ['pexels', 'pixabay', 'openverse', 'wikimedia', 'unsplash'];
 const _videoProviders = ['pexels', 'pixabay', 'wikimedia'];
 
-/// Jelajah latar: tab Gambar | Video, provider sebagai chip di dalam tab.
+/// Jelajah latar / gambar stock: tab Gambar | Video, provider sebagai chip.
+/// [photoOnly] = true untuk konteks gambar kata (sembunyikan tab Video).
 Future<ShareBackground?> showShareMediaExplorer(
   BuildContext context, {
   required ShareBackgroundRepository backgrounds,
   bool initialVideo = false,
+  bool photoOnly = false,
 }) {
   return showModalBottomSheet<ShareBackground>(
     context: context,
@@ -23,7 +25,8 @@ Future<ShareBackground?> showShareMediaExplorer(
     useSafeArea: true,
     builder: (_) => _MediaExplorerBody(
       backgrounds: backgrounds,
-      initialVideo: initialVideo,
+      initialVideo: photoOnly ? false : initialVideo,
+      photoOnly: photoOnly,
     ),
   );
 }
@@ -32,10 +35,12 @@ class _MediaExplorerBody extends StatefulWidget {
   const _MediaExplorerBody({
     required this.backgrounds,
     required this.initialVideo,
+    this.photoOnly = false,
   });
 
   final ShareBackgroundRepository backgrounds;
   final bool initialVideo;
+  final bool photoOnly;
 
   @override
   State<_MediaExplorerBody> createState() => _MediaExplorerBodyState();
@@ -66,18 +71,24 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
     _media = widget.initialVideo ? 'video' : 'photo';
     _provider = _media == 'video' ? _videoProvider : _photoProvider;
     _tabs = TabController(
-      length: 2,
+      length: widget.photoOnly ? 1 : 2,
       vsync: this,
-      initialIndex: widget.initialVideo ? 1 : 0,
+      initialIndex: widget.photoOnly
+          ? 0
+          : (widget.initialVideo ? 1 : 0),
     );
-    _tabs.addListener(_onTab);
+    if (!widget.photoOnly) {
+      _tabs.addListener(_onTab);
+    }
     _scrollCtrl.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitial());
   }
 
   @override
   void dispose() {
-    _tabs.removeListener(_onTab);
+    if (!widget.photoOnly) {
+      _tabs.removeListener(_onTab);
+    }
     _tabs.dispose();
     _searchCtrl.dispose();
     _scrollCtrl.dispose();
@@ -240,16 +251,17 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
               ],
             ),
           ),
-          TabBar(
-            controller: _tabs,
-            labelColor: theme.colors.foreground,
-            unselectedLabelColor: theme.colors.mutedForeground,
-            indicatorColor: theme.colors.primary,
-            tabs: const [
-              Tab(text: 'Gambar'),
-              Tab(text: 'Video'),
-            ],
-          ),
+          if (!widget.photoOnly)
+            TabBar(
+              controller: _tabs,
+              labelColor: theme.colors.foreground,
+              unselectedLabelColor: theme.colors.mutedForeground,
+              indicatorColor: theme.colors.primary,
+              tabs: const [
+                Tab(text: 'Gambar'),
+                Tab(text: 'Video'),
+              ],
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: Wrap(

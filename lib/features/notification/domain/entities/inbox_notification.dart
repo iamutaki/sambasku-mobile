@@ -34,6 +34,14 @@ class InboxNotification {
         return 'Dikoreksi';
       case 'word_taken_down':
         return 'Ditarik';
+      case 'translation_help_approved':
+        return 'Bantuan disetujui';
+      case 'translation_help_rejected':
+        return 'Bantuan ditolak';
+      case 'translation_help_taken_down':
+        return 'Bantuan diturunkan';
+      case 'campaign':
+        return 'Pengumuman';
       default:
         return 'Pembaruan';
     }
