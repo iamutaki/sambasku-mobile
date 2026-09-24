@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sambasku_mobile/core/network/failover/api_host_resolver.dart';
-import 'package:sambasku_mobile/core/network/failover/api_tier.dart';
 import 'package:sambasku_mobile/core/network/failover/cold_host_gate.dart';
 import 'package:sambasku_mobile/core/network/failover/failover_interceptor.dart';
 import 'package:shared_preferences/shared_preferences.dart';

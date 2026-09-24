@@ -111,6 +111,20 @@ class ProfilePage extends ConsumerWidget {
                         ),
                       if (canReviewQueue(status.role)) const _ReviewQueueTile(),
                       FTile(
+                        prefix: const Icon(FLucideIcons.userRoundPen),
+                        title: const Text('Edit profil'),
+                        subtitle: const Text('Ubah nama tampilan dan bio'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/edit-profile'),
+                      ),
+                      FTile(
+                        prefix: const Icon(FLucideIcons.link),
+                        title: const Text('Akun Google'),
+                        subtitle: const Text('Hubungkan atau lepas login Google'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/linked-accounts'),
+                      ),
+                      FTile(
                         prefix: const Icon(FLucideIcons.keyRound),
                         title: const Text('Ubah Password'),
                         subtitle: const Text('Ganti password akun'),

@@ -2,16 +2,20 @@
 class PublicProfile {
   const PublicProfile({
     required this.username,
+    required this.displayName,
     required this.role,
     required this.isVerifier,
     required this.joinedAt,
     required this.contributionsApproved,
     required this.verificationsDone,
     required this.commentsPublished,
+    this.bio,
     this.avatarUrl,
   });
 
   final String username;
+  final String displayName;
+  final String? bio;
   final String role;
   final bool isVerifier;
   final String joinedAt;

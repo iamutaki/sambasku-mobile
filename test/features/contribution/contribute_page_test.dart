@@ -239,9 +239,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
 
-    expect(find.text('Lemma *'), findsOneWidget);
-    expect(find.text('Terjemahan *'), findsOneWidget);
-    expect(find.text('Jenis Entri'), findsNothing);
+    expect(find.text('Kata / ungkapan Sambas *'), findsOneWidget);
+    expect(find.text('Terjemahan Indonesia *'), findsOneWidget);
+    expect(find.text('Jenis'), findsNothing);
     expect(find.text('Dialek'), findsNothing);
     expect(find.text('Contoh'), findsNothing);
 

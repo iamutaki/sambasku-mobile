@@ -60,6 +60,10 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
 
   PublicProfile _mapProfile(PublicProfileDto dto) => PublicProfile(
     username: dto.username,
+    displayName: (dto.displayName == null || dto.displayName!.trim().isEmpty)
+        ? dto.username
+        : dto.displayName!,
+    bio: dto.bio,
     role: dto.role,
     isVerifier: dto.isVerifier,
     joinedAt: dto.joinedAt,

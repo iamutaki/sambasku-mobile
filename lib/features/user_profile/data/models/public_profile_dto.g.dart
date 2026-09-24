@@ -9,6 +9,8 @@ part of 'public_profile_dto.dart';
 _PublicProfileDto _$PublicProfileDtoFromJson(Map<String, dynamic> json) =>
     _PublicProfileDto(
       username: json['username'] as String,
+      displayName: json['display_name'] as String?,
+      bio: json['bio'] as String?,
       role: json['role'] as String,
       isVerifier: json['is_verifier'] as bool? ?? false,
       joinedAt: json['joined_at'] as String,
@@ -21,6 +23,8 @@ _PublicProfileDto _$PublicProfileDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PublicProfileDtoToJson(_PublicProfileDto instance) =>
     <String, dynamic>{
       'username': instance.username,
+      'display_name': instance.displayName,
+      'bio': instance.bio,
       'role': instance.role,
       'is_verifier': instance.isVerifier,
       'joined_at': instance.joinedAt,

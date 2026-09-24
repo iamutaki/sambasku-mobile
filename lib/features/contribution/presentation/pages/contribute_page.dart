@@ -280,7 +280,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('Usul Kata'),
+        title: const Text('Usulkan'),
         prefixes: [
           FHeaderAction.back(
             onPress: () => context.canPop() ? context.pop() : context.go('/'),
@@ -325,6 +325,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ),
           ),
           const Gap(12),
+          const _FieldCaption('Cara mengisi'),
+          const Gap(6),
           _ContributeModeChips(
             advanced: _advanced,
             onChanged: (advanced) {
@@ -355,8 +357,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
           FTextField(
             control: FTextFieldControl.managed(controller: _lemmaCtrl),
-            label: const Text('Lemma *'),
-            hint: 'Contoh: kata',
+            label: const Text('Kata / ungkapan Sambas *'),
+            hint: 'Isi kata, peribahasa, atau ungkapan',
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
@@ -367,7 +369,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
               control: FTextFieldControl.managed(
                 controller: _standardTranslationCtrl,
               ),
-              label: const Text('Terjemahan *'),
+              label: const Text('Terjemahan Indonesia *'),
               hint: 'Satu kata/frasa setara di Indonesia',
               description: const Text(
                 'Tekan icon buku untuk mencari definisi di KBBI',
@@ -390,7 +392,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             if (_standardDefinition.trim().isNotEmpty) ...[
               const Gap(12),
               const _FieldCaption(
-                'Definisi',
+                'Penjelasan arti',
                 info:
                     'Muncul setelah satu makna dipilih dari KBBI. Hilang jika terjemahan diubah.',
               ),
@@ -401,7 +403,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ],
           ] else ...[
             const Gap(12),
-            const _FieldCaption('Jenis Entri'),
+            const _FieldCaption('Jenis'),
             const Gap(6),
             _WordTypeChips(
               value: _wordType,
@@ -444,8 +446,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             const _FieldCaption(
               'Makna *',
               info:
-                  'Satu kata bisa punya beberapa makna (polisemi).\n\n'
-                  'Tiap blok: centang Definisi dan/atau Terjemahan, isi kelas kata.',
+                  'Satu kata bisa punya beberapa arti.\n\n'
+                  'Tiap blok: centang Penjelasan arti dan/atau Terjemahan, isi kelas kata.',
             ),
             const Gap(8),
             for (var i = 0; i < _meanings.length; i++) ...[
@@ -678,7 +680,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       }
     });
 
-    final parts = <String>['Definisi'];
+    final parts = <String>['Penjelasan arti'];
     if (matched != null) parts.add('kelas kata');
     if (picked.lemma.trim().isNotEmpty) parts.add('terjemahan');
     showFToast(
@@ -702,7 +704,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         showFToast(
           context: context,
           title: Text(
-            'Makna ${incomplete + 1}: centang dulu Definisi dan/atau Terjemahan',
+            'Makna ${incomplete + 1}: centang dulu Penjelasan arti dan/atau Terjemahan',
           ),
         );
         return;
@@ -925,7 +927,7 @@ class _MeaningBlock extends StatelessWidget {
               'Apa yang kamu ketahui? *',
               info:
                   'Centang yang kamu tahu (boleh keduanya).\n\n'
-                  '• Definisi - uraian makna berbahasa Indonesia.\n'
+                  '• Penjelasan arti - uraian makna berbahasa Indonesia.\n'
                   '• Terjemahan - satu kata/frasa setara.\n\n'
                   'Form di bawah muncul sesuai centangan.',
             ),
@@ -958,8 +960,8 @@ class _MeaningBlock extends StatelessWidget {
                       : 'Terjemahan Indonesia *',
                   info: isTranslationMiss
                       ? 'Satu kata/frasa Sambas yang setara - bukan uraian panjang.'
-                      : 'Satu kata/frasa Indonesia yang setara dengan lemma Sambas.\n\n'
-                            'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
+                      : 'Satu kata/frasa Indonesia yang setara dengan kata Sambas.\n\n'
+                            'Contoh: “makan”. Beda dari penjelasan arti (“aktivitas memasukkan makanan ke mulut”).',
                 ),
                 FTextField(
                   control: FTextFieldControl.managed(controller: draft.trCtrl),
@@ -1020,14 +1022,14 @@ class _MeaningBlock extends StatelessWidget {
               if (draft.wantDefinition) ...[
                 const Gap(8),
                 const _FieldCaption(
-                  'Definisi *',
+                  'Penjelasan arti *',
                   info:
                       'Uraian makna berbahasa Indonesia - bukan terjemahan satu kata.\n\n'
                       'Contoh: “aktivitas memasukkan makanan ke mulut”.',
                 ),
                 FTextField(
                   control: FTextFieldControl.managed(controller: draft.defCtrl),
-                  hint: 'Jelaskan makna kata ini',
+                  hint: 'Jelaskan arti kata ini',
                   keyboardType: TextInputType.multiline,
                   textInputAction: TextInputAction.newline,
                   maxLines: 3,
@@ -1375,7 +1377,7 @@ class _ContributeModeChips extends StatelessWidget {
       children: [
         Expanded(
           child: _ModeChip(
-            label: 'Dasar',
+            label: 'Sederhana',
             selected: !advanced,
             onTap: () => onChanged(false),
           ),
@@ -1383,7 +1385,7 @@ class _ContributeModeChips extends StatelessWidget {
         const Gap(8),
         Expanded(
           child: _ModeChip(
-            label: 'Lanjutan',
+            label: 'Lengkap',
             selected: advanced,
             onTap: () => onChanged(true),
           ),

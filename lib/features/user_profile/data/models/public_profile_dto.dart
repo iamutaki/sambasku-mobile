@@ -7,6 +7,8 @@ part 'public_profile_dto.g.dart';
 abstract class PublicProfileDto with _$PublicProfileDto {
   const factory PublicProfileDto({
     required String username,
+    @JsonKey(name: 'display_name') String? displayName,
+    String? bio,
     required String role,
     @JsonKey(name: 'is_verifier') @Default(false) bool isVerifier,
     @JsonKey(name: 'joined_at') required String joinedAt,

@@ -107,7 +107,7 @@ class _ProfileBody extends ConsumerWidget {
                     ? () => _pickAndUploadAvatar(context, ref)
                     : null,
                 child: _Avatar(
-                  name: profile.username,
+                  name: profile.displayName,
                   imageUrl: avatarSrc,
                   size: 80,
                   showEditBadge: isOwnProfile,
@@ -120,11 +120,27 @@ class _ProfileBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    profile.username,
+                    profile.displayName,
                     style: theme.typography.xl.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (profile.displayName != profile.username) ...[
+                    const Gap(2),
+                    Text(
+                      '@${profile.username}',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                  if (profile.bio != null && profile.bio!.trim().isNotEmpty) ...[
+                    const Gap(8),
+                    Text(
+                      profile.bio!,
+                      style: theme.typography.sm,
+                    ),
+                  ],
                   const Gap(4),
                   Wrap(
                     spacing: 8,
