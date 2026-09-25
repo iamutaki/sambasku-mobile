@@ -22,10 +22,10 @@ class AuthLoginState {
   /// Password benar tapi email belum OTP. UI tampilkan sheet, bukan toast.
   final bool showUnverifiedSheet;
 
-  /// 503 GOOGLE_AUTH_UNAVAILABLE — sembunyikan tombol Google.
+  /// 503 GOOGLE_AUTH_UNAVAILABLE - sembunyikan tombol Google.
   final bool googleUnavailable;
 
-  /// 503 FACEBOOK_AUTH_UNAVAILABLE — sembunyikan tombol Facebook.
+  /// 503 FACEBOOK_AUTH_UNAVAILABLE - sembunyikan tombol Facebook.
   final bool facebookUnavailable;
 
   AuthLoginState copyWith({

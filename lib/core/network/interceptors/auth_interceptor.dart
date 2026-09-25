@@ -10,7 +10,7 @@ const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 /// - onRequest: sisipkan Bearer access token
 /// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry.
 ///   Hanya 401/403 pada refresh yang menghapus sesi. Timeout, 5xx, dan
-///   gagalnya request yang diulang TIDAK logout — jaringan putus bukan
+///   gagalnya request yang diulang TIDAK logout - jaringan putus bukan
 ///   sesi mati.
 ///
 /// Path yang di-skip (tidak trigger refresh):

@@ -502,7 +502,7 @@ class _Thumb extends StatelessWidget {
             ],
           ),
         ),
-        // Checkbox kekerasan di kanan thumb — hanya setelah upload siap.
+        // Checkbox kekerasan di kanan thumb - hanya setelah upload siap.
         if (slot.isReady) ...[
           const Gap(10),
           Expanded(

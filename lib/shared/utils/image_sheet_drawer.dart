@@ -21,14 +21,14 @@ void showImageSheetDrawer(
   Function(File image)? onPicked,
   Function(File image, PhotoPickSource source)? onPickedWithSource,
   Function()? onRemoved,
-  /// Dipanggil setelah sheet ditutup — buka Media Explorer (stock).
+  /// Dipanggil setelah sheet ditutup - buka Media Explorer (stock).
   VoidCallback? onMediaExplorer,
   bool cameraPicker = true,
   bool galleryPicker = true,
   bool filePicker = true,
   bool mediaExplorerPicker = false,
   bool requireGpsForCamera = false,
-  // Kompresi picker (mobile-base-stack §9.2) — tanpa paket ekstra.
+  // Kompresi picker (mobile-base-stack §9.2) - tanpa paket ekstra.
   double maxWidth = kPhotoPickMaxWidth,
   double maxHeight = kPhotoPickMaxHeight,
   int imageQuality = kPhotoPickQuality,

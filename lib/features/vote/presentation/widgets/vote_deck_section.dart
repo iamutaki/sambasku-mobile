@@ -143,7 +143,7 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
     final async = ref.watch(voteDeckControllerProvider);
 
     return async.when(
-      // Kerangka kartu (bukan spinner) — sama pola sesi tinjau.
+      // Kerangka kartu (bukan spinner) - sama pola sesi tinjau.
       loading: () => const _VoteDeckCardPlaceholder(),
       error: (error, _) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -216,21 +216,15 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
               // skeleton supaya tidak kosong diam (beda dari sesi tinjau
               // yang preload detail berikutnya).
               child: widget.busy
-                  ? const _VoteDeckCardPlaceholder(
-                      key: ValueKey('submitting'),
-                    )
+                  ? const _VoteDeckCardPlaceholder(key: ValueKey('submitting'))
                   : SizedBox(
                       key: ValueKey('card-${item.id}'),
                       height: 240,
                       child: VoteDeckSwipeCard(
                         itemKey: item.id,
                         enabled: true,
-                        onSwiped: (dir) => _cast(
-                          context,
-                          ref,
-                          item: item,
-                          direction: dir,
-                        ),
+                        onSwiped: (dir) =>
+                            _cast(context, ref, item: item, direction: dir),
                         child: _WordCardFace(
                           lemma: item.lemma,
                           sense: item.sense,
@@ -276,7 +270,7 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
   }) async {
     if (widget.busy) return false;
 
-    // Skip lokal — tanpa busy/skeleton (bukan submit server).
+    // Skip lokal - tanpa busy/skeleton (bukan submit server).
     if (direction == VoteDeckSwipeDirection.skip) {
       ref.read(voteDeckControllerProvider.notifier).skipAndAdvance(item.id);
       return true;
@@ -301,8 +295,9 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
     AnalyticsService.instance.log(
       AnalyticsEvents.voteDeckSwipe,
       params: {
-        'direction':
-            direction == VoteDeckSwipeDirection.agree ? 'right' : 'left',
+        'direction': direction == VoteDeckSwipeDirection.agree
+            ? 'right'
+            : 'left',
         'word_id': item.id,
       },
     );
@@ -312,8 +307,8 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
       context: context,
       title: Text(
         direction == VoteDeckSwipeDirection.agree
-            ? 'Masuk akal — tersimpan.'
-            : 'Kurang pas — tersimpan.',
+            ? 'Masuk akal - tersimpan.'
+            : 'Kurang pas - tersimpan.',
       ),
     );
     return true;

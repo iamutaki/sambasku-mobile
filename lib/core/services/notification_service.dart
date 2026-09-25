@@ -101,7 +101,7 @@ class NotificationService {
       ),
     );
 
-    // Banner tampil ≠ cache inbox/unread ikut berubah — invalidate di sini.
+    // Banner tampil ≠ cache inbox/unread ikut berubah - invalidate di sini.
     _notifyCachesStale();
   }
 

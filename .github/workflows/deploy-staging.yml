@@ -169,7 +169,7 @@ jobs:
           path: build/app/outputs/bundle/productionRelease/*.aab
           if-no-files-found: error
 
-      # Draft di internal testing — tidak auto-publish. Track production
+      # Draft di internal testing - tidak auto-publish. Track production
       # diisi workflow deploy-production.yml.
       - name: Assert AAB has no advertising ID permission
         run: node scripts/assert-no-ad-id.mjs

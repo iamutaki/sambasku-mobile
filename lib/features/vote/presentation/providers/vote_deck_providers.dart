@@ -125,7 +125,7 @@ class VoteDeckController extends _$VoteDeckController {
     );
   }
 
-  /// Lewati tanpa vote — hanya buang dari antrean sesi ini.
+  /// Lewati tanpa vote - hanya buang dari antrean sesi ini.
   void skipAndAdvance(String wordId) {
     AnalyticsService.instance.log(
       AnalyticsEvents.voteDeckSwipe,

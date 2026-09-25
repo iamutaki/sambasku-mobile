@@ -10,7 +10,7 @@ import '../../../../core/widgets/image_preview.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../domain/entities/review_contribution.dart';
 
-/// Preview baca-saja isi usulan — per jenis entity, bukan dump key:value.
+/// Preview baca-saja isi usulan - per jenis entity, bukan dump key:value.
 class ReviewEntityPreview extends StatelessWidget {
   const ReviewEntityPreview({super.key, required this.detail});
 
@@ -638,7 +638,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _error ? 'Gagal memutar — ketuk lagi' : label,
+                      _error ? 'Gagal memutar - ketuk lagi' : label,
                       style: theme.typography.sm.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

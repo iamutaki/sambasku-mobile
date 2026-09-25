@@ -60,16 +60,16 @@ final class PronunciationAudioUploadServiceProvider
 String _$pronunciationAudioUploadServiceHash() =>
     r'f2de9a7882b19a94c9ad2fbc56217e4be47bc046';
 
-/// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+/// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 
 @ProviderFor(PronunciationUploadUnavailable)
 final pronunciationUploadUnavailableProvider =
     PronunciationUploadUnavailableFamily._();
 
-/// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+/// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 final class PronunciationUploadUnavailableProvider
     extends $NotifierProvider<PronunciationUploadUnavailable, bool> {
-  /// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+  /// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
   PronunciationUploadUnavailableProvider._({
     required PronunciationUploadUnavailableFamily super.from,
     required String super.argument,
@@ -118,7 +118,7 @@ final class PronunciationUploadUnavailableProvider
 String _$pronunciationUploadUnavailableHash() =>
     r'cd9792fddea99d4824dbec22b067aabe831bcdec';
 
-/// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+/// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 
 final class PronunciationUploadUnavailableFamily extends $Family
     with
@@ -138,7 +138,7 @@ final class PronunciationUploadUnavailableFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+  /// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 
   PronunciationUploadUnavailableProvider call(String wordId) =>
       PronunciationUploadUnavailableProvider._(argument: wordId, from: this);
@@ -147,7 +147,7 @@ final class PronunciationUploadUnavailableFamily extends $Family
   String toString() => r'pronunciationUploadUnavailableProvider';
 }
 
-/// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+/// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 
 abstract class _$PronunciationUploadUnavailable extends $Notifier<bool> {
   late final _$args = ref.$arg as String;

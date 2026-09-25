@@ -260,7 +260,7 @@ class _WordTile extends StatelessWidget with FTileMixin {
   @override
   Widget build(BuildContext context) {
     // Sambas: gloss A-Z / sense hasil search.
-    // Indonesia: sense (gloss Sambas) — fallback matched_translation.
+    // Indonesia: sense (gloss Sambas) - fallback matched_translation.
     final gloss = item.sense?.trim();
     final matched = item.matchedTranslation?.trim();
     String? subtitle;

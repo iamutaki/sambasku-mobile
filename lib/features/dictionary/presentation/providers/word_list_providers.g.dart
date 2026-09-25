@@ -17,7 +17,7 @@ part of 'word_list_providers.dart';
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
 ///
 /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
-/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// `isLoading: true` tanpa in-flight request - itu biang infinite
 /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 
 @ProviderFor(WordListNotifier)
@@ -32,7 +32,7 @@ final wordListProvider = WordListNotifierProvider._();
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
 ///
 /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
-/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// `isLoading: true` tanpa in-flight request - itu biang infinite
 /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 final class WordListNotifierProvider
     extends $NotifierProvider<WordListNotifier, WordListState> {
@@ -45,7 +45,7 @@ final class WordListNotifierProvider
   /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
   ///
   /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
-  /// `isLoading: true` tanpa in-flight request — itu biang infinite
+  /// `isLoading: true` tanpa in-flight request - itu biang infinite
   /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
   WordListNotifierProvider._()
     : super(
@@ -85,7 +85,7 @@ String _$wordListNotifierHash() => r'12acfcf93f475372cf4855c5206b83ad25d3e0b1';
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
 ///
 /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
-/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// `isLoading: true` tanpa in-flight request - itu biang infinite
 /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 
 abstract class _$WordListNotifier extends $Notifier<WordListState> {

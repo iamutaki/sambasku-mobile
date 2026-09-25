@@ -388,7 +388,7 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     }
   }
 
-  /// Seek relatif (0..1) pada audio aktif — dipakai tap pada progress bar.
+  /// Seek relatif (0..1) pada audio aktif - dipakai tap pada progress bar.
   Future<void> seekRatio(double ratio) async {
     if (!state.canSeek) return;
     final p = _player;

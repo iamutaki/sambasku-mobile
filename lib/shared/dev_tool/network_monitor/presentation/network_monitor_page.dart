@@ -109,7 +109,7 @@ class _NetworkRecordCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Path penuh dulu — jangan diperebutkan badge.
+              // Path penuh dulu - jangan diperebutkan badge.
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -47,7 +47,7 @@ class GoogleSignInAdapter implements GoogleSignInPort {
             ? 'com.iamutaki.sambasku.staging'
             : 'com.iamutaki.sambasku';
         _log(
-          'clientConfigurationError — di GCP (project Web client yang sama) '
+          'clientConfigurationError - di GCP (project Web client yang sama) '
           'daftarkan OAuth Android: package $packageName + SHA-1 keystore '
           'yang menandatangani build (upload JKS lokal / Play App Signing)',
           error,

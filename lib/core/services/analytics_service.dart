@@ -62,7 +62,7 @@ class AnalyticsService {
     _instance = service;
   }
 
-  /// Injected (tes) atau di-resolve lazy saat [init] — jangan sentuh
+  /// Injected (tes) atau di-resolve lazy saat [init] - jangan sentuh
   /// `FirebaseAnalytics.instance` di konstruktor: widget test tidak
   /// menginisialisasi Firebase, sementara router/logout/contribute
   /// sudah memanggil [instance] sebelum `main()` sempat `init()`.

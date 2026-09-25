@@ -1,6 +1,6 @@
 import 'cache_entry.dart';
 
-/// Kontrak L1 — implementasi Hive di [ResponseCacheStoreImpl].
+/// Kontrak L1 - implementasi Hive di [ResponseCacheStoreImpl].
 abstract class ResponseCacheStore {
   Future<void> open();
 

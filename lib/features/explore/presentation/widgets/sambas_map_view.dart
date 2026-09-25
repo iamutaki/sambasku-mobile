@@ -8,7 +8,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../domain/sambas_map_config.dart';
 import 'explore_map_poster.dart';
 
-/// MapLibre view fokus Sambas — hero (gesture off) atau fullscreen (gesture on).
+/// MapLibre view fokus Sambas - hero (gesture off) atau fullscreen (gesture on).
 ///
 /// Style mengikuti tema (Liberty / Dark). Gagal load → [ExploreMapPoster].
 class SambasMapView extends StatefulWidget {

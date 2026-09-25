@@ -45,7 +45,7 @@ class LinkedAccountsPage extends ConsumerWidget {
                         title: const Text('Google'),
                         subtitle: Text(
                           state.googleLinked
-                              ? 'Terhubung — bisa dipakai untuk masuk'
+                              ? 'Terhubung - bisa dipakai untuk masuk'
                               : 'Belum terhubung',
                         ),
                       ),

@@ -160,7 +160,7 @@ jobs:
       #     fail_on_unmatched_files: true
       #     make_latest: "true"
 
-      # Draft di track production — tidak auto-publish. Rollout tetap
+      # Draft di track production - tidak auto-publish. Rollout tetap
       # manual di Play Console.
       - name: Assert AAB has no advertising ID permission
         run: node scripts/assert-no-ad-id.mjs

@@ -20,7 +20,7 @@ import '../providers/word_detail_providers.dart';
 
 enum _RecordPhase { idle, requestingPermission, recording, trim, submitting }
 
-/// Durasi potongan minimum (detik) — hindari cuplikan hampir kosong.
+/// Durasi potongan minimum (detik) - hindari cuplikan hampir kosong.
 const _minSelectionSec = 0.3;
 
 /// Sheet rekam: izin → rekam WAV → (opsional potong) → pratinjau → kirim.
@@ -75,7 +75,7 @@ class _RecordPronunciationSheetState
   static const _maxSeconds = 60;
 
   final _recorder = AudioRecorder();
-  /// Player khusus pratinjau — jangan pakai [wordDetailAudioPlayerProvider]
+  /// Player khusus pratinjau - jangan pakai [wordDetailAudioPlayerProvider]
   /// supaya dispose sheet (hapus file temp) tidak merusak player detail.
   final _previewPlayer = AudioPlayer();
   StreamSubscription<PlayerState>? _previewSub;
@@ -622,7 +622,7 @@ class _RecordPronunciationSheetState
                 if (_peaks.isEmpty) ...[
                   const Gap(4),
                   Text(
-                    'Waveform tidak tersedia — geser slider untuk memotong',
+                    'Waveform tidak tersedia - geser slider untuk memotong',
                     style: theme.typography.xs.copyWith(
                       color: theme.colors.mutedForeground,
                     ),

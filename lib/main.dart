@@ -47,7 +47,7 @@ Future<void> main() async {
     imagePickerImplementation.useAndroidPhotoPicker = true;
   }
 
-  // TextureView di Android — lebih andal saat map berdampingan dengan scroll.
+  // TextureView di Android - lebih andal saat map berdampingan dengan scroll.
   MapLibreMap.useHybridComposition = true;
   // Abaikan hasil; preWarm fire-and-forget untuk cold start map lebih cepat.
   MapLibreMap.preWarm();
@@ -75,7 +75,7 @@ Future<void> main() async {
   await ForuiPaletteController.preload(prefs);
   await OnboardingPrefs.preload(prefs);
 
-  // L1 response cache (hive_ce) sebelum frame pertama — cold start
+  // L1 response cache (hive_ce) sebelum frame pertama - cold start
   // boleh menyajikan reference/WOTD dari disk.
   await initResponseCacheStore();
 

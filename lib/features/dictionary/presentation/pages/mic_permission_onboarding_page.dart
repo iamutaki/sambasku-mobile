@@ -135,7 +135,7 @@ class _MicPermissionOnboardingPageState
                       title: 'Maksimal 60 detik',
                       body:
                           'Cukup untuk lemma atau contoh kalimat. Format suara '
-                          'AAC/m4a — tanpa video.',
+                          'AAC/m4a - tanpa video.',
                     ),
                     const Gap(12),
                     const _RequirementRow(

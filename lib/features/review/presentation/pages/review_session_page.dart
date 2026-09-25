@@ -244,7 +244,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
       return true;
     }
     if (failure.isAlreadyDecided) {
-      // Satu toast via _afterDecision — jangan dobel dengan toast terpisah.
+      // Satu toast via _afterDecision - jangan dobel dengan toast terpisah.
       _afterDecision('Usulan ini sudah diproses.', contributionId);
       return true;
     }

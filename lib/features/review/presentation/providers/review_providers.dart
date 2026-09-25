@@ -303,7 +303,7 @@ class ReviewSessionController extends Notifier<ReviewSessionState?> {
     return _advancePast(decidedId);
   }
 
-  /// Lewati tanpa keputusan — usulan tetap pending di server/antrean.
+  /// Lewati tanpa keputusan - usulan tetap pending di server/antrean.
   /// Hanya keluar dari sesi saat ini.
   Future<bool> skipCurrent() async {
     final current = state;

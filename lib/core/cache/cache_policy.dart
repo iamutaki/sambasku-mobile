@@ -3,7 +3,7 @@ import 'cache_entry.dart';
 /// Matriks TTL L1 kanonik (§5.5 MOBILE_LOCAL_STRATEGI).
 abstract final class CachePolicy {
   static const int schemaVersion = 1;
-  static const int maxBudgetBytes = 40 * 1024 * 1024; // ~40 MB (dalam rentang 32–50)
+  static const int maxBudgetBytes = 40 * 1024 * 1024; // ~40 MB (dalam rentang 32-50)
 
   static Duration freshFor(CacheClass cacheClass, {DateTime? now}) {
     final n = now ?? DateTime.now();

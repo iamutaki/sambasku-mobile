@@ -24,7 +24,7 @@ const _kDebounceMs = 400;
 /// beranda lalu kembali - jangan reload A-Z dari nol tiap buka.
 ///
 /// PENTING: early-return (stale / !mounted) JANGAN tinggalkan
-/// `isLoading: true` tanpa in-flight request — itu biang infinite
+/// `isLoading: true` tanpa in-flight request - itu biang infinite
 /// skeleton saat user back lalu masuk lagi (terutama korpus kosong).
 @Riverpod(keepAlive: true)
 class WordListNotifier extends _$WordListNotifier {
@@ -43,7 +43,7 @@ class WordListNotifier extends _$WordListNotifier {
 
     // keepAlive: listener hilang saat pop, kembali saat push. Jika state
     // tersisa isLoading tanpa Future (race stale/dispose lama), pulihkan.
-    // Riverpod 3: jangan baca/tulis `state` di dalam lifecycle — defer.
+    // Riverpod 3: jangan baca/tulis `state` di dalam lifecycle - defer.
     ref.onResume(() {
       scheduleMicrotask(() {
         if (!ref.mounted) return;

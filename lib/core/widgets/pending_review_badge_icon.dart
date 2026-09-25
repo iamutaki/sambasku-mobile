@@ -20,7 +20,7 @@ class PendingReviewBadgeIcon extends StatelessWidget {
   }
 }
 
-/// Penjelasan status — dipanggil saat ikon di-tap (bukan teks permanen).
+/// Penjelasan status - dipanggil saat ikon di-tap (bukan teks permanen).
 void showPendingReviewInfo(BuildContext context) {
   showFToast(
     context: context,

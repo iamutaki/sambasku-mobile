@@ -16,7 +16,7 @@ class ExploreCategory {
   final String subtitle;
   final IconData icon;
 
-  /// Konten API belum ada — kartu tetap tampil sebagai sasaran app.
+  /// Konten API belum ada - kartu tetap tampil sebagai sasaran app.
   final bool comingSoon;
 
   static const List<ExploreCategory> all = [

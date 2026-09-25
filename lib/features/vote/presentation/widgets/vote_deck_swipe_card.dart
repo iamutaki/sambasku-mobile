@@ -44,7 +44,7 @@ class VoteDeckSwipeCardState extends State<VoteDeckSwipeCard> {
       key: _cardKey,
       itemKey: widget.itemKey,
       enabled: widget.enabled,
-      // Deck di dalam ListView Kontribusi — klaim swipe-atas vs scroll parent.
+      // Deck di dalam ListView Kontribusi - klaim swipe-atas vs scroll parent.
       allowNestedVerticalScroll: false,
       fallbackHeight: 240,
       positiveLabel: 'Masuk akal',

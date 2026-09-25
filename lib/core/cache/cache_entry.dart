@@ -1,4 +1,4 @@
-/// Scope entry L1 — logout hanya wipe [CacheScope.user].
+/// Scope entry L1 - logout hanya wipe [CacheScope.user].
 enum CacheScope {
   public,
   user,
@@ -28,7 +28,7 @@ enum CacheClass {
   negative404,
 }
 
-/// Metadata index tanpa body — untuk list di explorer / diagnostics.
+/// Metadata index tanpa body - untuk list di explorer / diagnostics.
 class CacheEntryMeta {
   const CacheEntryMeta({
     required this.key,

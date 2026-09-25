@@ -4,7 +4,7 @@ import 'package:gap/gap.dart';
 
 import '../utils/public_account_name.dart';
 
-/// Baris pesan thread (komentar kata / balasan bantuan) — layout kanonik.
+/// Baris pesan thread (komentar kata / balasan bantuan) - layout kanonik.
 ///
 /// Pola visual mengikuti `WordCommentsSection`: username · meta satu baris,
 /// body di bawah, aksi hapus kompak, footer opsional (vote / badge).

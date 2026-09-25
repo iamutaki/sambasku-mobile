@@ -81,7 +81,7 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
       bodyRaw: _bodyBox.get(key),
     );
     if (entry == null) {
-      // Index/body tidak selaras — bersihkan.
+      // Index/body tidak selaras - bersihkan.
       await _indexBox.delete(key);
       await _bodyBox.delete(key);
       return null;

@@ -461,19 +461,19 @@ enum ShareTemplateId {
 }
 
 enum ShareRatioId {
-  /// Instagram / TikTok Stories — 9:16
+  /// Instagram / TikTok Stories - 9:16
   story,
 
-  /// Potret klasik foto — 2:3
+  /// Potret klasik foto - 2:3
   portrait23,
 
-  /// Potret umum ponsel — 3:4
+  /// Potret umum ponsel - 3:4
   portrait34,
 
-  /// Instagram feed potret — 4:5
+  /// Instagram feed potret - 4:5
   portrait45,
 
-  /// Kotak — 1:1
+  /// Kotak - 1:1
   post,
 }
 

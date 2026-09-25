@@ -856,7 +856,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
     // Mode Dasar juga kirim dialek umum bila sudah termuat. Jangan kirim
-    // `dialect_id: null` — Zod `.optional()` menolak null (bukan omit).
+    // `dialect_id: null` - Zod `.optional()` menolak null (bukan omit).
     var dialectId = _dialectId;
     if ((dialectId == null || dialectId.isEmpty) && languageId.isNotEmpty) {
       final dialectItems = ref
@@ -1607,7 +1607,7 @@ class _ModeChip extends StatelessWidget {
   }
 }
 
-/// Picker jenis entri — pola chip sama seperti dialek (rekam) / filter komentar.
+/// Picker jenis entri - pola chip sama seperti dialek (rekam) / filter komentar.
 class _WordTypeChips extends StatelessWidget {
   const _WordTypeChips({required this.value, required this.onChanged});
 

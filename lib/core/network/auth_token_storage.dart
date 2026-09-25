@@ -34,7 +34,7 @@ class AuthTokenStorage {
 
   final _authStateController = StreamController<bool>.broadcast();
 
-  /// Emit saat [setIsAuth] berubah — dipakai DeviceRegistrationService.
+  /// Emit saat [setIsAuth] berubah - dipakai DeviceRegistrationService.
   Stream<bool> get authStateChanges => _authStateController.stream;
 
   Future<SharedPreferences> get _sharedPrefs async =>

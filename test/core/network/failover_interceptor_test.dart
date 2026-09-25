@@ -41,7 +41,7 @@ void main() {
     resolver.onWarmUp = null;
   });
 
-  test('tier 1 (CF) tidak menyentuh gate — 6 request paralel langsung jalan',
+  test('tier 1 (CF) tidak menyentuh gate - 6 request paralel langsung jalan',
       () async {
     adapter.holdMs = 20;
     await Future.wait([

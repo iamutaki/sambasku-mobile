@@ -190,7 +190,7 @@ Future<WavTrimResult> trimWavFile(
   return WavTrimResult(file: file, durationMs: durationMs);
 }
 
-/// Peak waveform (0..1) untuk visual trim — RMS per batang.
+/// Peak waveform (0..1) untuk visual trim - RMS per batang.
 Future<List<double>> computeWavPeaks(
   File file, {
   int barCount = 80,
