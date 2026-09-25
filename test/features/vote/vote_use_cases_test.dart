@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:sambasku_mobile/features/vote/domain/entities/vote_deck_item.dart';
 import 'package:sambasku_mobile/features/vote/domain/entities/vote_target.dart';
 import 'package:sambasku_mobile/features/vote/domain/entities/vote_view.dart';
 import 'package:sambasku_mobile/features/vote/domain/failures/vote_failure.dart';
@@ -53,6 +54,14 @@ class _FakeVoteRepository implements VoteRepository {
     receivedToggleTarget = target;
     receivedToggleValue = value;
     return toggleResult;
+  }
+
+  @override
+  Future<Either<VoteFailure, VoteDeckPage>> getDeck({
+    int limit = 10,
+    String? cursor,
+  }) async {
+    return Either.right(const VoteDeckPage(items: []));
   }
 }
 
