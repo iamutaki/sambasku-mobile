@@ -7,20 +7,16 @@ import 'package:forui/forui.dart';
 import '../../../../core/gestures/eager_pan_gesture_recognizer.dart';
 import '../../../../core/theme/f_colors_x.dart';
 
-/// Arah keputusan setelah swipe melewati ambang.
-enum ReviewSwipeDirection { approve, reject, skip }
+/// Arah aksi deck: kanan = masuk akal, kiri = kurang pas, atas = lewati.
+enum VoteDeckSwipeDirection { agree, disagree, skip }
 
 enum _AxisLock { none, horizontal, vertical }
 
-/// Kartu tinjau: kanan = setuju, kiri = tolak, atas = lewati.
+/// Kartu swipe untuk deck nilai kata (bukan sesi tinjau verifikator).
 ///
-/// [onSwiped] dipanggil setelah kartu animasi keluar. Return `true` agar kartu
-/// tetap tersembunyi; `false` mengembalikan kartu ke tengah.
-///
-/// Pan + axis-lock: horizontal untuk keputusan, vertikal-atas untuk skip.
-/// Lewati: swipe atas atau tombol panah di action bar.
-class ReviewSwipeCard extends StatefulWidget {
-  const ReviewSwipeCard({
+/// [onSwiped] return `true` = kartu tetap keluar; `false` = spring back.
+class VoteDeckSwipeCard extends StatefulWidget {
+  const VoteDeckSwipeCard({
     super.key,
     required this.itemKey,
     required this.enabled,
@@ -30,14 +26,14 @@ class ReviewSwipeCard extends StatefulWidget {
 
   final Object itemKey;
   final bool enabled;
-  final Future<bool> Function(ReviewSwipeDirection direction) onSwiped;
+  final Future<bool> Function(VoteDeckSwipeDirection direction) onSwiped;
   final Widget child;
 
   @override
-  State<ReviewSwipeCard> createState() => _ReviewSwipeCardState();
+  State<VoteDeckSwipeCard> createState() => VoteDeckSwipeCardState();
 }
 
-class _ReviewSwipeCardState extends State<ReviewSwipeCard>
+class VoteDeckSwipeCardState extends State<VoteDeckSwipeCard>
     with SingleTickerProviderStateMixin {
   static const _thresholdFraction = 0.28;
   static const _flingVelocity = 700.0;
@@ -74,7 +70,7 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
   }
 
   @override
-  void didUpdateWidget(covariant ReviewSwipeCard oldWidget) {
+  void didUpdateWidget(covariant VoteDeckSwipeCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.itemKey != widget.itemKey) {
       _anim.stop();
@@ -93,6 +89,9 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
     super.dispose();
   }
 
+  Future<void> swipeAway(VoteDeckSwipeDirection direction) =>
+      _commit(direction);
+
   double get _hProgress {
     final denom = _width * _thresholdFraction;
     if (denom <= 0) return 0;
@@ -102,6 +101,7 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
   double get _vProgress {
     final denom = _height * _thresholdFraction;
     if (denom <= 0) return 0;
+    // Atas = negatif dy → progress skip positif.
     return (-_dy / denom).clamp(0.0, 1.5);
   }
 
@@ -124,14 +124,15 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
     });
   }
 
-  Future<void> _commit(ReviewSwipeDirection direction) async {
+  Future<void> _commit(VoteDeckSwipeDirection direction) async {
     if (_busyGesture) return;
+    if (!widget.enabled) return;
     setState(() => _busyGesture = true);
 
     final target = switch (direction) {
-      ReviewSwipeDirection.approve => Offset(_width * 1.35, 0),
-      ReviewSwipeDirection.reject => Offset(-_width * 1.35, 0),
-      ReviewSwipeDirection.skip => Offset(0, -_height * 1.35),
+      VoteDeckSwipeDirection.agree => Offset(_width * 1.35, 0),
+      VoteDeckSwipeDirection.disagree => Offset(-_width * 1.35, 0),
+      VoteDeckSwipeDirection.skip => Offset(0, -_height * 1.35),
     };
     await _animateTo(target, duration: const Duration(milliseconds: 200));
     if (!mounted) return;
@@ -162,12 +163,14 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
           } else {
             _lock = _AxisLock.vertical;
             _dx = 0;
+            // Hanya atas = skip.
             if (_dy > 0) _dy = 0;
           }
         }
       } else if (_lock == _AxisLock.horizontal) {
         _dx += d.dx;
       } else {
+        // Hanya izinkan geser ke atas (skip); ke bawah di-clamp.
         _dy = (_dy + d.dy).clamp(-_height * 1.5, 0);
       }
 
@@ -191,12 +194,12 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
     final vThresh = _height * _thresholdFraction;
 
     if (_lock == _AxisLock.horizontal) {
-      final approve = _dx > hThresh || (_dx > 0 && vx > _flingVelocity);
-      final reject = _dx < -hThresh || (_dx < 0 && vx < -_flingVelocity);
-      if (approve) {
-        _commit(ReviewSwipeDirection.approve);
-      } else if (reject) {
-        _commit(ReviewSwipeDirection.reject);
+      final agree = _dx > hThresh || (_dx > 0 && vx > _flingVelocity);
+      final disagree = _dx < -hThresh || (_dx < 0 && vx < -_flingVelocity);
+      if (agree) {
+        _commit(VoteDeckSwipeDirection.agree);
+      } else if (disagree) {
+        _commit(VoteDeckSwipeDirection.disagree);
       } else {
         _springBack();
       }
@@ -206,7 +209,7 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
     if (_lock == _AxisLock.vertical) {
       final skip = _dy < -vThresh || vy < -_flingVelocity;
       if (skip) {
-        _commit(ReviewSwipeDirection.skip);
+        _commit(VoteDeckSwipeDirection.skip);
       } else {
         _springBack();
       }
@@ -227,13 +230,13 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
             : MediaQuery.sizeOf(context).width;
         final h = constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
-            : MediaQuery.sizeOf(context).height * 0.6;
+            : 240.0;
         if (w != _width) _width = w;
         if (h != _height) _height = h;
 
         final hProg = _hProgress;
-        final approveT = hProg.clamp(0.0, 1.0);
-        final rejectT = (-hProg).clamp(0.0, 1.0);
+        final agreeT = hProg.clamp(0.0, 1.0);
+        final disagreeT = (-hProg).clamp(0.0, 1.0);
         final skipT = _vProgress.clamp(0.0, 1.0);
         final angle = (_dx / _width) * 0.22;
 
@@ -267,31 +270,28 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
                   child: Stack(
                     children: [
                       widget.child,
-                      _SwipeDecisionOverlay(
-                        t: approveT,
-                        icon: FLucideIcons.check,
+                      _SwipeLabelOverlay(
+                        t: agreeT,
+                        label: 'Masuk akal',
                         color: theme.colors.success,
-                        semanticsLabel: 'Setujui',
                         maxOpacity: _overlayMaxOpacity,
                         minScale: _overlayMinScale,
                         maxScale: _overlayMaxScale,
                         visibleFloor: _overlayVisibleFloor,
                       ),
-                      _SwipeDecisionOverlay(
-                        t: rejectT,
-                        icon: FLucideIcons.x,
+                      _SwipeLabelOverlay(
+                        t: disagreeT,
+                        label: 'Kurang pas',
                         color: theme.colors.destructive,
-                        semanticsLabel: 'Tolak',
                         maxOpacity: _overlayMaxOpacity,
                         minScale: _overlayMinScale,
                         maxScale: _overlayMaxScale,
                         visibleFloor: _overlayVisibleFloor,
                       ),
-                      _SwipeDecisionOverlay(
+                      _SwipeLabelOverlay(
                         t: skipT,
-                        icon: FLucideIcons.arrowUp,
+                        label: 'Lewati',
                         color: theme.colors.mutedForeground,
-                        semanticsLabel: 'Lewati',
                         maxOpacity: _overlayMaxOpacity,
                         minScale: _overlayMinScale,
                         maxScale: _overlayMaxScale,
@@ -309,12 +309,11 @@ class _ReviewSwipeCardState extends State<ReviewSwipeCard>
   }
 }
 
-class _SwipeDecisionOverlay extends StatelessWidget {
-  const _SwipeDecisionOverlay({
+class _SwipeLabelOverlay extends StatelessWidget {
+  const _SwipeLabelOverlay({
     required this.t,
-    required this.icon,
+    required this.label,
     required this.color,
-    required this.semanticsLabel,
     required this.maxOpacity,
     required this.minScale,
     required this.maxScale,
@@ -322,9 +321,8 @@ class _SwipeDecisionOverlay extends StatelessWidget {
   });
 
   final double t;
-  final IconData icon;
+  final String label;
   final Color color;
-  final String semanticsLabel;
   final double maxOpacity;
   final double minScale;
   final double maxScale;
@@ -332,23 +330,29 @@ class _SwipeDecisionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final opacity = t * maxOpacity;
-    if (opacity < visibleFloor) {
-      return const SizedBox.shrink();
-    }
-
+    if (t < visibleFloor) return const SizedBox.shrink();
+    final opacity = (t * maxOpacity).clamp(0.0, maxOpacity);
     final scale = lerpDouble(minScale, maxScale, t)!;
-
     return Positioned.fill(
       child: IgnorePointer(
-        child: Semantics(
-          label: semanticsLabel,
-          child: Center(
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.scale(
-                scale: scale,
-                child: Icon(icon, size: 96, color: color),
+        child: Opacity(
+          opacity: opacity,
+          child: Transform.scale(
+            scale: scale,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  label,
+                  style: context.theme.typography.sm.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),

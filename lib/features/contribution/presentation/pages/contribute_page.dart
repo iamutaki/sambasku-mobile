@@ -9,7 +9,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/cache/cache_entry.dart';
 import '../../../../core/cache/cache_key.dart';
 import '../../../../core/cache/cache_providers.dart';
-import '../../../../core/cache/cached_json_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';

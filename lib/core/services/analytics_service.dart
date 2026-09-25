@@ -18,6 +18,8 @@ abstract final class AnalyticsEvents {
   static const mapOpen = 'map_open';
   static const mapFallbackShown = 'map_fallback_shown';
   static const voteCast = 'vote_cast';
+  static const voteDeckView = 'vote_deck_view';
+  static const voteDeckSwipe = 'vote_deck_swipe';
   static const bookmarkToggle = 'bookmark_toggle';
   static const shareStart = 'share_start';
   static const shareComplete = 'share_complete';
@@ -40,6 +42,7 @@ abstract final class AnalyticsEvents {
   static const reviewApprove = 'review_approve';
   static const reviewReject = 'review_reject';
   static const reviewCorrect = 'review_correct';
+  static const reviewSkip = 'review_skip';
   static const verifierApplySubmit = 'verifier_apply_submit';
 }
 

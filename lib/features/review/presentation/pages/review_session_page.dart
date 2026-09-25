@@ -119,11 +119,9 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
   }
 
   Future<void> _afterDecision(String message, String contributionId) async {
-    // Tutup mode koreksi dulu supaya UI tidak terlihat "macet" jika toast gagal.
-    setState(() {
-      _correctMode = false;
-      _busy = false;
-    });
+    // Tetap busy sampai advance selesai supaya slot kartu menampilkan
+    // skeleton (bukan ruang kosong setelah swipe) selama request + ganti item.
+    setState(() => _correctMode = false);
     showFToast(context: context, title: Text(message));
     final hasNext = await ref
         .read(reviewSessionProvider.notifier)
@@ -132,7 +130,28 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
     if (!hasNext) {
       showFToast(context: context, title: const Text('Antrean selesai'));
       _exitToQueue(refresh: true);
+      return;
     }
+    setState(() => _busy = false);
+  }
+
+  Future<void> _afterSkip(String contributionId) async {
+    setState(() => _busy = true);
+    showFToast(context: context, title: const Text('Dilewati.'));
+    AnalyticsService.instance.log(
+      AnalyticsEvents.reviewSkip,
+      params: {'contribution_id': contributionId},
+    );
+    final hasNext = await ref
+        .read(reviewSessionProvider.notifier)
+        .skipCurrent();
+    if (!mounted) return;
+    if (!hasNext) {
+      showFToast(context: context, title: const Text('Antrean selesai'));
+      _exitToQueue(refresh: true);
+      return;
+    }
+    setState(() => _busy = false);
   }
 
   /// `true` = kartu boleh tetap keluar / sesi advance; `false` = kembalikan kartu.
@@ -195,7 +214,14 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
     return switch (direction) {
       ReviewSwipeDirection.approve => _approve(detail),
       ReviewSwipeDirection.reject => _reject(detail),
+      ReviewSwipeDirection.skip => _skip(detail),
     };
+  }
+
+  Future<bool> _skip(ReviewDetail detail) async {
+    if (_busy) return false;
+    await _afterSkip(detail.contribution.id);
+    return true;
   }
 
   Future<String?> _askRejectReason() {
@@ -245,6 +271,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
       );
       return;
     }
+    setState(() => _busy = true);
     _afterDecision(
       'Koreksi disimpan dan usulan ditutup.',
       detail.contribution.id,
@@ -277,6 +304,8 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
     final pending = detailAsync.asData?.value.contribution.isPending ?? false;
     final title = _correctMode
         ? 'Koreksi · ${session.position}/${session.total}'
+        : _busy
+        ? 'Menyimpan · ${session.position}/${session.total}'
         : 'Tinjau · ${session.position}/${session.total}';
 
     // Prefetch 1-2 kartu ke depan tetap di-watch supaya autoDispose tidak
@@ -317,6 +346,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                   _correctMode = true;
                 }),
                 onReject: () => _reject(detail),
+                onSkip: () => _skip(detail),
               ),
               orElse: () => null,
             )
@@ -325,42 +355,46 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
         duration: const Duration(milliseconds: 220),
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
-        child: detailAsync.when(
-          // Jaga kerangka kartu (bukan spinner penuh) supaya ganti item terasa
-          // lanjutan sesi, bukan layar kosong.
-          loading: () => const _ReviewCardPlaceholder(key: ValueKey('loading')),
-          error: (error, _) => Center(
-            key: const ValueKey('error'),
-            child: Text(
-              error is ReviewFailure ? error.message : 'Gagal memuat detail',
-            ),
-          ),
-          data: (detail) {
-            if (_correctMode) {
-              // Form punya sticky SafeArea action bar sendiri — jangan bungkus
-              // ListView luar (hindari nested scroll + tombol di luar viewport).
-              return ReviewCorrectForm(
-                key: ValueKey(_formKeyId ?? detail.contribution.id),
-                detail: detail,
-                onCancel: () => setState(() => _correctMode = false),
-                onSuccess: (decision) => _onCorrectSuccess(detail, decision),
-                onFailure: (failure) =>
-                    _onFailure(failure, detail.contribution.id),
-              );
-            }
-            final canSwipe = detail.contribution.isPending && !_busy;
-            return Padding(
-              key: ValueKey('card-${detail.contribution.id}'),
-              padding: const EdgeInsets.only(top: 20, bottom: 16),
-              child: ReviewSwipeCard(
-                itemKey: detail.contribution.id,
-                enabled: canSwipe,
-                onSwiped: (direction) => _onSwiped(detail, direction),
-                child: _ReviewViewBody(detail: detail),
+        // Saat submit: kartu sudah swipe keluar → skeleton mengisi slot
+        // sampai advance ke item berikutnya (prefetch sering instan).
+        child: _busy && !_correctMode
+            ? const _ReviewCardPlaceholder(key: ValueKey('submitting'))
+            : detailAsync.when(
+                loading: () =>
+                    const _ReviewCardPlaceholder(key: ValueKey('loading')),
+                error: (error, _) => Center(
+                  key: const ValueKey('error'),
+                  child: Text(
+                    error is ReviewFailure
+                        ? error.message
+                        : 'Gagal memuat detail',
+                  ),
+                ),
+                data: (detail) {
+                  if (_correctMode) {
+                    return ReviewCorrectForm(
+                      key: ValueKey(_formKeyId ?? detail.contribution.id),
+                      detail: detail,
+                      onCancel: () => setState(() => _correctMode = false),
+                      onSuccess: (decision) =>
+                          _onCorrectSuccess(detail, decision),
+                      onFailure: (failure) =>
+                          _onFailure(failure, detail.contribution.id),
+                    );
+                  }
+                  final canSwipe = detail.contribution.isPending && !_busy;
+                  return Padding(
+                    key: ValueKey('card-${detail.contribution.id}'),
+                    padding: const EdgeInsets.only(top: 20, bottom: 16),
+                    child: ReviewSwipeCard(
+                      itemKey: detail.contribution.id,
+                      enabled: canSwipe,
+                      onSwiped: (direction) => _onSwiped(detail, direction),
+                      child: _ReviewViewBody(detail: detail),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -376,6 +410,8 @@ class _ReviewViewBody extends StatelessWidget {
     final item = detail.contribution;
     final when = formatDateTimeIso(item.createdAt);
     return ListView(
+      // Jangan berebut drag vertikal dengan ReviewSwipeCard (swipe-atas = lewati).
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
       children: [
         Text(
@@ -424,7 +460,7 @@ class _ReviewViewBody extends StatelessWidget {
         if (item.isPending) ...[
           const Gap(16),
           Text(
-            'Geser kanan untuk setuju, kiri untuk tolak - atau pakai tombol di bawah.',
+            'Kanan setuju · kiri tolak · atas lewati - atau pakai tombol di bawah.',
             style: context.theme.typography.sm.copyWith(
               color: context.theme.colors.mutedForeground,
             ),
@@ -487,10 +523,7 @@ class _ReviewCardPlaceholder extends StatelessWidget {
                         icon: FLucideIcons.layers,
                         label: 'Jenis entri',
                       ),
-                      _MetaChip(
-                        icon: FLucideIcons.user,
-                        label: 'kontributor',
-                      ),
+                      _MetaChip(icon: FLucideIcons.user, label: 'kontributor'),
                       _MetaChip(
                         icon: FLucideIcons.clock,
                         label: '21 Sep 2026 00:00',
@@ -731,7 +764,7 @@ class _SectionNote extends StatelessWidget {
   }
 }
 
-/// Sticky action bar satu baris: Koreksi · Tolak · Setujui (centang kanan).
+/// Sticky action bar: Koreksi · Tolak · Lewati · Setujui.
 class _ReviewActionBar extends StatelessWidget {
   const _ReviewActionBar({
     required this.busy,
@@ -739,6 +772,7 @@ class _ReviewActionBar extends StatelessWidget {
     required this.onApprove,
     required this.onCorrect,
     required this.onReject,
+    required this.onSkip,
   });
 
   final bool busy;
@@ -746,6 +780,7 @@ class _ReviewActionBar extends StatelessWidget {
   final VoidCallback onApprove;
   final VoidCallback onCorrect;
   final VoidCallback onReject;
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -778,9 +813,29 @@ class _ReviewActionBar extends StatelessWidget {
               FButton.icon(
                 variant: FButtonVariant.destructive,
                 size: FButtonSizeVariant.sm,
-                semanticsLabel: 'Tolak',
+                semanticsLabel: busy ? 'Memproses…' : 'Tolak',
                 onPress: busy ? null : onReject,
-                child: const Icon(FLucideIcons.x),
+                child: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: FCircularProgress(),
+                      )
+                    : const Icon(FLucideIcons.x),
+              ),
+              const Gap(8),
+              FButton.icon(
+                variant: FButtonVariant.outline,
+                size: FButtonSizeVariant.sm,
+                semanticsLabel: busy ? 'Memproses…' : 'Lewati',
+                onPress: busy ? null : onSkip,
+                child: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: FCircularProgress(),
+                      )
+                    : const Icon(FLucideIcons.arrowUp),
               ),
               const Gap(8),
               FButton.icon(
@@ -789,7 +844,11 @@ class _ReviewActionBar extends StatelessWidget {
                 semanticsLabel: busy ? 'Memproses…' : 'Setujui',
                 onPress: busy ? null : onApprove,
                 child: busy
-                    ? const FCircularProgress()
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: FCircularProgress(),
+                      )
                     : const Icon(FLucideIcons.check),
               ),
             ],

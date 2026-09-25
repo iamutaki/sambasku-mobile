@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../domain/entities/vote_deck_item.dart';
 import '../../domain/entities/vote_target.dart';
 import '../../domain/entities/vote_view.dart';
 import '../../domain/failures/vote_failure.dart';
@@ -10,9 +11,30 @@ import '../models/my_vote_dto.dart';
 import '../models/vote_count_dto.dart';
 import '../models/vote_toggle_request_dto.dart';
 
-class VoteRepositoryImpl implements VoteRepository {
-  VoteRepositoryImpl(this._remoteDatasource);
+VoteDeckItem parseVoteDeckItem(Map<String, dynamic> map) {
+  return VoteDeckItem(
+    id: map['id']?.toString() ?? '',
+    lemma: map['lemma']?.toString() ?? '',
+    languageId: map['language_id']?.toString() ?? '',
+    languageCode: map['language_code']?.toString() ?? '',
+    wordType: map['word_type']?.toString() ?? '',
+    status: map['status']?.toString() ?? '',
+    isVerified: map['is_verified'] == true,
+    approvedAt: map['approved_at']?.toString() ?? '',
+    sense: map['sense']?.toString(),
+    upvotes: map['upvotes'] is int
+        ? map['upvotes'] as int
+        : int.tryParse('${map['upvotes']}') ?? 0,
+    downvotes: map['downvotes'] is int
+        ? map['downvotes'] as int
+        : int.tryParse('${map['downvotes']}') ?? 0,
+  );
+}
 
+class VoteRepositoryImpl implements VoteRepository {
+  VoteRepositoryImpl(this._dio, this._remoteDatasource);
+
+  final Dio _dio;
   final VoteRemoteDatasource _remoteDatasource;
 
   @override
@@ -110,6 +132,42 @@ class VoteRepositoryImpl implements VoteRepository {
         result['${dto.targetType}:${dto.targetId}'] = dto.value;
       }
       return Either.right(result);
+    } on DioException catch (error) {
+      return Either.left(_mapDio(error));
+    } catch (error) {
+      return Either.left(VoteFailure(error.toString()));
+    }
+  }
+
+  @override
+  Future<Either<VoteFailure, VoteDeckPage>> getDeck({
+    int limit = 10,
+    String? cursor,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/api/v1/votes/deck',
+        queryParameters: {
+          'limit': limit,
+          if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+        },
+      );
+      final body = res.data ?? const <String, dynamic>{};
+      final data = body['data'];
+      final meta = body['meta'];
+      final items = <VoteDeckItem>[];
+      if (data is List) {
+        for (final raw in data.whereType<Map>()) {
+          items.add(parseVoteDeckItem(Map<String, dynamic>.from(raw)));
+        }
+      }
+      return Either.right(
+        VoteDeckPage(
+          items: items,
+          nextCursor: meta is Map ? meta['next_cursor']?.toString() : null,
+          hasMore: meta is Map && meta['has_more'] == true,
+        ),
+      );
     } on DioException catch (error) {
       return Either.left(_mapDio(error));
     } catch (error) {

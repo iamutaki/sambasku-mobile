@@ -28,6 +28,7 @@ import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/report_bug/report_bug_router.dart';
 import '../../features/review/presentation/providers/review_providers.dart';
 import '../../features/review/review_router.dart';
+import '../../features/search_miss/search_miss_router.dart';
 import '../../features/translation_help/translation_help_router.dart';
 import '../../features/user_profile/user_profile_router.dart';
 import '../../features/verifier_application/verifier_application_router.dart';
@@ -72,6 +73,7 @@ class AppRouter {
       ...ReportBugRouter.routes,
       ...TranslationHelpRouter.routes,
       ...ReviewRouter.routes,
+      ...SearchMissRouter.routes,
       ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

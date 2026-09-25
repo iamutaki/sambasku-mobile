@@ -300,8 +300,24 @@ class ReviewSessionController extends Notifier<ReviewSessionState?> {
     ref.read(reviewQueueProvider(current.query).notifier).drop(decidedId);
     ref.invalidate(reviewQueueHasPendingProvider);
 
-    final ids = List<String>.of(current.ids)..remove(decidedId);
-    final removedIndex = current.ids.indexOf(decidedId);
+    return _advancePast(decidedId);
+  }
+
+  /// Lewati tanpa keputusan — usulan tetap pending di server/antrean.
+  /// Hanya keluar dari sesi saat ini.
+  Future<bool> skipCurrent() async {
+    final current = state;
+    final id = current?.currentId;
+    if (current == null || id == null) return false;
+    return _advancePast(id);
+  }
+
+  Future<bool> _advancePast(String id) async {
+    final current = state;
+    if (current == null) return false;
+
+    final ids = List<String>.of(current.ids)..remove(id);
+    final removedIndex = current.ids.indexOf(id);
     var newIndex = current.index;
     if (removedIndex >= 0 && removedIndex < current.index) {
       newIndex = current.index - 1;
@@ -316,7 +332,13 @@ class ReviewSessionController extends Notifier<ReviewSessionState?> {
       state = current.copyWith(ids: const [], index: 0);
       final appended = await _appendMore();
       if (appended && state != null && state!.ids.isNotEmpty) {
-        state = state!.copyWith(index: 0);
+        // Skip: jangan tampilkan ulang item yang baru dilewati dari page yang sama.
+        final filtered = state!.ids.where((x) => x != id).toList();
+        if (filtered.isEmpty) {
+          state = null;
+          return false;
+        }
+        state = state!.copyWith(ids: filtered, index: 0);
         _prefetchAround();
         return true;
       }

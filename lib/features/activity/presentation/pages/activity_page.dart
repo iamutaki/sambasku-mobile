@@ -6,26 +6,25 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
-import '../../../search_miss/domain/entities/search_miss.dart';
-import '../../../search_miss/presentation/providers/search_miss_list_providers.dart';
-import '../../../search_miss/presentation/widgets/search_miss_skeleton_list.dart';
+import '../../../search_miss/search_miss_router.dart';
 import '../../../translation_help/translation_help_router.dart';
+import '../../../vote/presentation/providers/vote_deck_providers.dart';
+import '../../../vote/presentation/widgets/vote_deck_section.dart';
 
-/// Tab KONTRIBUSI: CTA usul kosong + daftar search-miss untuk dipilih.
+/// Tab KONTRIBUSI: menu usul + deck nilai kata.
 class ActivityPage extends ConsumerWidget {
   const ActivityPage({super.key});
 
-  static const _limit = 30;
-
   Future<void> _refresh(WidgetRef ref) async {
-    ref.invalidate(searchMissListProvider(_limit));
-    await ref.read(searchMissListProvider(_limit).future);
+    await Future.wait([
+      ref.read(voteDeckControllerProvider.notifier).refresh(),
+      ref.refresh(voteDeckGuestSamplesProvider.future),
+    ]);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
-    final missesAsync = ref.watch(searchMissListProvider(_limit));
 
     return Column(
       children: [
@@ -36,134 +35,24 @@ class ActivityPage extends ConsumerWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _refresh(ref),
-            child: missesAsync.when(
-              loading: () => SearchMissSkeletonList(
-                itemCount: 8,
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-                header: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _BlankContributeTile(theme: theme),
-                    const Gap(14),
-                    Text(
-                      'Kata yang sering dicari tapi belum ada',
-                      style: theme.typography.sm.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                    const Gap(2),
-                    Text(
-                      'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
-                      style: theme.typography.sm.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              error: (_, _) => ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-                children: [
-                  _BlankContributeTile(theme: theme),
-                  const Gap(14),
-                  FAlert(
-                    variant: FAlertVariant.destructive,
-                    title: const Text('Gagal memuat daftar pencarian'),
-                    icon: const Icon(FLucideIcons.circleAlert),
-                  ),
-                ],
-              ),
-              data: (items) => ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-                children: [
-                  _BlankContributeTile(theme: theme),
-                  const Gap(14),
-                  // Header "sedang dicari" hanya saat ada item - empty state
-                  // jangan klaim warga sedang mencari (copy bentrok).
-                  if (items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        'Belum ada antrian dari pencarian warga. Usul kata baru lewat tombol di atas, atau coba lagi nanti.',
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    )
-                  else ...[
-                    Text(
-                      'Kata yang sering dicari tapi belum ada',
-                      style: theme.typography.sm.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                    const Gap(2),
-                    Text(
-                      'Sedang dicari warga - pilih satu untuk mengisi form usulan.',
-                      style: theme.typography.sm.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                    const Gap(8),
-                    FTileGroup(
-                      children: [
-                        for (final item in items)
-                          FTile(
-                            title: Text(item.term),
-                            subtitle: Text(_missSubtitle(item)),
-                            suffix: Icon(
-                              FLucideIcons.chevronRight,
-                              color: theme.colors.mutedForeground,
-                            ),
-                            onPress: () {
-                              AnalyticsService.instance.log(
-                                AnalyticsEvents.searchMissTap,
-                                params: {'miss_id': item.id},
-                              );
-                              AnalyticsService.instance.log(
-                                AnalyticsEvents.contributeStart,
-                                params: {
-                                  'guest': 1,
-                                  'from': 'search_miss',
-                                },
-                              );
-                              final q = Uri(
-                                queryParameters: <String, String>{
-                                  'lemma': item.term,
-                                  'search_in': item.searchIn,
-                                  'miss_id': item.id,
-                                },
-                              ).query;
-                              context.push('/contribute?$q');
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+              children: [
+                _ContributeMenus(theme: theme),
+                const Gap(20),
+                const VoteDeckSection(),
+              ],
             ),
           ),
         ),
       ],
     );
   }
-
-  static String _missSubtitle(SearchMiss item) {
-    final direction = item.searchIn == 'translation'
-        ? 'Indonesia → Sambas'
-        : 'Sambas → Indonesia';
-    final hits = item.hitCount > 99 ? '99×' : '${item.hitCount}×';
-    return '$direction · $hits dicari';
-  }
 }
 
-class _BlankContributeTile extends StatelessWidget {
-  const _BlankContributeTile({required this.theme});
+class _ContributeMenus extends StatelessWidget {
+  const _ContributeMenus({required this.theme});
 
   final FThemeData theme;
 
@@ -183,6 +72,13 @@ class _BlankContributeTile extends StatelessWidget {
             );
             context.push('/contribute');
           },
+        ),
+        FTile(
+          prefix: Icon(FLucideIcons.search, color: theme.colors.primary),
+          title: const Text('Kata yang sering dicari'),
+          subtitle: const Text('Pilih kata yang warga cari tapi belum ada'),
+          suffix: const Icon(FLucideIcons.chevronRight),
+          onPress: () => context.push(SearchMissRouter.list.path),
         ),
         FTile(
           prefix: Icon(FLucideIcons.languages, color: theme.colors.primary),

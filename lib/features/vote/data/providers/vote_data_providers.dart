@@ -12,5 +12,7 @@ VoteRemoteDatasource voteRemoteDatasource(Ref ref) =>
     VoteRemoteDatasource(ref.watch(dioProvider));
 
 @riverpod
-VoteRepository voteRepository(Ref ref) =>
-    VoteRepositoryImpl(ref.watch(voteRemoteDatasourceProvider));
+VoteRepository voteRepository(Ref ref) => VoteRepositoryImpl(
+      ref.watch(dioProvider),
+      ref.watch(voteRemoteDatasourceProvider),
+    );

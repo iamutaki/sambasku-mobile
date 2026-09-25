@@ -150,3 +150,51 @@ final class GetMyVotesUseCaseProvider
 }
 
 String _$getMyVotesUseCaseHash() => r'eed7c2484e3c5b3bdccd979a9502d6c263f36f8d';
+
+@ProviderFor(getVoteDeckUseCase)
+final getVoteDeckUseCaseProvider = GetVoteDeckUseCaseProvider._();
+
+final class GetVoteDeckUseCaseProvider
+    extends
+        $FunctionalProvider<
+          GetVoteDeckUseCase,
+          GetVoteDeckUseCase,
+          GetVoteDeckUseCase
+        >
+    with $Provider<GetVoteDeckUseCase> {
+  GetVoteDeckUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'getVoteDeckUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$getVoteDeckUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetVoteDeckUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GetVoteDeckUseCase create(Ref ref) {
+    return getVoteDeckUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetVoteDeckUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetVoteDeckUseCase>(value),
+    );
+  }
+}
+
+String _$getVoteDeckUseCaseHash() =>
+    r'fe7d90f5a1316df367a6eeaed38276cb482da6ac';
