@@ -8,8 +8,8 @@ import '../data/share_background_repository.dart';
 import '../domain/share_models.dart';
 import 'widgets/share_skeleton.dart';
 
-const _photoProviders = ['pexels', 'pixabay', 'openverse', 'wikimedia', 'unsplash'];
-const _videoProviders = ['pexels', 'pixabay', 'wikimedia'];
+const _photoProviders = ['pixabay', 'openverse', 'unsplash'];
+const _videoProviders = ['pixabay'];
 
 /// Jelajah latar / gambar stock: tab Gambar | Video, provider sebagai chip.
 /// [photoOnly] = true untuk konteks gambar kata (sembunyikan tab Video).
@@ -52,8 +52,8 @@ class _MediaExplorerBodyState extends State<_MediaExplorerBody>
   final _scrollCtrl = ScrollController();
   late final TabController _tabs;
 
-  String _photoProvider = 'pexels';
-  String _videoProvider = 'pexels';
+  String _photoProvider = 'pixabay';
+  String _videoProvider = 'pixabay';
   late String _media;
   late String _provider;
   String _mode = 'popular';

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'word_public_url.dart';
 
 String shareProviderLabel(String id) => switch (id) {
-      'pexels' => 'Pexels',
       'pixabay' => 'Pixabay',
       'openverse' => 'Openverse',
+      'unsplash' => 'Unsplash',
+      // Legacy atribusi gambar kata / share lama
+      'pexels' => 'Pexels',
       'wikimedia' => 'Wikimedia',
-      _ => 'Unsplash',
+      _ => id,
     };
 
 /// Kandidat latar dari GET /api/v1/share/backgrounds.
@@ -18,7 +20,7 @@ class ShareBackground {
     required this.photographer,
     required this.username,
     required this.attributionUrl,
-    this.provider = 'pexels',
+    this.provider = 'pixabay',
     this.kind = ShareMediaKind.photo,
     this.previewUrl,
     this.width = 0,
@@ -57,7 +59,7 @@ class ShareBackgroundsResult {
     required this.items,
     required this.page,
     required this.degraded,
-    this.provider = 'pexels',
+    this.provider = 'pixabay',
   });
 
   final List<ShareBackground> items;
