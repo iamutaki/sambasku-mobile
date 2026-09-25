@@ -35,13 +35,30 @@ class ActivityPage extends ConsumerWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _refresh(ref),
-            child: ListView(
+            // CustomScrollView + SliverFillRemaining(hasScrollBody: false)
+            // supaya deck swipe-atas tidak bentrok dengan ListView parent.
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-              children: [
-                _ContributeMenus(theme: theme),
-                const Gap(20),
-                const VoteDeckSection(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ContributeMenus(theme: theme),
+                        const Gap(20),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 0, 32),
+                    child: VoteDeckSection(),
+                  ),
+                ),
               ],
             ),
           ),
