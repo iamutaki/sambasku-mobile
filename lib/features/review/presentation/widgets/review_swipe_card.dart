@@ -1,25 +1,18 @@
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:forui/forui.dart';
 
-import '../../../../core/gestures/eager_pan_gesture_recognizer.dart';
-import '../../../../core/theme/f_colors_x.dart';
+import '../../../../core/widgets/swipe_decision_card.dart';
 
 /// Arah keputusan setelah swipe melewati ambang.
 enum ReviewSwipeDirection { approve, reject, skip }
-
-enum _AxisLock { none, horizontal, vertical }
 
 /// Kartu tinjau: kanan = setuju, kiri = tolak, atas = lewati.
 ///
 /// [onSwiped] dipanggil setelah kartu animasi keluar. Return `true` agar kartu
 /// tetap tersembunyi; `false` mengembalikan kartu ke tengah.
 ///
-/// Pan + axis-lock: horizontal untuk keputusan, vertikal-atas untuk skip.
-/// Lewati: swipe atas atau tombol panah di action bar.
-class ReviewSwipeCard extends StatefulWidget {
+/// Isi kartu boleh di-scroll; swipe-atas skip hanya diklaim saat scroll di puncak.
+/// Lewati juga lewat tombol panah di action bar.
+class ReviewSwipeCard extends StatelessWidget {
   const ReviewSwipeCard({
     super.key,
     required this.itemKey,
@@ -34,326 +27,22 @@ class ReviewSwipeCard extends StatefulWidget {
   final Widget child;
 
   @override
-  State<ReviewSwipeCard> createState() => _ReviewSwipeCardState();
-}
-
-class _ReviewSwipeCardState extends State<ReviewSwipeCard>
-    with SingleTickerProviderStateMixin {
-  static const _thresholdFraction = 0.28;
-  static const _flingVelocity = 700.0;
-  static const _axisLockSlop = 12.0;
-  static const _overlayMaxOpacity = 0.75;
-  static const _overlayMinScale = 0.72;
-  static const _overlayMaxScale = 1.08;
-  static const _overlayVisibleFloor = 0.05;
-
-  late final AnimationController _anim;
-  double _dx = 0;
-  double _dy = 0;
-  double _width = 1;
-  double _height = 1;
-  _AxisLock _lock = _AxisLock.none;
-  bool _busyGesture = false;
-  bool _hapticFired = false;
-  Animation<Offset>? _tween;
-
-  @override
-  void initState() {
-    super.initState();
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    )..addListener(() {
-        final t = _tween;
-        if (t == null) return;
-        setState(() {
-          _dx = t.value.dx;
-          _dy = t.value.dy;
-        });
-      });
-  }
-
-  @override
-  void didUpdateWidget(covariant ReviewSwipeCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.itemKey != widget.itemKey) {
-      _anim.stop();
-      _tween = null;
-      _dx = 0;
-      _dy = 0;
-      _lock = _AxisLock.none;
-      _busyGesture = false;
-      _hapticFired = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
-  }
-
-  double get _hProgress {
-    final denom = _width * _thresholdFraction;
-    if (denom <= 0) return 0;
-    return (_dx / denom).clamp(-1.5, 1.5);
-  }
-
-  double get _vProgress {
-    final denom = _height * _thresholdFraction;
-    if (denom <= 0) return 0;
-    return (-_dy / denom).clamp(0.0, 1.5);
-  }
-
-  Future<void> _animateTo(Offset target, {Duration? duration}) async {
-    _anim.duration = duration ?? const Duration(milliseconds: 220);
-    _tween = Tween<Offset>(begin: Offset(_dx, _dy), end: target).animate(
-      CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic),
-    );
-    _anim.reset();
-    await _anim.forward();
-  }
-
-  Future<void> _springBack() async {
-    await _animateTo(Offset.zero, duration: const Duration(milliseconds: 280));
-    if (!mounted) return;
-    setState(() {
-      _busyGesture = false;
-      _hapticFired = false;
-      _lock = _AxisLock.none;
-    });
-  }
-
-  Future<void> _commit(ReviewSwipeDirection direction) async {
-    if (_busyGesture) return;
-    setState(() => _busyGesture = true);
-
-    final target = switch (direction) {
-      ReviewSwipeDirection.approve => Offset(_width * 1.35, 0),
-      ReviewSwipeDirection.reject => Offset(-_width * 1.35, 0),
-      ReviewSwipeDirection.skip => Offset(0, -_height * 1.35),
-    };
-    await _animateTo(target, duration: const Duration(milliseconds: 200));
-    if (!mounted) return;
-
-    final keepDismissed = await widget.onSwiped(direction);
-    if (!mounted) return;
-    if (keepDismissed) {
-      setState(() => _busyGesture = false);
-      return;
-    }
-    await _springBack();
-  }
-
-  void _onPanUpdate(DragUpdateDetails details) {
-    if (!widget.enabled || _busyGesture) return;
-    final d = details.delta;
-    setState(() {
-      if (_lock == _AxisLock.none) {
-        // Akumulasi dulu — delta per-frame jarang > slop.
-        _dx += d.dx;
-        _dy += d.dy;
-        final ax = _dx.abs();
-        final ay = _dy.abs();
-        if (ax > _axisLockSlop || ay > _axisLockSlop) {
-          if (ax >= ay) {
-            _lock = _AxisLock.horizontal;
-            _dy = 0;
-          } else {
-            _lock = _AxisLock.vertical;
-            _dx = 0;
-            if (_dy > 0) _dy = 0;
-          }
-        }
-      } else if (_lock == _AxisLock.horizontal) {
-        _dx += d.dx;
-      } else {
-        _dy = (_dy + d.dy).clamp(-_height * 1.5, 0);
-      }
-
-      final crossed = _lock == _AxisLock.horizontal
-          ? _hProgress.abs() >= 1.0
-          : _vProgress >= 1.0;
-      if (crossed && !_hapticFired) {
-        _hapticFired = true;
-        HapticFeedback.selectionClick();
-      } else if (!crossed) {
-        _hapticFired = false;
-      }
-    });
-  }
-
-  void _onPanEnd(DragEndDetails details) {
-    if (!widget.enabled || _busyGesture) return;
-    final vx = details.velocity.pixelsPerSecond.dx;
-    final vy = details.velocity.pixelsPerSecond.dy;
-    final hThresh = _width * _thresholdFraction;
-    final vThresh = _height * _thresholdFraction;
-
-    if (_lock == _AxisLock.horizontal) {
-      final approve = _dx > hThresh || (_dx > 0 && vx > _flingVelocity);
-      final reject = _dx < -hThresh || (_dx < 0 && vx < -_flingVelocity);
-      if (approve) {
-        _commit(ReviewSwipeDirection.approve);
-      } else if (reject) {
-        _commit(ReviewSwipeDirection.reject);
-      } else {
-        _springBack();
-      }
-      return;
-    }
-
-    if (_lock == _AxisLock.vertical) {
-      final skip = _dy < -vThresh || vy < -_flingVelocity;
-      if (skip) {
-        _commit(ReviewSwipeDirection.skip);
-      } else {
-        _springBack();
-      }
-      return;
-    }
-
-    _springBack();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-            ? constraints.maxWidth
-            : MediaQuery.sizeOf(context).width;
-        final h = constraints.maxHeight.isFinite && constraints.maxHeight > 0
-            ? constraints.maxHeight
-            : MediaQuery.sizeOf(context).height * 0.6;
-        if (w != _width) _width = w;
-        if (h != _height) _height = h;
-
-        final hProg = _hProgress;
-        final approveT = hProg.clamp(0.0, 1.0);
-        final rejectT = (-hProg).clamp(0.0, 1.0);
-        final skipT = _vProgress.clamp(0.0, 1.0);
-        final angle = (_dx / _width) * 0.22;
-
-        final canPan = widget.enabled && !_busyGesture;
-        return RawGestureDetector(
-          gestures: {
-            EagerPanGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<EagerPanGestureRecognizer>(
-              EagerPanGestureRecognizer.new,
-              (instance) {
-                instance
-                  ..onUpdate = canPan ? _onPanUpdate : null
-                  ..onEnd = canPan ? _onPanEnd : null
-                  ..onCancel = canPan ? () => _springBack() : null;
-              },
-            ),
-          },
-          behavior: HitTestBehavior.translucent,
-          child: Transform.translate(
-            offset: Offset(_dx, _dy),
-            child: Transform.rotate(
-              angle: angle,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colors.background,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colors.border),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    children: [
-                      widget.child,
-                      _SwipeDecisionOverlay(
-                        t: approveT,
-                        icon: FLucideIcons.check,
-                        color: theme.colors.success,
-                        semanticsLabel: 'Setujui',
-                        maxOpacity: _overlayMaxOpacity,
-                        minScale: _overlayMinScale,
-                        maxScale: _overlayMaxScale,
-                        visibleFloor: _overlayVisibleFloor,
-                      ),
-                      _SwipeDecisionOverlay(
-                        t: rejectT,
-                        icon: FLucideIcons.x,
-                        color: theme.colors.destructive,
-                        semanticsLabel: 'Tolak',
-                        maxOpacity: _overlayMaxOpacity,
-                        minScale: _overlayMinScale,
-                        maxScale: _overlayMaxScale,
-                        visibleFloor: _overlayVisibleFloor,
-                      ),
-                      _SwipeDecisionOverlay(
-                        t: skipT,
-                        icon: FLucideIcons.arrowUp,
-                        color: theme.colors.mutedForeground,
-                        semanticsLabel: 'Lewati',
-                        maxOpacity: _overlayMaxOpacity,
-                        minScale: _overlayMinScale,
-                        maxScale: _overlayMaxScale,
-                        visibleFloor: _overlayVisibleFloor,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SwipeDecisionOverlay extends StatelessWidget {
-  const _SwipeDecisionOverlay({
-    required this.t,
-    required this.icon,
-    required this.color,
-    required this.semanticsLabel,
-    required this.maxOpacity,
-    required this.minScale,
-    required this.maxScale,
-    required this.visibleFloor,
-  });
-
-  final double t;
-  final IconData icon;
-  final Color color;
-  final String semanticsLabel;
-  final double maxOpacity;
-  final double minScale;
-  final double maxScale;
-  final double visibleFloor;
-
-  @override
-  Widget build(BuildContext context) {
-    final opacity = t * maxOpacity;
-    if (opacity < visibleFloor) {
-      return const SizedBox.shrink();
-    }
-
-    final scale = lerpDouble(minScale, maxScale, t)!;
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Semantics(
-          label: semanticsLabel,
-          child: Center(
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.scale(
-                scale: scale,
-                child: Icon(icon, size: 96, color: color),
-              ),
-            ),
-          ),
-        ),
-      ),
+    return SwipeDecisionCard(
+      itemKey: itemKey,
+      enabled: enabled,
+      allowNestedVerticalScroll: true,
+      fallbackHeight: MediaQuery.sizeOf(context).height * 0.6,
+      positiveLabel: 'Setujui',
+      negativeLabel: 'Tolak',
+      skipLabel: 'Lewati',
+      overlayStyle: SwipeDecisionOverlayStyle.icon,
+      onSwiped: (direction) => onSwiped(switch (direction) {
+        SwipeDecisionDirection.positive => ReviewSwipeDirection.approve,
+        SwipeDecisionDirection.negative => ReviewSwipeDirection.reject,
+        SwipeDecisionDirection.skip => ReviewSwipeDirection.skip,
+      }),
+      child: child,
     );
   }
 }

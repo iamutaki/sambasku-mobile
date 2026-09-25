@@ -276,15 +276,9 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
   }) async {
     if (widget.busy) return false;
 
+    // Skip lokal — tanpa busy/skeleton (bukan submit server).
     if (direction == VoteDeckSwipeDirection.skip) {
-      widget.onBusy(true);
       ref.read(voteDeckControllerProvider.notifier).skipAndAdvance(item.id);
-      if (!context.mounted) {
-        widget.onBusy(false);
-        return true;
-      }
-      widget.onBusy(false);
-      showFToast(context: context, title: const Text('Dilewati.'));
       return true;
     }
 
@@ -307,7 +301,8 @@ class _AuthDeckState extends ConsumerState<_AuthDeck> {
     AnalyticsService.instance.log(
       AnalyticsEvents.voteDeckSwipe,
       params: {
-        'direction': direction == VoteDeckSwipeDirection.agree ? 'up' : 'down',
+        'direction':
+            direction == VoteDeckSwipeDirection.agree ? 'right' : 'left',
         'word_id': item.id,
       },
     );

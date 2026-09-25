@@ -410,8 +410,6 @@ class _ReviewViewBody extends StatelessWidget {
     final item = detail.contribution;
     final when = formatDateTimeIso(item.createdAt);
     return ListView(
-      // Jangan berebut drag vertikal dengan ReviewSwipeCard (swipe-atas = lewati).
-      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
       children: [
         Text(
