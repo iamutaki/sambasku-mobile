@@ -6,7 +6,8 @@ Map<String, dynamic> buildWordCorrectBody({
   required String lemma,
   required String? notes,
   required String wordType,
-  required List<({String definition, String translation})> meaningEdits,
+  required List<({String definition, String translation, String? wordClassId})>
+  meaningEdits,
   required bool publish,
   String? comment,
 }) {
@@ -16,9 +17,13 @@ Map<String, dynamic> buildWordCorrectBody({
     for (var i = 0; i < meaningsRaw.length; i++) {
       final meaning = _map(meaningsRaw[i]);
       final edit = i < meaningEdits.length ? meaningEdits[i] : null;
-      final definition = (edit?.definition ?? meaning['definition']?.toString() ?? '').trim();
+      final definition =
+          (edit?.definition ?? meaning['definition']?.toString() ?? '').trim();
       final wordClass = _map(meaning['wordClass']);
-      final wordClassId = wordClass['id']?.toString() ?? '';
+      final editedClass = edit?.wordClassId?.trim() ?? '';
+      final wordClassId = editedClass.isNotEmpty
+          ? editedClass
+          : (wordClass['id']?.toString() ?? '');
       final translations = <Map<String, dynamic>>[];
       final existing = meaning['translations'];
       if (existing is List && existing.isNotEmpty) {
@@ -44,7 +49,9 @@ Map<String, dynamic> buildWordCorrectBody({
           final example = _map(raw);
           final source = example['sourceSentence']?.toString().trim() ?? '';
           final sourceLanguageId = example['sourceLanguageId']?.toString();
-          if (source.isEmpty || sourceLanguageId == null || sourceLanguageId.isEmpty) {
+          if (source.isEmpty ||
+              sourceLanguageId == null ||
+              sourceLanguageId.isEmpty) {
             continue;
           }
           examples.add({
@@ -52,9 +59,11 @@ Map<String, dynamic> buildWordCorrectBody({
             'source_sentence': source,
             if (example['targetLanguageId'] != null)
               'target_language_id': example['targetLanguageId'],
-            if ((example['targetSentence']?.toString().trim().isNotEmpty ?? false))
+            if ((example['targetSentence']?.toString().trim().isNotEmpty ??
+                false))
               'target_sentence': example['targetSentence'],
-            if (example['sourceType'] != null) 'source_type': example['sourceType'],
+            if (example['sourceType'] != null)
+              'source_type': example['sourceType'],
           });
         }
       }
@@ -96,7 +105,10 @@ Map<String, dynamic> buildWordCorrectBody({
       final row = _map(raw);
       final wordId = row['wordId']?.toString();
       final relation = row['relationType']?.toString();
-      if (wordId == null || wordId.isEmpty || relation == null || relation.isEmpty) {
+      if (wordId == null ||
+          wordId.isEmpty ||
+          relation == null ||
+          relation.isEmpty) {
         continue;
       }
       related.add({'word_id': wordId, 'relation_type': relation});

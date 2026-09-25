@@ -12,6 +12,7 @@ import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../../shared/utils/image_sheet_drawer.dart';
+import '../../../../shared/utils/photo_pick_constants.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../dictionary/dictionary_router.dart';
 import '../../../profile/data/avatar_upload_service.dart';
@@ -94,7 +95,7 @@ class _ProfileBody extends ConsumerWidget {
     final avatarSrc = sessionAvatar ?? profile.avatarUrl;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -107,7 +108,7 @@ class _ProfileBody extends ConsumerWidget {
                     ? () => _pickAndUploadAvatar(context, ref)
                     : null,
                 child: _Avatar(
-                  name: profile.username,
+                  name: profile.displayName,
                   imageUrl: avatarSrc,
                   size: 80,
                   showEditBadge: isOwnProfile,
@@ -120,11 +121,27 @@ class _ProfileBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    profile.username,
+                    profile.displayName,
                     style: theme.typography.xl.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (profile.displayName != profile.username) ...[
+                    const Gap(2),
+                    Text(
+                      '@${profile.username}',
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                  if (profile.bio != null && profile.bio!.trim().isNotEmpty) ...[
+                    const Gap(8),
+                    Text(
+                      profile.bio!,
+                      style: theme.typography.sm,
+                    ),
+                  ],
                   const Gap(4),
                   Wrap(
                     spacing: 8,
@@ -289,8 +306,9 @@ class _ProfileBody extends ConsumerWidget {
     showImageSheetDrawer(
       context,
       filePicker: false,
-      maxWidth: 1024,
-      imageQuality: 85,
+      maxWidth: kAvatarPickMaxWidth,
+      maxHeight: kAvatarPickMaxHeight,
+      imageQuality: kPhotoPickQuality,
       onPicked: (file) async {
         // Sheet sumber ditutup dulu supaya activity crop tidak bentrok.
         await Future<void>.delayed(Duration.zero);
@@ -488,7 +506,7 @@ class _ErrorState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

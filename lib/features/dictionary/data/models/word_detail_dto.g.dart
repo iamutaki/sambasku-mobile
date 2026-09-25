@@ -35,6 +35,11 @@ _WordDetailDto _$WordDetailDtoFromJson(
           ?.map((e) => CategoryDto.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  usageLabels:
+      (json['usage_labels'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   pronunciations:
       (json['pronunciations'] as List<dynamic>?)
           ?.map((e) => PronunciationDto.fromJson(e as Map<String, dynamic>))
@@ -85,6 +90,7 @@ Map<String, dynamic> _$WordDetailDtoToJson(_WordDetailDto instance) =>
       'created_by': instance.createdBy,
       'meanings': instance.meanings,
       'categories': instance.categories,
+      'usage_labels': instance.usageLabels,
       'pronunciations': instance.pronunciations,
       'audios': instance.audios,
       'images': instance.images,
@@ -220,6 +226,12 @@ _WordImageDto _$WordImageDtoFromJson(Map<String, dynamic> json) =>
       url: json['url'] as String,
       altText: json['alt_text'] as String?,
       isPrimary: json['is_primary'] as bool? ?? false,
+      isVerified: json['is_verified'] as bool? ?? true,
+      contentWarnings:
+          (json['content_warnings'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$WordImageDtoToJson(_WordImageDto instance) =>
@@ -228,6 +240,8 @@ Map<String, dynamic> _$WordImageDtoToJson(_WordImageDto instance) =>
       'url': instance.url,
       'alt_text': instance.altText,
       'is_primary': instance.isPrimary,
+      'is_verified': instance.isVerified,
+      'content_warnings': instance.contentWarnings,
     };
 
 _RelatedWordDto _$RelatedWordDtoFromJson(Map<String, dynamic> json) =>

@@ -47,7 +47,7 @@ class ProfilePage extends ConsumerWidget {
             loading: () => const Center(child: FCircularProgress()),
             error: (_, _) => const Center(child: FCircularProgress()),
             data: (status) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
               children: [
                 _IdentityTileGroup(status: status),
                 const Gap(14),
@@ -111,11 +111,32 @@ class ProfilePage extends ConsumerWidget {
                         ),
                       if (canReviewQueue(status.role)) const _ReviewQueueTile(),
                       FTile(
+                        prefix: const Icon(FLucideIcons.userRoundPen),
+                        title: const Text('Edit profil'),
+                        subtitle: const Text('Ubah nama tampilan dan bio'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/edit-profile'),
+                      ),
+                      FTile(
+                        prefix: const Icon(FLucideIcons.link),
+                        title: const Text('Akun Terhubung'),
+                        subtitle: const Text('Kelola login yang terhubung ke akun'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/linked-accounts'),
+                      ),
+                      FTile(
                         prefix: const Icon(FLucideIcons.keyRound),
                         title: const Text('Ubah Password'),
                         subtitle: const Text('Ganti password akun'),
                         suffix: const Icon(FLucideIcons.chevronRight),
                         onPress: () => context.push('/change-password'),
+                      ),
+                      FTile(
+                        prefix: const Icon(FLucideIcons.userRoundX),
+                        title: const Text('Hapus akun'),
+                        subtitle: const Text('Hapus akun dan data pribadi'),
+                        suffix: const Icon(FLucideIcons.chevronRight),
+                        onPress: () => context.push('/delete-account'),
                       ),
                     ],
                   ),

@@ -346,6 +346,8 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
           'action': 'add',
           'url': dto.url,
           'provider_file_id': dto.providerFileId,
+          if (dto.provider != null) 'provider': dto.provider,
+          if (dto.sha != null) 'sha': dto.sha,
           'alt_text': dto.altText,
           'is_primary': dto.isPrimary,
         });
@@ -439,7 +441,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
       footer: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: FButton(
             onPress: _submitting
                 ? null
@@ -459,7 +461,7 @@ class _SuggestEditPageState extends ConsumerState<SuggestEditPage> {
           _prefillOnce(detail);
           final hasMeaning = detail.meanings.isNotEmpty;
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
             children: [
               Text(
                 'Ubah yang perlu saja. Admin mereview sebelum tayang.',

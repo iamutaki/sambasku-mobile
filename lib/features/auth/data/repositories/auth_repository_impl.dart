@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/cache/cache_entry.dart';
+import '../../../../core/cache/response_cache_store.dart';
 import '../../../../core/network/auth_token_storage.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/failures/auth_failure.dart';
@@ -17,10 +19,15 @@ import '../models/reset_password_dto.dart';
 import '../models/verify_email_request_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl(this._remoteDatasource, this._tokenStorage);
+  AuthRepositoryImpl(
+    this._remoteDatasource,
+    this._tokenStorage, {
+    ResponseCacheStore? responseCache,
+  }) : _responseCache = responseCache;
 
   final AuthRemoteDatasource _remoteDatasource;
   final AuthTokenStorage _tokenStorage;
+  final ResponseCacheStore? _responseCache;
 
   @override
   Future<Either<AuthFailure, void>> register({
@@ -283,6 +290,8 @@ class AuthRepositoryImpl implements AuthRepository {
       // tetap lanjut clear sesi lokal - refresh token tak lagi dimiliki client
     } finally {
       await _tokenStorage.clearTokens();
+      // Publik (reference/WOTD/feed) boleh tetap; user-scoped dihapus.
+      await _responseCache?.wipeScope(CacheScope.user);
     }
     return Either.right(null);
   }
@@ -291,7 +300,7 @@ class AuthRepositoryImpl implements AuthRepository {
   /// ramah user dari backend - jangan ditimpa)
   String _mapDioError(DioException error) {
     final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
       final message = data['message'];
       if (message is String && message.isNotEmpty) {
         if (error.response?.statusCode == 429) {
@@ -314,7 +323,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   String? _mapErrorCode(DioException error) {
     final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
       final code = data['error_code'];
       if (code is String && code.isNotEmpty) return code;
     }

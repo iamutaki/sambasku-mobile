@@ -22,6 +22,7 @@ abstract class WordSummaryDto with _$WordSummaryDto {
     String? sense,
     /// Waktu persetujuan ISO. Hanya GET /api/v1/words/latest.
     @JsonKey(name: 'approved_at') String? approvedAt,
+    @JsonKey(name: 'usage_labels') @Default([]) List<String> usageLabels,
   }) = _WordSummaryDto;
 
   factory WordSummaryDto.fromJson(Map<String, dynamic> json) =>

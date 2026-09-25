@@ -2,11 +2,46 @@ import 'package:flutter/material.dart';
 
 import '../../flavors.dart';
 
-/// Wordmark horizontal (perisai + SambasKu). Email OTP, bukan login.
-const kBrandWordmarkAsset = 'assets/icons/logo_horizontal.webp';
+const kBrandMarkDarkAsset = 'assets/icons/logo_alpha_dark.png';
+const kBrandMarkLightAsset = 'assets/icons/logo_alpha_light.png';
+const kBrandWordmarkDarkAsset = 'assets/icons/logo_horizontal_dark.png';
+const kBrandWordmarkLightAsset = 'assets/icons/logo_horizontal_light.png';
+
+/// Logo stacked (perisai + wordmark) adaptif terang/gelap.
+/// Login, onboarding, about. Teks "SambasKu" sudah di aset.
+/// Gelap: [kBrandMarkDarkAsset]. Terang: [kBrandMarkLightAsset].
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, this.size = 168, this.frameBuilder});
+
+  final double size;
+  final ImageFrameBuilder? frameBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Image.asset(
+      dark ? kBrandMarkDarkAsset : kBrandMarkLightAsset,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      frameBuilder: frameBuilder,
+      errorBuilder: (context, error, stackTrace) {
+        final fallback = Icon(
+          Icons.menu_book_rounded,
+          size: size * 0.4,
+          color: Colors.grey,
+        );
+        if (frameBuilder != null) {
+          return frameBuilder!(context, fallback, 0, true);
+        }
+        return fallback;
+      },
+    );
+  }
+}
 
 /// Logo persegi per flavor (`logo.png` / `logo.staging.png`), radius 15.
-/// Login, onboarding, about. Staging: pita STG di aset.
+/// Splash. Staging: pita STG di aset.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({
     super.key,
@@ -56,21 +91,24 @@ class BrandLogo extends StatelessWidget {
   }
 }
 
-/// Wordmark landscape. Tanpa ClipRRect persegi — rasio 734×212.
+/// Wordmark landscape adaptif (putih di gelap / navy-gold di terang).
 class BrandWordmark extends StatelessWidget {
-  const BrandWordmark({super.key, this.frameBuilder});
+  const BrandWordmark({super.key, this.height = 32, this.frameBuilder});
 
+  final double height;
   final ImageFrameBuilder? frameBuilder;
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Image.asset(
-      kBrandWordmarkAsset,
+      dark ? kBrandWordmarkDarkAsset : kBrandWordmarkLightAsset,
+      height: height,
       fit: BoxFit.contain,
       frameBuilder: frameBuilder,
       errorBuilder: (context, error, stackTrace) => Icon(
         Icons.menu_book_rounded,
-        size: 48,
+        size: height,
         color: Colors.grey.shade400,
       ),
     );

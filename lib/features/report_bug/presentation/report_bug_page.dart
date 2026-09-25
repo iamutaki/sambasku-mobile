@@ -140,12 +140,10 @@ class ReportBugPage extends HookConsumerWidget {
       ),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
             if (isGuest) ...[
-              const FAlert(
-                title: Text('Laporan kamu dikirim tanpa akun'),
-              ),
+              const FAlert(title: Text('Laporan kamu dikirim sebagai Anonim')),
               const Gap(12),
             ],
             FTextField(
@@ -296,8 +294,7 @@ String _mapDio(DioException error) {
   return switch (error.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
-    DioExceptionType.receiveTimeout =>
-      'Koneksi lambat, coba lagi',
+    DioExceptionType.receiveTimeout => 'Koneksi lambat, coba lagi',
     DioExceptionType.connectionError => 'Tidak ada koneksi internet',
     _ => 'Terjadi kesalahan, coba lagi',
   };

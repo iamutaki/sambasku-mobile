@@ -32,6 +32,12 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     state = state.copyWith(clearFailure: true, clearErrorMessage: true);
   }
 
+  /// Setelah sukses + "Tambah lagi": bersihkan result/search-miss supaya
+  /// form kosong siap usulan berikutnya tanpa navigate.
+  void resetForAnother() {
+    state = const SubmitWordState();
+  }
+
   Future<void> submit({
     required String lemma,
     required String languageId,
@@ -39,6 +45,7 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],
@@ -66,6 +73,7 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
       dialectId: dialectId,
       wordType: wordType,
       categoryIds: categoryIds,
+      usageLabels: usageLabels,
       notes: notes,
       spellingVariants: spellingVariants,
       relatedWords: relatedWords,

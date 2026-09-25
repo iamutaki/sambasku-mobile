@@ -241,7 +241,7 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Text(
-                'Ketik lemma Indonesia - hasil muncul otomatis. Pilih satu untuk mengisi form.',
+                'Ketik kata Indonesia - hasil muncul otomatis. Pilih satu untuk mengisi form.',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.typography.sm.copyWith(
@@ -308,7 +308,7 @@ class _KbbiDefinitionSheetBodyState extends State<_KbbiDefinitionSheetBody> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Text(
-                          'Ketik lemma untuk mencari di KBBI',
+                          'Ketik kata untuk mencari di KBBI',
                           textAlign: TextAlign.center,
                           style: theme.typography.sm.copyWith(
                             color: theme.colors.mutedForeground,

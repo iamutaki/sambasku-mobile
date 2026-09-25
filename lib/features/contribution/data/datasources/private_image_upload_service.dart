@@ -9,7 +9,7 @@ import '../datasources/imagekit_uploader.dart';
 import '../models/create_word_image_dto.dart';
 
 /// Upload bukti ImageKit (folder privat). Dipakai pengajuan verifikator.
-/// Jangan dipakai untuk gambar kata (itu WordImageUploadService → GitHub).
+/// Gambar kata kontributor: [WordImageUploadService] → ImageKit `/words`.
 class PrivateImageUploadService {
   PrivateImageUploadService(this._remote, this._uploader);
 

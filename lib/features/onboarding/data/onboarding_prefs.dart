@@ -24,4 +24,11 @@ class OnboardingPrefs {
     await p.setBool(prefKey, true);
     done = true;
   }
+
+  /// Flag memori dulu: redirect membaca [done] secara sinkron.
+  static Future<void> reset([SharedPreferences? prefs]) async {
+    done = false;
+    final p = prefs ?? await SharedPreferences.getInstance();
+    await p.setBool(prefKey, false);
+  }
 }

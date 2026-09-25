@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../domain/repositories/dictionary_repository.dart';
 import '../datasources/dictionary_remote_datasource.dart';
@@ -12,5 +13,8 @@ DictionaryRemoteDatasource dictionaryRemoteDatasource(Ref ref) =>
     DictionaryRemoteDatasource(ref.watch(dioProvider));
 
 @riverpod
-DictionaryRepository dictionaryRepository(Ref ref) =>
-    DictionaryRepositoryImpl(ref.watch(dictionaryRemoteDatasourceProvider));
+DictionaryRepository dictionaryRepository(Ref ref) => DictionaryRepositoryImpl(
+  ref.watch(dictionaryRemoteDatasourceProvider),
+  dio: ref.watch(dioProvider),
+  cache: ref.watch(cachedJsonClientProvider),
+);

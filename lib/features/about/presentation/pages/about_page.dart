@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/widgets/brand_logo.dart';
-import '../../../../flavors.dart';
 
 /// Halaman About: identitas app, lalu tab Tentang dan Tim Kami.
 class AboutPage extends StatelessWidget {
@@ -38,18 +37,8 @@ class AboutPage extends StatelessWidget {
             return Column(
               children: [
                 const Gap(4),
-                const BrandLogo(size: 72),
+                const BrandMark(size: 112),
                 const Gap(8),
-                Text(
-                  F.title,
-                  textAlign: TextAlign.center,
-                  style: theme.typography.lg.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                    color: theme.colors.foreground,
-                  ),
-                ),
-                const Gap(2),
                 Text(
                   'Kamus Digital Sambas-Indonesia',
                   textAlign: TextAlign.center,

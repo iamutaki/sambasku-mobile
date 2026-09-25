@@ -14,6 +14,11 @@ final class _Env {
 
   static const String? apiHostProduction = 'https://api.sambasku.com';
 
+  static const String? apiHostFallbackProduction = 'https://deno.sambasku.com';
+
+  static const String? apiHostFallback2Production =
+      'https://render.sambasku.com';
+
   static const String? googleWebClientIdStaging =
       '497143924506-rs7qao9as5jf95r5m1mgp51boc6rdrv7.apps.googleusercontent.com';
 
@@ -23,4 +28,9 @@ final class _Env {
   static const String? facebookAppIdStaging = '1381737407319537';
 
   static const String? facebookAppIdProduction = '2004759406907006';
+
+  static const String? webAppUrlStaging =
+      'https://sambasku-web-staging.iamutaki.com';
+
+  static const String? webAppUrlProduction = 'https://sambasku.com';
 }

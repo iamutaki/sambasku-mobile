@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../domain/entities/bookmark_item.dart';
@@ -44,7 +45,7 @@ class _GuestState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -94,7 +95,7 @@ class _BookmarkList extends ConsumerWidget {
       final error = async.error!;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -143,7 +144,7 @@ class _BookmarkList extends ConsumerWidget {
               SizedBox(
                 height: constraints.maxHeight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -183,7 +184,7 @@ class _BookmarkList extends ConsumerWidget {
       onRefresh: () => _refresh(ref),
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+        padding: const EdgeInsets.fromLTRB(0, 6, 0, 24),
         itemCount: state.items.length + (state.hasMore ? 1 : 0),
         separatorBuilder: (_, _) => const Gap(6),
         itemBuilder: (context, index) {
@@ -229,6 +230,9 @@ class _BookmarkRow extends ConsumerWidget {
         children: [
           if (item.word.isVerified) ...[
             const VerifiedBadgeIcon(size: 16),
+            const Gap(4),
+          ] else if (!unavailable) ...[
+            const PendingReviewBadgeIcon(size: 16),
             const Gap(4),
           ],
           _RemoveButton(wordId: item.wordId),

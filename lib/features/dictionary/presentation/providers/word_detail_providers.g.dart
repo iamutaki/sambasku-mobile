@@ -8,9 +8,10 @@ part of 'word_detail_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+/// Load detail kata; [wordIdOrLemma] boleh ULID atau lemma (deep link web).
+/// Error object = [DictionaryFailure] (termasuk 404).
 ///
-/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// keepAlive: family per kunci tetap di cache saat pop detail → buka
 /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
 /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
 /// `.future` supaya data segar.
@@ -18,9 +19,10 @@ part of 'word_detail_providers.dart';
 @ProviderFor(wordDetail)
 final wordDetailProvider = WordDetailFamily._();
 
-/// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+/// Load detail kata; [wordIdOrLemma] boleh ULID atau lemma (deep link web).
+/// Error object = [DictionaryFailure] (termasuk 404).
 ///
-/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// keepAlive: family per kunci tetap di cache saat pop detail → buka
 /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
 /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
 /// `.future` supaya data segar.
@@ -33,9 +35,10 @@ final class WordDetailProvider
           FutureOr<WordDetail>
         >
     with $FutureModifier<WordDetail>, $FutureProvider<WordDetail> {
-  /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+  /// Load detail kata; [wordIdOrLemma] boleh ULID atau lemma (deep link web).
+  /// Error object = [DictionaryFailure] (termasuk 404).
   ///
-  /// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+  /// keepAlive: family per kunci tetap di cache saat pop detail → buka
   /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
   /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
   /// `.future` supaya data segar.
@@ -82,11 +85,12 @@ final class WordDetailProvider
   }
 }
 
-String _$wordDetailHash() => r'49559f87b2469f1584d0b6bae9a5cd6f52746bfe';
+String _$wordDetailHash() => r'42dcb13eb996b23cd2e75a0a23467a76b99cd39f';
 
-/// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+/// Load detail kata; [wordIdOrLemma] boleh ULID atau lemma (deep link web).
+/// Error object = [DictionaryFailure] (termasuk 404).
 ///
-/// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+/// keepAlive: family per kunci tetap di cache saat pop detail → buka
 /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
 /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
 /// `.future` supaya data segar.
@@ -102,15 +106,16 @@ final class WordDetailFamily extends $Family
         isAutoDispose: false,
       );
 
-  /// Load detail kata; error object = [DictionaryFailure] (termasuk 404).
+  /// Load detail kata; [wordIdOrLemma] boleh ULID atau lemma (deep link web).
+  /// Error object = [DictionaryFailure] (termasuk 404).
   ///
-  /// keepAlive: family per `wordId` tetap di cache saat pop detail → buka
+  /// keepAlive: family per kunci tetap di cache saat pop detail → buka
   /// lagi / navigasi antar kata yang sudah pernah dibuka tidak refetch.
   /// Pull-to-refresh di halaman detail memanggil `invalidate` + await
   /// `.future` supaya data segar.
 
-  WordDetailProvider call(String wordId) =>
-      WordDetailProvider._(argument: wordId, from: this);
+  WordDetailProvider call(String wordIdOrLemma) =>
+      WordDetailProvider._(argument: wordIdOrLemma, from: this);
 
   @override
   String toString() => r'wordDetailProvider';

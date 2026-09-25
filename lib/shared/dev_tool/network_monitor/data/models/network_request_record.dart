@@ -21,6 +21,8 @@ abstract class NetworkRequestRecord with _$NetworkRequestRecord {
     String? responseBody,
     String? errorMessage,
     @Default(false) bool isError,
+    /// Sumber L1: `HIT` | `STALE` | `DEGRADED`. Null = request jaringan.
+    String? cacheSource,
   }) = _NetworkRequestRecord;
 
   factory NetworkRequestRecord.fromJson(Map<String, dynamic> json) =>

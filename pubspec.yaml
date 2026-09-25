@@ -32,6 +32,8 @@ dependencies:
   fpdart: ^1.1.0
   package_info_plus: ^10.2.1
   image_picker: ^1.2.3
+  image_picker_android: ^0.8.13+23
+  image_picker_platform_interface: ^2.11.1
   permission_handler: ^13.0.2
   path: ^1.9.1
   path_provider: ^2.1.6
@@ -50,6 +52,8 @@ dependencies:
   just_audio: ^0.9.46
   maplibre_gl: ^0.27.1
   firebase_analytics: ^12.6.0
+  hive_ce: ^2.20.0
+  hive_ce_flutter: ^2.3.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

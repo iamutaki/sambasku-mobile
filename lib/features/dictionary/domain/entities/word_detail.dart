@@ -1,3 +1,51 @@
+import '../../../../shared/utils/public_account_name.dart';
+
+/// Closed enum `usage_labels` (sinkron API / console).
+const kUsageLabels = <String>[
+  'kasar',
+  'tabu',
+  'informal',
+  'halus',
+  'seksual',
+  'diskriminatif',
+];
+
+/// Register: gaya/pantangan berbahasa.
+const kRegisterUsageLabels = <String>['kasar', 'tabu', 'informal', 'halus'];
+
+/// Peringatan: sensitivitas isi makna.
+const kWarningUsageLabels = <String>['seksual', 'diskriminatif'];
+
+/// Label UI (ID) untuk kode `usage_labels`.
+String usageLabelLabel(String code) => switch (code) {
+  'kasar' => 'Kasar',
+  'tabu' => 'Tabu',
+  'informal' => 'Informal',
+  'halus' => 'Halus',
+  'seksual' => 'Seksual',
+  'diskriminatif' => 'Diskriminatif',
+  _ => code,
+};
+
+/// Badge lebih menonjol: kasar/tabu/seksual/diskriminatif.
+bool isProminentUsageLabel(String code) =>
+    code == 'kasar' ||
+    code == 'tabu' ||
+    code == 'seksual' ||
+    code == 'diskriminatif';
+
+/// `halus` dan `kasar` saling bertentangan.
+bool hasConflictingUsageLabels(Iterable<String> labels) {
+  var hasHalus = false;
+  var hasKasar = false;
+  for (final code in labels) {
+    if (code == 'halus') hasHalus = true;
+    if (code == 'kasar') hasKasar = true;
+    if (hasHalus && hasKasar) return true;
+  }
+  return false;
+}
+
 /// Detail kata lengkap (domain) - hasil GET /api/v1/words/:id.
 class WordDetail {
   const WordDetail({
@@ -15,6 +63,7 @@ class WordDetail {
     this.createdBy,
     this.meanings = const [],
     this.categories = const [],
+    this.usageLabels = const [],
     this.pronunciations = const [],
     this.audios = const [],
     this.images = const [],
@@ -37,6 +86,9 @@ class WordDetail {
   final WordVerifier? createdBy;
   final List<WordMeaning> meanings;
   final List<WordCategory> categories;
+
+  /// Kode register & peringatan (`usage_labels` API).
+  final List<String> usageLabels;
   final List<WordPronunciation> pronunciations;
   final List<WordAudio> audios;
   final List<WordImage> images;
@@ -54,13 +106,13 @@ class WordDetail {
   String? get creatorAttributionLabel {
     final username = createdBy?.username;
     if (username == null || username.isEmpty) return null;
-    return 'Dibuat oleh $username';
+    return 'Dibuat oleh ${displayPublicUsername(username)}';
   }
 
   String? get verifierAttributionLabel {
     final username = verifiedBy?.username;
     if (username == null || username.isEmpty) return null;
-    return 'Diverifikasi oleh $username';
+    return 'Diverifikasi oleh ${displayPublicUsername(username)}';
   }
 
   /// Satu kalimat kalau orangnya sama, supaya nama tidak tertulis dua kali.
@@ -77,7 +129,7 @@ class WordDetail {
     if (!authoredAndVerifiedBySamePerson) return null;
     final name = verifiedBy?.username ?? createdBy?.username;
     if (name == null || name.isEmpty) return null;
-    return 'Dibuat dan diverifikasi oleh $name';
+    return 'Dibuat dan diverifikasi oleh ${displayPublicUsername(name)}';
   }
 
   /// Orang yang sama dan perannya tim verifikator, bukan kontributor.
@@ -227,12 +279,28 @@ class WordImage {
     required this.url,
     this.altText,
     required this.isPrimary,
+    this.isVerified = true,
+    this.contentWarnings = const [],
   });
 
   final String id;
   final String url;
   final String? altText;
   final bool isPrimary;
+
+  /// false jika API mengembalikan is_verified: false (gambar staging belum
+  /// disetujui). Default true agar payload lama yang tidak menyertakan
+  /// field ini tetap berfungsi normal.
+  final bool isVerified;
+
+  /// Peringatan konten per gambar. V1: 'kekerasan'. Kosong = aman.
+  final List<String> contentWarnings;
+
+  /// Gambar belum terverifikasi; tampilkan asset lokal, bukan URL asli.
+  bool get isPendingReview => !isVerified;
+
+  /// Gambar mengandung konten kekerasan; blur sampai user konfirmasi.
+  bool get hasViolenceWarning => contentWarnings.contains('kekerasan');
 }
 
 class RelatedWord {

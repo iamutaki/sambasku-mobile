@@ -42,7 +42,7 @@ final class SubmitWordNotifierProvider
 }
 
 String _$submitWordNotifierHash() =>
-    r'b42b121001b4623421390d6cae1cc8ef753e8b2b';
+    r'91811661f83af0c2a8f0574c577c9d7094c51db5';
 
 abstract class _$SubmitWordNotifier extends $Notifier<SubmitWordState> {
   SubmitWordState build();

@@ -70,7 +70,7 @@ class AuthStatusNotifier extends _$AuthStatusNotifier {
     state = AsyncData(current.copyWith(isLoggingOut: true));
 
     // Detach FCM dulu (butuh access token masih valid). Jika access sudah
-    // expired, PATCH /device/revoke dapat 401 — AuthInterceptor skip refresh
+    // expired, PATCH /device/revoke dapat 401 - AuthInterceptor skip refresh
     // untuk path itu supaya tidak infinite loop.
     await DeviceRegistrationHolder.instance?.revokeBestEffort();
 

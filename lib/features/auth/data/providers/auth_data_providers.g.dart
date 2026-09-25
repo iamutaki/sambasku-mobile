@@ -96,7 +96,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'61a979c6ea9bed12778c02c6ba07969972cf3391';
+String _$authRepositoryHash() => r'2d9a92cf8fc43906536da28a7af0347a09eb97af';
 
 @ProviderFor(googleSignInPort)
 final googleSignInPortProvider = GoogleSignInPortProvider._();

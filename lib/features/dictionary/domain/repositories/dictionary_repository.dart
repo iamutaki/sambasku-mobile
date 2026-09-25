@@ -18,8 +18,14 @@ abstract interface class DictionaryRepository {
   /// Detail kata by id. 404 WORD_NOT_FOUND → Failure.
   Future<Either<DictionaryFailure, WordDetail>> getWordById(String id);
 
+  /// Detail kata published by lemma (URL publik web / deep link).
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(String lemma);
+
   /// Kata hari ini. Right(null) = korpus published kosong (bukan error).
-  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay();
+  /// [forceRefresh] = hard miss L1 (pull-to-refresh).
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay({
+    bool forceRefresh = false,
+  });
 
   /// Daftar semua kata A-Z (18-api-list-words.md). Cursor komposit
   /// opaque; [q] = filter server-side (bukan pencarian - tanpa
@@ -31,8 +37,10 @@ abstract interface class DictionaryRepository {
   });
 
   /// Feed beranda: kata published urut waktu persetujuan.
+  /// [forceRefresh] = hard miss L1 untuk halaman pertama (pull-to-refresh).
   Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
     required int limit,
     String? cursor,
+    bool forceRefresh = false,
   });
 }

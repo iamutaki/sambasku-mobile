@@ -18,6 +18,7 @@ class VoteButtons extends StatefulWidget {
     required this.onVote,
     this.busy = false,
     this.compact = false,
+    this.upvoteOnly = false,
   });
 
   final int upvotes;
@@ -32,6 +33,9 @@ class VoteButtons extends StatefulWidget {
 
   final bool busy;
   final bool compact;
+
+  /// Hanya tombol upvote (mis. pertanyaan bantuan terjemahan).
+  final bool upvoteOnly;
 
   @override
   State<VoteButtons> createState() => _VoteButtonsState();
@@ -77,18 +81,20 @@ class _VoteButtonsState extends State<VoteButtons> {
             label: 'Upvote',
             onTap: () => _vote(1),
           ),
-          Gap(widget.compact ? 6 : 10),
-          _SideButton(
-            icon: FLucideIcons.arrowBigDown,
-            count: widget.downvotes,
-            active: widget.myVote == -1,
-            activeColor: enabled,
-            idleColor: idle,
-            compact: widget.compact,
-            disabled: _disabled,
-            label: 'Downvote',
-            onTap: () => _vote(-1),
-          ),
+          if (!widget.upvoteOnly) ...[
+            Gap(widget.compact ? 6 : 10),
+            _SideButton(
+              icon: FLucideIcons.arrowBigDown,
+              count: widget.downvotes,
+              active: widget.myVote == -1,
+              activeColor: enabled,
+              idleColor: idle,
+              compact: widget.compact,
+              disabled: _disabled,
+              label: 'Downvote',
+              onTap: () => _vote(-1),
+            ),
+          ],
         ],
       ),
     );

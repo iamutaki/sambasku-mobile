@@ -1,6 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/cache/cache_entry.dart';
+import '../../../../core/cache/cache_key.dart';
+import '../../../../core/cache/cached_json_client.dart';
+import '../../../../core/models/api_response.dart';
 import '../../domain/entities/word_detail.dart';
 import '../../domain/entities/word_of_day.dart';
 import '../../domain/entities/word_summary.dart';
@@ -9,11 +13,19 @@ import '../../domain/repositories/dictionary_repository.dart';
 import '../datasources/dictionary_remote_datasource.dart';
 import '../models/word_audio_dto.dart';
 import '../models/word_detail_dto.dart';
+import '../models/word_summary_dto.dart';
 
 class DictionaryRepositoryImpl implements DictionaryRepository {
-  DictionaryRepositoryImpl(this._remoteDatasource);
+  DictionaryRepositoryImpl(
+    this._remoteDatasource, {
+    Dio? dio,
+    CachedJsonClient? cache,
+  }) : _dio = dio,
+       _cache = cache;
 
   final DictionaryRemoteDatasource _remoteDatasource;
+  final Dio? _dio;
+  final CachedJsonClient? _cache;
 
   @override
   Future<Either<DictionaryFailure, WordSearchPage>> searchWords({
@@ -63,6 +75,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   isVerified: dto.isVerified,
                   matchedTranslation: dto.matchedTranslation,
                   sense: dto.sense,
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -124,6 +137,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   status: dto.status,
                   isVerified: dto.isVerified,
                   sense: dto.sense,
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -144,12 +158,55 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
   Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
     required int limit,
     String? cursor,
+    bool forceRefresh = false,
   }) async {
     try {
-      final response = await _remoteDatasource.listLatestWords({
+      final query = <String, dynamic>{
         'limit': limit,
-        'cursor': ?cursor,
-      });
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      };
+      final cache = _cache;
+      final dio = _dio;
+      late final ApiResponse<List<WordSummaryDto>> response;
+      if (cache != null && dio != null) {
+        final key = buildCacheKey(
+          method: 'GET',
+          path: '/api/v1/words/latest',
+          query: query,
+        );
+        // Halaman dengan cursor: TTL feed, tapi hard miss hanya page-1
+        // lewat forceRefresh.
+        final envelope = await cache.getOrFetch(
+          key: key,
+          cacheClass: CacheClass.feedList,
+          forceRefresh: forceRefresh && (cursor == null || cursor.isEmpty),
+          fetch: () async {
+            final resp = await dio.get<dynamic>(
+              '/api/v1/words/latest',
+              queryParameters: query,
+            );
+            final body = resp.data;
+            if (body is! Map) {
+              throw StateError('Envelope latest tidak valid');
+            }
+            return Map<String, dynamic>.from(body);
+          },
+        );
+        response = ApiResponse<List<WordSummaryDto>>.fromJson(
+          envelope,
+          (Object? j) {
+            if (j is! List) return <WordSummaryDto>[];
+            return j
+                .whereType<Map>()
+                .map(
+                  (e) => WordSummaryDto.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList();
+          },
+        );
+      } else {
+        response = await _remoteDatasource.listLatestWords(query);
+      }
 
       if (response.success == false) {
         return Either.left(
@@ -186,6 +243,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
                   approvedAt: dto.approvedAt == null
                       ? null
                       : DateTime.tryParse(dto.approvedAt!),
+                  usageLabels: List<String>.from(dto.usageLabels),
                 ),
               )
               .toList(),
@@ -241,20 +299,96 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
   }
 
   @override
-  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async {
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(
+    String lemma,
+  ) async {
     try {
-      final response = await _remoteDatasource.getWordOfDay();
+      final response = await _remoteDatasource.getWordByLemma(lemma);
 
       if (response.success == false) {
         return Either.left(
           DictionaryFailure(
-            response.message ?? 'Gagal memuat kata hari ini',
+            response.message ?? 'Kata tidak ditemukan',
             errorCode: response.errorCode,
           ),
         );
       }
 
       final dto = response.data;
+      if (dto == null) {
+        return Either.left(
+          DictionaryFailure(
+            response.message ?? 'Kata tidak ditemukan',
+            errorCode: response.errorCode ?? 'WORD_NOT_FOUND',
+          ),
+        );
+      }
+
+      return Either.right(_mapDetail(dto));
+    } on DioException catch (error) {
+      return Either.left(
+        _mapDio(
+          error,
+          fallback: 'Gagal memuat detail kata',
+          notFoundMessage: 'Kata tidak ditemukan',
+        ),
+      );
+    } catch (error) {
+      return Either.left(DictionaryFailure(error.toString()));
+    }
+  }
+
+  @override
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay({
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final cache = _cache;
+      final dio = _dio;
+      WordDetailDto? dto;
+      String? errorMessage;
+      String? errorCode;
+      var success = true;
+
+      if (cache != null && dio != null) {
+        final key = buildCacheKey(method: 'GET', path: '/api/v1/words/today');
+        final envelope = await cache.getOrFetch(
+          key: key,
+          cacheClass: CacheClass.wordOfDay,
+          forceRefresh: forceRefresh,
+          fetch: () async {
+            final resp = await dio.get<dynamic>('/api/v1/words/today');
+            final body = resp.data;
+            if (body is! Map) {
+              throw StateError('Envelope word-of-day tidak valid');
+            }
+            return Map<String, dynamic>.from(body);
+          },
+        );
+        success = envelope['success'] != false;
+        errorMessage = envelope['message'] as String?;
+        errorCode = envelope['error_code'] as String?;
+        final raw = envelope['data'];
+        if (raw is Map) {
+          dto = WordDetailDto.fromJson(Map<String, dynamic>.from(raw));
+        }
+      } else {
+        final response = await _remoteDatasource.getWordOfDay();
+        success = response.success != false;
+        errorMessage = response.message;
+        errorCode = response.errorCode;
+        dto = response.data;
+      }
+
+      if (!success) {
+        return Either.left(
+          DictionaryFailure(
+            errorMessage ?? 'Gagal memuat kata hari ini',
+            errorCode: errorCode,
+          ),
+        );
+      }
+
       if (dto == null) return Either.right(null);
 
       return Either.right(
@@ -335,6 +469,7 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
     categories: dto.categories
         .map((c) => WordCategory(id: c.id, name: c.name))
         .toList(),
+    usageLabels: List<String>.from(dto.usageLabels),
     pronunciations: dto.pronunciations
         .map((p) => WordPronunciation(notation: p.notation, value: p.value))
         .toList(),
@@ -346,6 +481,8 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             url: i.url,
             altText: i.altText,
             isPrimary: i.isPrimary,
+            isVerified: i.isVerified,
+            contentWarnings: List<String>.from(i.contentWarnings),
           ),
         )
         .toList(),

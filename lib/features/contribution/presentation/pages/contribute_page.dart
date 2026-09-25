@@ -6,9 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/cache/cache_entry.dart';
+import '../../../../core/cache/cache_key.dart';
+import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../dictionary/domain/entities/word_detail.dart';
 import '../../../my_contributions/presentation/providers/my_contributions_providers.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
@@ -62,12 +66,30 @@ class _MeaningDraft {
 
 class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _lemmaCtrl;
+  late final FocusNode _lemmaFocus;
+  late final TextEditingController _standardTranslationCtrl;
   late final List<_MeaningDraft> _meanings;
 
+  /// false = mode standar (lemma + terjemahan). true = form lengkap.
+  bool _advanced = false;
   String? _dialectId;
   bool _dialectSeeded = false;
-  /// API `word_type`: word | idiom | peribahasa | ungkapan
+
+  /// Id kelas kata `umum` setelah referensi termuat. Dipakai makna baru.
+  String? _umumWordClassId;
+
+  /// Definisi dan kelas kata dari pilihan KBBI. Kosong = entri tanpa definisi.
+  String _standardDefinition = '';
+  String? _standardWordClassId;
+  String? _standardKbbiLemma;
+  bool _applyingKbbiPick = false;
+
+  /// API `word_type`: word | idiom | peribahasa | ungkapan. Default kata.
   String _wordType = 'word';
+
+  /// Register & peringatan (`usage_labels`). Default kosong.
+  final Set<String> _usageLabels = {};
+
   ContributeRelationsDraft _relations = const ContributeRelationsDraft();
   List<ContributeImageSlot> _images = const [];
 
@@ -77,6 +99,10 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final isTranslationMiss = widget.initialSearchIn == 'translation';
     _lemmaCtrl = TextEditingController(
       text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
+    );
+    _lemmaFocus = FocusNode();
+    _standardTranslationCtrl = TextEditingController(
+      text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
     );
     _meanings = [
       _MeaningDraft(
@@ -101,6 +127,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             searchMissId: widget.initialSearchMissId,
           );
       _lemmaCtrl.addListener(_onFieldEdited);
+      _standardTranslationCtrl.addListener(_onStandardTranslationEdited);
       for (final m in _meanings) {
         m.defCtrl.addListener(_onFieldEdited);
         m.trCtrl.addListener(_onFieldEdited);
@@ -112,9 +139,23 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     ref.read(submitWordProvider.notifier).clearFieldErrors();
   }
 
+  void _onStandardTranslationEdited() {
+    _onFieldEdited();
+    if (_applyingKbbiPick) return;
+    final text = _standardTranslationCtrl.text.trim();
+    if (_standardKbbiLemma == null || text == _standardKbbiLemma) return;
+    setState(() {
+      _standardDefinition = '';
+      _standardWordClassId = null;
+      _standardKbbiLemma = null;
+    });
+  }
+
   @override
   void dispose() {
     _lemmaCtrl.dispose();
+    _lemmaFocus.dispose();
+    _standardTranslationCtrl.dispose();
     for (final m in _meanings) {
       m.dispose();
     }
@@ -143,6 +184,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     _onFieldEdited();
     setState(() {
       final draft = _MeaningDraft();
+      draft.wordClassId = _umumWordClassId;
       draft.defCtrl.addListener(_onFieldEdited);
       draft.trCtrl.addListener(_onFieldEdited);
       _meanings.add(draft);
@@ -155,6 +197,39 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     setState(() {
       final removed = _meanings.removeAt(index);
       removed.dispose();
+    });
+  }
+
+  /// Form kosong di halaman yang sama setelah "Tambah lagi".
+  void _resetFormForAnother() {
+    for (final m in _meanings) {
+      m.defCtrl.removeListener(_onFieldEdited);
+      m.trCtrl.removeListener(_onFieldEdited);
+      m.dispose();
+    }
+    _meanings.clear();
+    final draft = _MeaningDraft();
+    draft.wordClassId = _umumWordClassId;
+    draft.defCtrl.addListener(_onFieldEdited);
+    draft.trCtrl.addListener(_onFieldEdited);
+    _meanings.add(draft);
+
+    _lemmaCtrl.clear();
+    _standardTranslationCtrl.clear();
+    setState(() {
+      _advanced = false;
+      _standardDefinition = '';
+      _standardWordClassId = null;
+      _standardKbbiLemma = null;
+      _applyingKbbiPick = false;
+      _wordType = 'word';
+      _usageLabels.clear();
+      _relations = const ContributeRelationsDraft();
+      _images = const [];
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _lemmaFocus.requestFocus();
     });
   }
 
@@ -192,6 +267,34 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       }
     }
 
+    // Isi kelas kata `umum` pada makna yang belum dipilih user.
+    final wordClassItems = wordClassesAsync.value;
+    final umum = wordClassItems
+        ?.where((e) => e.code.toLowerCase() == 'umum')
+        .firstOrNull;
+    if (umum != null &&
+        _meanings.any((m) => m.wordClassId == null || m.wordClassId!.isEmpty)) {
+      final umumId = umum.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        var changed = _umumWordClassId != umumId;
+        for (final m in _meanings) {
+          if (m.wordClassId == null || m.wordClassId!.isEmpty) {
+            m.wordClassId = umumId;
+            changed = true;
+          }
+        }
+        if (!changed) return;
+        setState(() => _umumWordClassId = umumId);
+      });
+    } else if (umum != null && _umumWordClassId != umum.id) {
+      final umumId = umum.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _umumWordClassId == umumId) return;
+        setState(() => _umumWordClassId = umumId);
+      });
+    }
+
     final state = ref.watch(submitWordProvider);
     final notifier = ref.read(submitWordProvider.notifier);
     final theme = context.theme;
@@ -221,7 +324,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('Usul Kata'),
+        title: const Text('Usulkan'),
         prefixes: [
           FHeaderAction.back(
             onPress: () => context.canPop() ? context.pop() : context.go('/'),
@@ -231,7 +334,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       footer: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -255,7 +358,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         ),
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
         children: [
           Text(
             isAuth
@@ -266,129 +369,253 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ),
           ),
           const Gap(12),
+          const _FieldCaption('Cara mengisi'),
+          const Gap(6),
+          _ContributeModeChips(
+            advanced: _advanced,
+            onChanged: (advanced) {
+              _onFieldEdited();
+              setState(() {
+                final turningOn = advanced && !_advanced;
+                _advanced = advanced;
+                if (!turningOn) return;
+                final text = _standardTranslationCtrl.text.trim();
+                final first = _meanings.first;
+                if (first.modePicked) return;
+                if (text.isNotEmpty) {
+                  first.wantPadanan = true;
+                  first.trCtrl.text = text;
+                }
+                final definition = _standardDefinition.trim();
+                if (definition.isNotEmpty) {
+                  first.wantDefinition = true;
+                  first.defCtrl.text = definition;
+                }
+                if (_standardWordClassId != null) {
+                  first.wordClassId = _standardWordClassId;
+                }
+              });
+            },
+          ),
+          const Gap(12),
 
           FTextField(
             control: FTextFieldControl.managed(controller: _lemmaCtrl),
-            label: const Text('Lemma *'),
-            hint: 'Contoh: kata',
+            focusNode: _lemmaFocus,
+            label: const Text('Kata / ungkapan Sambas *'),
+            hint: 'Isi kata, peribahasa, atau ungkapan',
             textInputAction: TextInputAction.next,
           ),
           _inlineError(notifier.errorFor('lemma')),
-          const Gap(12),
 
-          const _FieldCaption('Jenis Entri'),
-          const Gap(6),
-          _WordTypeChips(
-            value: _wordType,
-            onChanged: (v) {
-              _onFieldEdited();
-              setState(() => _wordType = v);
-            },
-          ),
-          _inlineError(notifier.errorFor('word_type')),
-          const Gap(8),
-
-          const _FieldCaption('Dialek'),
-          if (sambasLanguageId == null)
-            const _SelectFieldSkeleton()
-          else
-            dialectsAsync.when(
-              loading: () => const _SelectFieldSkeleton(),
-              error: (e, _) => _BuildReferenceError(
-                message: 'Gagal muat dialek',
-                onRetry: () => ref.invalidate(
-                  _referenceDialectsProvider(sambasLanguageId),
+          if (!_advanced) ...[
+            const Gap(12),
+            FTextField(
+              control: FTextFieldControl.managed(
+                controller: _standardTranslationCtrl,
+              ),
+              label: const Text('Terjemahan Indonesia *'),
+              hint: 'Satu kata/frasa setara di Indonesia',
+              description: const Text(
+                'Tekan icon buku untuk mencari definisi di KBBI',
+              ),
+              textInputAction: TextInputAction.done,
+              suffixBuilder: (context, style, _) => Padding(
+                padding: style.clearButtonPadding,
+                child: FButton.icon(
+                  style: style.clearButtonStyle,
+                  onPress: _openStandardKbbiSheet,
+                  child: Icon(
+                    FLucideIcons.bookOpen,
+                    semanticLabel: 'Ambil dari KBBI',
+                  ),
                 ),
               ),
-              data: (items) {
-                final selected = _dialectId == null
-                    ? null
-                    : items.where((e) => e.id == _dialectId).firstOrNull;
-                return _SelectField(
-                  selectedLabel: selected?.name,
-                  hint: items.isEmpty ? '-' : 'Pilih dialek…',
-                  onTap: items.isEmpty ? null : () => _openDialectSheet(items),
-                );
+            ),
+            _inlineError(notifier.errorForMeaning(0, 'translation_texts')),
+            _inlineError(notifier.errorForMeaning(0, 'definition')),
+            if (_standardDefinition.trim().isNotEmpty) ...[
+              const Gap(12),
+              const _FieldCaption(
+                'Penjelasan arti',
+                info:
+                    'Muncul setelah satu makna dipilih dari KBBI. Hilang jika terjemahan diubah.',
+              ),
+              Text(
+                _standardDefinition.trim(),
+                style: theme.typography.sm.copyWith(height: 1.4),
+              ),
+            ],
+            const Gap(12),
+            const _FieldCaption(
+              'Register',
+              info:
+                  'Opsional. Gaya atau pantangan berbahasa. '
+                  'Halus dan Kasar tidak bisa dipilih bersamaan.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kRegisterUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            const Gap(12),
+            const _FieldCaption(
+              'Peringatan',
+              info: 'Opsional. Sensitivitas isi makna.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kWarningUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            _inlineError(notifier.errorFor('usage_labels')),
+          ] else ...[
+            const Gap(12),
+            const _FieldCaption('Jenis'),
+            const Gap(6),
+            _WordTypeChips(
+              value: _wordType,
+              onChanged: (v) {
+                _onFieldEdited();
+                setState(() => _wordType = v);
               },
             ),
-          _inlineError(notifier.errorFor('dialect_id')),
-          _inlineError(notifier.errorFor('language_id')),
-
-          const Gap(16),
-          const _FieldCaption(
-            'Makna *',
-            info:
-                'Satu kata bisa punya beberapa makna (polisemi).\n\n'
-                'Tiap blok: centang Definisi dan/atau Terjemahan, isi kelas kata.',
-          ),
-          const Gap(8),
-          for (var i = 0; i < _meanings.length; i++) ...[
-            _MeaningBlock(
-              index: i,
-              draft: _meanings[i],
-              canRemove: _meanings.length > 1,
-              isTranslationMiss: widget.initialSearchIn == 'translation',
-              wordClassesAsync: wordClassesAsync,
-              onRetryWordClasses: () =>
-                  ref.invalidate(_referenceWordClassesProvider),
-              onRemove: () => _removeMeaning(i),
-              onWantDefinition: (v) => _setWantDefinition(i, v),
-              onWantPadanan: (v) => _setWantPadanan(i, v),
-              onPickWordClass: (items) => _openWordClassSheet(i, items),
-              onOpenKbbi: () => _openKbbiSheet(i),
-              definitionError: notifier.errorForMeaning(i, 'definition'),
-              padananError: notifier.errorForMeaning(i, 'translation_texts'),
-              wordClassError: notifier.errorForMeaning(i, 'word_class_id'),
+            _inlineError(notifier.errorFor('word_type')),
+            const Gap(12),
+            const _FieldCaption(
+              'Register',
+              info:
+                  'Opsional. Gaya atau pantangan berbahasa. '
+                  'Halus dan Kasar tidak bisa dipilih bersamaan.',
             ),
-            if (i < _meanings.length - 1) const Gap(12),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kRegisterUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            const Gap(12),
+            const _FieldCaption(
+              'Peringatan',
+              info: 'Opsional. Sensitivitas isi makna.',
+            ),
+            const Gap(6),
+            _UsageLabelChips(
+              options: kWarningUsageLabels,
+              selected: _usageLabels,
+              onToggle: _toggleUsageLabel,
+            ),
+            _inlineError(notifier.errorFor('usage_labels')),
+            const Gap(8),
+
+            const _FieldCaption('Dialek'),
+            if (sambasLanguageId == null)
+              const _SelectFieldSkeleton()
+            else
+              dialectsAsync.when(
+                loading: () => const _SelectFieldSkeleton(),
+                error: (e, _) => _BuildReferenceError(
+                  message: 'Gagal muat dialek',
+                  onRetry: () => ref.invalidate(
+                    _referenceDialectsProvider(sambasLanguageId),
+                  ),
+                ),
+                data: (items) {
+                  final selected = _dialectId == null
+                      ? null
+                      : items.where((e) => e.id == _dialectId).firstOrNull;
+                  return _SelectField(
+                    selectedLabel: selected?.name,
+                    hint: items.isEmpty ? '-' : 'Pilih dialek…',
+                    onTap: items.isEmpty
+                        ? null
+                        : () => _openDialectSheet(items),
+                  );
+                },
+              ),
+            _inlineError(notifier.errorFor('dialect_id')),
+            _inlineError(notifier.errorFor('language_id')),
+            const Gap(16),
+            const _FieldCaption(
+              'Makna *',
+              info:
+                  'Satu kata bisa punya beberapa arti.\n\n'
+                  'Tiap blok: centang Penjelasan arti dan/atau Terjemahan, isi kelas kata.',
+            ),
+            const Gap(8),
+            for (var i = 0; i < _meanings.length; i++) ...[
+              _MeaningBlock(
+                index: i,
+                draft: _meanings[i],
+                canRemove: _meanings.length > 1,
+                isTranslationMiss: widget.initialSearchIn == 'translation',
+                wordClassesAsync: wordClassesAsync,
+                onRetryWordClasses: () =>
+                    ref.invalidate(_referenceWordClassesProvider),
+                onRemove: () => _removeMeaning(i),
+                onWantDefinition: (v) => _setWantDefinition(i, v),
+                onWantPadanan: (v) => _setWantPadanan(i, v),
+                onPickWordClass: (items) => _openWordClassSheet(i, items),
+                onOpenKbbi: () => _openKbbiSheet(i),
+                definitionError: notifier.errorForMeaning(i, 'definition'),
+                padananError: notifier.errorForMeaning(i, 'translation_texts'),
+                wordClassError: notifier.errorForMeaning(i, 'word_class_id'),
+              ),
+              if (i < _meanings.length - 1) const Gap(12),
+            ],
+            const Gap(8),
+            if (_meanings.length < SubmitAnonWordUseCase.maxMeanings)
+              FButton(
+                variant: FButtonVariant.outline,
+                onPress: _addMeaning,
+                prefix: Icon(FLucideIcons.plus, size: 16),
+                child: const Text('Tambah makna'),
+              )
+            else
+              Text(
+                'Maksimal ${SubmitAnonWordUseCase.maxMeanings} makna per usulan.',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
+              ),
+            const Gap(12),
+
+            const _FieldCaption(
+              'Kelengkapan',
+              info:
+                  'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
+            ),
+            _SelectField(
+              selectedLabel: _relations.isEmpty
+                  ? null
+                  : _relations.summaryLabel,
+              hint: 'Tambah variasi, sinonim, antonim…',
+              onTap: _openRelationsSheet,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                'Opsional',
+                style: theme.typography.sm.copyWith(
+                  color: theme.colors.mutedForeground,
+                ),
+              ),
+            ),
+
+            const _FieldCaption(
+              'Gambar',
+              info:
+                  'Opsional. Media Explorer tanpa login; kamera/galeri perlu masuk. Maks 3.',
+            ),
+            ContributeImagesField(
+              enabled: true,
+              allowLocalPick: isAuth,
+              images: _images,
+              onChanged: (next) => setState(() => _images = next),
+            ),
           ],
-          const Gap(8),
-          if (_meanings.length < SubmitAnonWordUseCase.maxMeanings)
-            FButton(
-              variant: FButtonVariant.outline,
-              onPress: _addMeaning,
-              prefix: Icon(FLucideIcons.plus, size: 16),
-              child: const Text('Tambah makna'),
-            )
-          else
-            Text(
-              'Maksimal ${SubmitAnonWordUseCase.maxMeanings} makna per usulan.',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          const Gap(12),
-
-          const _FieldCaption(
-            'Kelengkapan',
-            info:
-                'Opsional: variasi ejaan, sinonim, antonim. Dibuka di bottomsheet.',
-          ),
-          _SelectField(
-            selectedLabel: _relations.isEmpty ? null : _relations.summaryLabel,
-            hint: 'Tambah variasi, sinonim, antonim…',
-            onTap: _openRelationsSheet,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(
-              'Opsional',
-              style: theme.typography.sm.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          ),
-
-          const _FieldCaption(
-            'Gambar',
-            info:
-                'Opsional. Perlu login. Kamera/galeri, upload langsung, maks 3.',
-          ),
-          ContributeImagesField(
-            enabled: isAuth,
-            images: _images,
-            onChanged: (next) => setState(() => _images = next),
-          ),
         ],
       ),
     );
@@ -403,8 +630,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         draft.savedDefinition = draft.defCtrl.text;
         draft.defCtrl.text = '-';
       } else if (!draft.wantDefinition && next) {
-        draft.defCtrl.text =
-            draft.savedDefinition == '-' ? '' : draft.savedDefinition;
+        draft.defCtrl.text = draft.savedDefinition == '-'
+            ? ''
+            : draft.savedDefinition;
       }
       draft.wantDefinition = next;
       if (!draft.wantDefinition &&
@@ -430,6 +658,24 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       }
       draft.wantPadanan = next;
     });
+  }
+
+  void _toggleUsageLabel(String code) {
+    _onFieldEdited();
+    final selected = _usageLabels.contains(code);
+    if (!selected) {
+      final next = {..._usageLabels, code};
+      if (hasConflictingUsageLabels(next)) {
+        showFToast(
+          context: context,
+          title: const Text('Halus dan Kasar tidak bisa dipilih bersamaan'),
+        );
+        return;
+      }
+      setState(() => _usageLabels.add(code));
+      return;
+    }
+    setState(() => _usageLabels.remove(code));
   }
 
   Future<void> _openDialectSheet(List<_OptionItem> items) async {
@@ -475,20 +721,47 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     setState(() => _relations = result);
   }
 
-  Future<void> _openKbbiSheet(int index) async {
-    // Baca status fresh (bukan snapshot build) - loading/stale previous
-    // isAuth:false setelah login sempat bikin toast palsu.
-    final auth = await ref.read(authStatusProvider.future);
-    if (!mounted) return;
-    if (!auth.isAuth) {
-      showFToast(
-        context: context,
-        title: const Text('Masuk dulu untuk ambil definisi dari KBBI'),
-      );
-      if (mounted) context.push('/login');
-      return;
-    }
+  Future<void> _openStandardKbbiSheet() async {
+    final dio = ref.read(dioProvider);
+    final picked = await showKbbiDefinitionSheet(
+      context,
+      dio: dio,
+      initialLemma: _standardTranslationCtrl.text.trim(),
+    );
+    if (!mounted || picked == null) return;
 
+    final classes =
+        ref.read(_referenceWordClassesProvider).value ?? const <_OptionItem>[];
+    final matched = _matchWordClassId(
+      classes,
+      picked.wordClassCode,
+      picked.wordClassLabel,
+    );
+
+    _onFieldEdited();
+    setState(() {
+      _applyingKbbiPick = true;
+      final lemmaId = picked.lemma.trim();
+      if (lemmaId.isNotEmpty) {
+        _standardTranslationCtrl.text = lemmaId;
+        _standardKbbiLemma = lemmaId;
+      }
+      _standardDefinition = picked.definition.trim();
+      if (matched != null) _standardWordClassId = matched;
+      _applyingKbbiPick = false;
+    });
+
+    final parts = <String>['Terjemahan'];
+    if (_standardDefinition.isNotEmpty) parts.add('definisi');
+    if (matched != null) parts.add('kelas kata');
+    showFToast(
+      context: context,
+      title: Text('${parts.join(', ')} diisi dari KBBI - silakan review'),
+    );
+  }
+
+  Future<void> _openKbbiSheet(int index) async {
+    // Lookup KBBI publik - tamu tidak perlu login.
     final draft = _meanings[index];
     final dio = ref.read(dioProvider);
     final picked = await showKbbiDefinitionSheet(
@@ -521,7 +794,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       }
     });
 
-    final parts = <String>['Definisi'];
+    final parts = <String>['Penjelasan arti'];
     if (matched != null) parts.add('kelas kata');
     if (picked.lemma.trim().isNotEmpty) parts.add('terjemahan');
     showFToast(
@@ -531,30 +804,47 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _submitForm() async {
-    final incomplete = _meanings.indexWhere((m) => !m.modePicked);
-    if (incomplete >= 0) {
-      showFToast(
-        context: context,
-        title: Text(
-          'Makna ${incomplete + 1}: centang dulu Definisi dan/atau Terjemahan',
-        ),
-      );
-      return;
-    }
-    if (_images.any((e) => e.uploading)) {
-      showFToast(
-        context: context,
-        title: const Text('Tunggu upload gambar selesai'),
-      );
-      return;
-    }
-    if (_images.any((e) => e.error)) {
-      showFToast(
-        context: context,
-        title: const Text('Hapus gambar yang gagal diunggah dulu'),
-        variant: FToastVariant.destructive,
-      );
-      return;
+    if (!_advanced) {
+      if (_standardTranslationCtrl.text.trim().isEmpty) {
+        showFToast(
+          context: context,
+          title: const Text('Isi terjemahan bahasa Indonesia'),
+        );
+        return;
+      }
+    } else {
+      if (hasConflictingUsageLabels(_usageLabels)) {
+        showFToast(
+          context: context,
+          title: const Text('Halus dan Kasar tidak bisa dipilih bersamaan'),
+        );
+        return;
+      }
+      final incomplete = _meanings.indexWhere((m) => !m.modePicked);
+      if (incomplete >= 0) {
+        showFToast(
+          context: context,
+          title: Text(
+            'Makna ${incomplete + 1}: centang dulu Penjelasan arti dan/atau Terjemahan',
+          ),
+        );
+        return;
+      }
+      if (_images.any((e) => e.uploading)) {
+        showFToast(
+          context: context,
+          title: const Text('Tunggu upload gambar selesai'),
+        );
+        return;
+      }
+      if (_images.any((e) => e.error)) {
+        showFToast(
+          context: context,
+          title: const Text('Hapus gambar yang gagal diunggah dulu'),
+          variant: FToastVariant.destructive,
+        );
+        return;
+      }
     }
     final notifier = ref.read(submitWordProvider.notifier);
     final languages =
@@ -565,28 +855,58 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     final translationLanguageId =
         languages.where((e) => e.code.toUpperCase() == 'IDN').firstOrNull?.id ??
         '';
+    // Mode Dasar juga kirim dialek umum bila sudah termuat. Jangan kirim
+    // `dialect_id: null` - Zod `.optional()` menolak null (bukan omit).
+    var dialectId = _dialectId;
+    if ((dialectId == null || dialectId.isEmpty) && languageId.isNotEmpty) {
+      final dialectItems = ref
+          .read(_referenceDialectsProvider(languageId))
+          .value;
+      dialectId =
+          dialectItems?.where((e) => e.isDefault).firstOrNull?.id ??
+          dialectItems
+              ?.where((e) => e.code.toLowerCase() == 'umum')
+              .firstOrNull
+              ?.id;
+    }
     final notes = _relations.notesText.trim();
+    final meanings = _advanced
+        ? [
+            for (final m in _meanings)
+              SubmitAnonWordMeaningParams(
+                wordClassId: m.wordClassId ?? '',
+                definition: m.wantDefinition ? m.defCtrl.text : '-',
+                isHaveDefinition: m.wantDefinition,
+                isHaveTranslation: m.wantPadanan,
+                translationTexts: m.wantPadanan ? [m.trCtrl.text] : const [],
+              ),
+          ]
+        : [
+            SubmitAnonWordMeaningParams(
+              wordClassId: _standardWordClassId ?? _umumWordClassId ?? '',
+              definition: _standardDefinition.trim().isEmpty
+                  ? '-'
+                  : _standardDefinition.trim(),
+              isHaveDefinition: _standardDefinition.trim().isNotEmpty,
+              isHaveTranslation: true,
+              translationTexts: [_standardTranslationCtrl.text],
+            ),
+          ];
     await notifier.submit(
       lemma: _lemmaCtrl.text,
       languageId: languageId,
-      meanings: [
-        for (final m in _meanings)
-          SubmitAnonWordMeaningParams(
-            wordClassId: m.wordClassId ?? '',
-            definition: m.wantDefinition ? m.defCtrl.text : '-',
-            isHaveDefinition: m.wantDefinition,
-            isHaveTranslation: m.wantPadanan,
-            translationTexts: m.wantPadanan ? [m.trCtrl.text] : const [],
-          ),
-      ],
-      dialectId: _dialectId,
-      wordType: _wordType,
+      meanings: meanings,
+      dialectId: dialectId,
+      wordType: _advanced ? _wordType : 'word',
       categoryIds: [],
-      notes: notes.isEmpty ? null : notes,
-      spellingVariants: _parseCsv(_relations.variantsText),
-      relatedWords: _buildRelatedWords(),
+      usageLabels: _usageLabels.toList(growable: false),
+      notes: _advanced && notes.isNotEmpty ? notes : null,
+      spellingVariants: _advanced
+          ? _parseCsv(_relations.variantsText)
+          : const [],
+      relatedWords: _advanced ? _buildRelatedWords() : const [],
       translationLanguageId: translationLanguageId,
-      images: readySubmitImages(_images),
+      images: _advanced ? readySubmitImages(_images) : const [],
       searchMissId: widget.initialSearchMissId,
     );
   }
@@ -604,39 +924,36 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _showSuccessDialog(BuildContext context, String lemma) async {
-    final theme = context.theme;
     final isAuth = ref.read(authStatusProvider).value?.isAuth ?? false;
     final successText = isAuth
         ? (lemma.isNotEmpty
-            ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
-            : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
+              ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
+              : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
         : 'Dikirim sebagai tamu. Kata belum tayang. Tim akan memeriksanya dulu.';
-    final choice = await showDialog<String>(
+
+    final choice = await showFDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Usulan terkirim',
-          style: theme.typography.lg.copyWith(fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              successText,
-              style: theme.typography.sm,
-            ),
-          ],
-        ),
+      builder: (dialogContext, style, animation) => FDialog(
+        style: style,
+        animation: animation,
+        direction: Axis.vertical,
+        title: const Text('Usulan terkirim'),
+        body: Text(successText),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('home'),
-            child: const Text('Ke beranda'),
+          FButton(
+            onPress: () => Navigator.of(dialogContext).pop('again'),
+            child: const Text('Tambah lagi'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('list'),
+          FButton(
+            variant: FButtonVariant.outline,
+            onPress: () => Navigator.of(dialogContext).pop('list'),
             child: const Text('Lihat usulan'),
+          ),
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: () => Navigator.of(dialogContext).pop('home'),
+            child: const Text('Ke beranda'),
           ),
         ],
       ),
@@ -645,6 +962,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     // Form sudah terkirim. Jangan biarkan /contribute tetap di bawah
     // halaman berikutnya: tombol kembali akan membuka isian yang sama lagi.
     switch (choice) {
+      case 'again':
+        ref.read(submitWordProvider.notifier).resetForAnother();
+        _resetFormForAnother();
       case 'list':
         ref.invalidate(myContributionsListControllerProvider);
         context.pushReplacement('/contributions');
@@ -734,7 +1054,7 @@ class _MeaningBlock extends StatelessWidget {
               'Apa yang kamu ketahui? *',
               info:
                   'Centang yang kamu tahu (boleh keduanya).\n\n'
-                  '• Definisi - uraian makna berbahasa Indonesia.\n'
+                  '• Penjelasan arti - uraian makna berbahasa Indonesia.\n'
                   '• Terjemahan - satu kata/frasa setara.\n\n'
                   'Form di bawah muncul sesuai centangan.',
             ),
@@ -767,8 +1087,8 @@ class _MeaningBlock extends StatelessWidget {
                       : 'Terjemahan Indonesia *',
                   info: isTranslationMiss
                       ? 'Satu kata/frasa Sambas yang setara - bukan uraian panjang.'
-                      : 'Satu kata/frasa Indonesia yang setara dengan lemma Sambas.\n\n'
-                            'Contoh: “makan”. Beda dari definisi (“aktivitas memasukkan makanan ke mulut”).',
+                      : 'Satu kata/frasa Indonesia yang setara dengan kata Sambas.\n\n'
+                            'Contoh: “makan”. Beda dari penjelasan arti (“aktivitas memasukkan makanan ke mulut”).',
                 ),
                 FTextField(
                   control: FTextFieldControl.managed(controller: draft.trCtrl),
@@ -829,14 +1149,14 @@ class _MeaningBlock extends StatelessWidget {
               if (draft.wantDefinition) ...[
                 const Gap(8),
                 const _FieldCaption(
-                  'Definisi *',
+                  'Penjelasan arti *',
                   info:
                       'Uraian makna berbahasa Indonesia - bukan terjemahan satu kata.\n\n'
                       'Contoh: “aktivitas memasukkan makanan ke mulut”.',
                 ),
                 FTextField(
                   control: FTextFieldControl.managed(controller: draft.defCtrl),
-                  hint: 'Jelaskan makna kata ini',
+                  hint: 'Jelaskan arti kata ini',
                   keyboardType: TextInputType.multiline,
                   textInputAction: TextInputAction.newline,
                   maxLines: 3,
@@ -1041,14 +1361,29 @@ class _OptionItem {
 final _referenceLanguagesProvider = FutureProvider<List<_OptionItem>>((
   ref,
 ) async {
+  final cache = ref.watch(cachedJsonClientProvider);
   final dio = ref.watch(dioProvider);
-  final resp = await dio.get<dynamic>('/api/v1/languages?is_active=true');
-  final data = resp.data;
-  if (data is! Map<String, dynamic>) return [];
+  final key = buildCacheKey(
+    method: 'GET',
+    path: '/api/v1/languages',
+    query: const {'is_active': 'true'},
+  );
+  final data = await cache.getOrFetch(
+    key: key,
+    cacheClass: CacheClass.referenceStatic,
+    fetch: () async {
+      final resp = await dio.get<dynamic>('/api/v1/languages?is_active=true');
+      final body = resp.data;
+      if (body is! Map) {
+        throw StateError('Envelope languages tidak valid');
+      }
+      return Map<String, dynamic>.from(body);
+    },
+  );
   final arr = data['data'];
   if (arr is! List) return [];
   return arr
-      .whereType<Map<String, dynamic>>()
+      .whereType<Map>()
       .map(
         (e) => _OptionItem(
           id: e['id']?.toString() ?? '',
@@ -1063,14 +1398,25 @@ final _referenceLanguagesProvider = FutureProvider<List<_OptionItem>>((
 final _referenceWordClassesProvider = FutureProvider<List<_OptionItem>>((
   ref,
 ) async {
+  final cache = ref.watch(cachedJsonClientProvider);
   final dio = ref.watch(dioProvider);
-  final resp = await dio.get<dynamic>('/api/v1/word-classes');
-  final data = resp.data;
-  if (data is! Map<String, dynamic>) return [];
+  final key = buildCacheKey(method: 'GET', path: '/api/v1/word-classes');
+  final data = await cache.getOrFetch(
+    key: key,
+    cacheClass: CacheClass.referenceStatic,
+    fetch: () async {
+      final resp = await dio.get<dynamic>('/api/v1/word-classes');
+      final body = resp.data;
+      if (body is! Map) {
+        throw StateError('Envelope word-classes tidak valid');
+      }
+      return Map<String, dynamic>.from(body);
+    },
+  );
   final arr = data['data'];
   if (arr is! List) return [];
   return arr
-      .whereType<Map<String, dynamic>>()
+      .whereType<Map>()
       .map(
         (e) => _OptionItem(
           id: e['id']?.toString() ?? '',
@@ -1113,17 +1459,33 @@ String? _matchWordClassId(
 
 final _referenceDialectsProvider =
     FutureProvider.family<List<_OptionItem>, String>((ref, languageId) async {
+      final cache = ref.watch(cachedJsonClientProvider);
       final dio = ref.watch(dioProvider);
-      final resp = await dio.get<dynamic>(
-        '/api/v1/dialects',
-        queryParameters: <String, dynamic>{'language_id': languageId},
+      final query = <String, dynamic>{'language_id': languageId};
+      final key = buildCacheKey(
+        method: 'GET',
+        path: '/api/v1/dialects',
+        query: query,
       );
-      final data = resp.data;
-      if (data is! Map<String, dynamic>) return [];
+      final data = await cache.getOrFetch(
+        key: key,
+        cacheClass: CacheClass.referenceStatic,
+        fetch: () async {
+          final resp = await dio.get<dynamic>(
+            '/api/v1/dialects',
+            queryParameters: query,
+          );
+          final body = resp.data;
+          if (body is! Map) {
+            throw StateError('Envelope dialects tidak valid');
+          }
+          return Map<String, dynamic>.from(body);
+        },
+      );
       final arr = data['data'];
       if (arr is! List) return [];
       return arr
-          .whereType<Map<String, dynamic>>()
+          .whereType<Map>()
           .map(
             (e) => _OptionItem(
               id: e['id']?.toString() ?? '',
@@ -1172,7 +1534,80 @@ const _wordTypeOptions = <({String value, String label})>[
   (value: 'ungkapan', label: 'Ungkapan'),
 ];
 
-/// Picker jenis entri — pola chip sama seperti dialek (rekam) / filter komentar.
+class _ContributeModeChips extends StatelessWidget {
+  const _ContributeModeChips({required this.advanced, required this.onChanged});
+
+  final bool advanced;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ModeChip(
+            label: 'Sederhana',
+            selected: !advanced,
+            onTap: () => onChanged(false),
+          ),
+        ),
+        const Gap(8),
+        Expanded(
+          child: _ModeChip(
+            label: 'Lengkap',
+            selected: advanced,
+            onTap: () => onChanged(true),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colors.primary.withValues(alpha: 0.08)
+              : theme.colors.background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? theme.colors.primary : theme.colors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.typography.sm.copyWith(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? theme.colors.primary : theme.colors.foreground,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Picker jenis entri - pola chip sama seperti dialek (rekam) / filter komentar.
 class _WordTypeChips extends StatelessWidget {
   const _WordTypeChips({required this.value, required this.onChanged});
 
@@ -1193,6 +1628,39 @@ class _WordTypeChips extends StatelessWidget {
                   ? FBadgeVariant.primary
                   : FBadgeVariant.secondary,
               child: Text(opt.label),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Multi-select Register / Peringatan (`usage_labels`).
+class _UsageLabelChips extends StatelessWidget {
+  const _UsageLabelChips({
+    required this.options,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final List<String> options;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final code in options)
+          GestureDetector(
+            onTap: () => onToggle(code),
+            child: FBadge(
+              variant: selected.contains(code)
+                  ? FBadgeVariant.primary
+                  : FBadgeVariant.secondary,
+              child: Text(usageLabelLabel(code)),
             ),
           ),
       ],

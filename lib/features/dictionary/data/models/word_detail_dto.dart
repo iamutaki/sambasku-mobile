@@ -23,6 +23,7 @@ abstract class WordDetailDto with _$WordDetailDto {
     @JsonKey(name: 'created_by') WordVerifierDto? createdBy,
     @Default([]) List<MeaningDto> meanings,
     @Default([]) List<CategoryDto> categories,
+    @JsonKey(name: 'usage_labels') @Default([]) List<String> usageLabels,
     @Default([]) List<PronunciationDto> pronunciations,
     @Default([]) List<WordAudioDto> audios,
     @Default([]) List<WordImageDto> images,
@@ -147,6 +148,11 @@ abstract class WordImageDto with _$WordImageDto {
     required String url,
     @JsonKey(name: 'alt_text') String? altText,
     @JsonKey(name: 'is_primary') @Default(false) bool isPrimary,
+    /// false = gambar staging belum diverifikasi. Default true agar
+    /// response lama (tanpa field ini) tetap bekerja normal.
+    @JsonKey(name: 'is_verified') @Default(true) bool isVerified,
+    /// Peringatan konten visual per gambar. V1: ['kekerasan'].
+    @JsonKey(name: 'content_warnings') @Default([]) List<String> contentWarnings,
   }) = _WordImageDto;
 
   factory WordImageDto.fromJson(Map<String, dynamic> json) =>

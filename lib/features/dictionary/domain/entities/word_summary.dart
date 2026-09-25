@@ -10,6 +10,7 @@ class WordSummary {
     this.matchedTranslation,
     this.sense,
     this.approvedAt,
+    this.usageLabels = const [],
   });
 
   final String id;
@@ -30,6 +31,9 @@ class WordSummary {
 
   /// Waktu persetujuan / tayang. Hanya feed beranda.
   final DateTime? approvedAt;
+
+  /// Register & peringatan (`usage_labels` API). Kosong jika endpoint belum mengirim.
+  final List<String> usageLabels;
 
   /// Label jenis entri untuk UI.
   String get wordTypeLabel => switch (wordType) {

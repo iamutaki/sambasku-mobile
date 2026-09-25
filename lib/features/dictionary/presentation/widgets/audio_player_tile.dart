@@ -197,13 +197,14 @@ class StopAudioOnLeave extends ConsumerStatefulWidget {
 
 class _StopAudioOnLeaveState extends ConsumerState<StopAudioOnLeave> {
   @override
-  void dispose() {
+  void deactivate() {
+    // Panggil di deactivate (bukan dispose): Ref masih aman dipakai.
     try {
       ref.read(wordDetailAudioPlayerProvider(widget.wordId).notifier).stop();
     } catch (_) {
       // Provider mungkin sudah auto-dispose.
     }
-    super.dispose();
+    super.deactivate();
   }
 
   @override

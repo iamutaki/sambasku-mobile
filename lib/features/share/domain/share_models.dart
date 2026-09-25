@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'word_public_url.dart';
+
 String shareProviderLabel(String id) => switch (id) {
-      'pexels' => 'Pexels',
       'pixabay' => 'Pixabay',
       'openverse' => 'Openverse',
+      'unsplash' => 'Unsplash',
+      // Legacy atribusi gambar kata / share lama
+      'pexels' => 'Pexels',
       'wikimedia' => 'Wikimedia',
-      _ => 'Unsplash',
+      _ => id,
     };
 
 /// Kandidat latar dari GET /api/v1/share/backgrounds.
@@ -16,7 +20,7 @@ class ShareBackground {
     required this.photographer,
     required this.username,
     required this.attributionUrl,
-    this.provider = 'pexels',
+    this.provider = 'pixabay',
     this.kind = ShareMediaKind.photo,
     this.previewUrl,
     this.width = 0,
@@ -55,7 +59,7 @@ class ShareBackgroundsResult {
     required this.items,
     required this.page,
     required this.degraded,
-    this.provider = 'pexels',
+    this.provider = 'pixabay',
   });
 
   final List<ShareBackground> items;
@@ -150,10 +154,12 @@ class ShareCardData {
     final pad = (padanan != null && padanan!.isNotEmpty) ? padanan! : lemma;
     final variants = variantsLine;
     final base = variants != null && variants.isNotEmpty
-        ? '"$lemma" ($variants) — $pad · kamus bahasa Sambas #SambasKu'
-        : '"$lemma" — $pad · kamus bahasa Sambas #SambasKu';
-    if (isVerified) return base;
-    return '$base\nArti belum diperiksa tim Sambasku.';
+        ? '"$lemma" ($variants) - $pad · kamus bahasa Sambas #SambasKu'
+        : '"$lemma" - $pad · kamus bahasa Sambas #SambasKu';
+    final url = wordPublicUrl(lemma);
+    final withUrl = url == null ? base : '$base\n$url';
+    if (isVerified) return withUrl;
+    return '$withUrl\nArti belum diperiksa tim Sambasku.';
   }
 
   String get copyText {
@@ -455,19 +461,19 @@ enum ShareTemplateId {
 }
 
 enum ShareRatioId {
-  /// Instagram / TikTok Stories — 9:16
+  /// Instagram / TikTok Stories - 9:16
   story,
 
-  /// Potret klasik foto — 2:3
+  /// Potret klasik foto - 2:3
   portrait23,
 
-  /// Potret umum ponsel — 3:4
+  /// Potret umum ponsel - 3:4
   portrait34,
 
-  /// Instagram feed potret — 4:5
+  /// Instagram feed potret - 4:5
   portrait45,
 
-  /// Kotak — 1:1
+  /// Kotak - 1:1
   post,
 }
 

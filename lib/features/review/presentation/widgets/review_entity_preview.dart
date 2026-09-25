@@ -10,7 +10,7 @@ import '../../../../core/widgets/image_preview.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
 import '../../domain/entities/review_contribution.dart';
 
-/// Preview baca-saja isi usulan — per jenis entity, bukan dump key:value.
+/// Preview baca-saja isi usulan - per jenis entity, bukan dump key:value.
 class ReviewEntityPreview extends StatelessWidget {
   const ReviewEntityPreview({super.key, required this.detail});
 
@@ -106,9 +106,8 @@ class _SectionCard extends StatelessWidget {
     final theme = context.theme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colors.secondary.withValues(alpha: 0.35),
+        color: theme.colors.muted.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -549,12 +548,20 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
   @override
   void dispose() {
     unawaited(_sub?.cancel() ?? Future<void>.value());
-    unawaited(_player.dispose());
+    unawaited(() async {
+      try {
+        await _player.stop();
+      } catch (_) {}
+      try {
+        await _player.dispose();
+      } catch (_) {}
+    }());
     super.dispose();
   }
 
   Future<void> _toggle() async {
     if (_loading) return;
+    final reload = _error || _player.audioSource == null;
     setState(() {
       _loading = true;
       _error = false;
@@ -563,13 +570,18 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
       if (_player.playing) {
         await _player.pause();
       } else {
-        if (_player.audioSource == null) {
+        // Muat ulang setelah error / sumber belum siap.
+        if (reload) {
+          await _player.stop();
           await _player.setUrl(widget.url);
         }
         await _player.play();
       }
     } catch (_) {
       if (mounted) setState(() => _error = true);
+      try {
+        await _player.stop();
+      } catch (_) {}
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -583,7 +595,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
         : 'Putar rekaman';
 
     return Material(
-      color: theme.colors.background,
+      color: theme.colors.background.withValues(alpha: 0.55),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -626,7 +638,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _error ? 'Gagal memutar — ketuk lagi' : label,
+                      _error ? 'Gagal memutar - ketuk lagi' : label,
                       style: theme.typography.sm.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

@@ -1,18 +1,21 @@
 import 'package:dio/dio.dart';
 
 import '../auth_token_storage.dart';
+import '../failover/api_host_resolver.dart';
 
 /// Key di [RequestOptions.extra] untuk melewati refresh+retry pada 401.
 const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 
 /// Interceptor auth (pola jnn_mobile, varian sambasku):
 /// - onRequest: sisipkan Bearer access token
-/// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry;
-///   gagal refresh → clear token saja (tanpa revoke FCM — revoke butuh
-///   Bearer valid dan akan loop jika dipanggil di sini)
+/// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry.
+///   Hanya 401/403 pada refresh yang menghapus sesi. Timeout, 5xx, dan
+///   gagalnya request yang diulang TIDAK logout - jaringan putus bukan
+///   sesi mati.
 ///
 /// Path yang di-skip (tidak trigger refresh):
-/// - `/auth/login|refresh|register|verify-email|resend-otp`
+/// - `/auth/login|google|facebook|refresh|register|verify-email|resend-otp`
+///   401 di login sosial adalah token penyedia ditolak, bukan sesi kedaluwarsa.
 /// - `/device/revoke` (detach FCM; 401 di sini tidak boleh memicu refresh)
 /// - request dengan `extra[kSkipAuthRefreshExtra] == true`
 ///
@@ -21,14 +24,15 @@ const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required AuthTokenStorage tokenStorage,
-    required String baseUrl,
+    required ApiHostResolver hostResolver,
     Dio? refreshDio,
   }) : _tokenStorage = tokenStorage,
+       _hostResolver = hostResolver,
        _refreshDio =
            refreshDio ??
            Dio(
              BaseOptions(
-               baseUrl: baseUrl,
+               baseUrl: hostResolver.activeHost,
                connectTimeout: const Duration(seconds: 15),
                receiveTimeout: const Duration(seconds: 15),
                sendTimeout: const Duration(seconds: 15),
@@ -41,8 +45,14 @@ class AuthInterceptor extends Interceptor {
            );
 
   final AuthTokenStorage _tokenStorage;
+
+  /// Dibaca ULANG tiap refresh. `_refreshDio` tidak punya interceptor, jadi
+  /// `baseUrl`-nya tidak ikut ditulis FailoverInterceptor; kalau host aktif
+  /// tidak disalin lagi di sini, pencarian pindah tier sementara refresh token
+  /// tetap menembak tier 1 yang sedang mati.
+  final ApiHostResolver _hostResolver;
   final Dio _refreshDio;
-  Future<bool>? _refreshFuture;
+  Future<_RefreshOutcome>? _refreshFuture;
   bool _clearingSession = false;
 
   @override
@@ -68,9 +78,12 @@ class AuthInterceptor extends Interceptor {
     }
 
     try {
-      final refreshed = await _refreshToken();
-      if (!refreshed) {
+      final outcome = await _refreshToken();
+      if (outcome == _RefreshOutcome.terminal) {
         await _clearSession();
+        return handler.next(err);
+      }
+      if (outcome != _RefreshOutcome.success) {
         return handler.next(err);
       }
 
@@ -83,7 +96,7 @@ class AuthInterceptor extends Interceptor {
       final response = await _refreshDio.fetch(options);
       return handler.resolve(response);
     } on DioException catch (e) {
-      await _clearSession();
+      // Refresh sudah sukses. Gagalnya retry bukan alasan menghapus sesi.
       return handler.next(e);
     } catch (_) {
       return handler.next(err);
@@ -94,6 +107,8 @@ class AuthInterceptor extends Interceptor {
     if (options.extra[kSkipAuthRefreshExtra] == true) return true;
     final path = options.path;
     return path.contains('/auth/login') ||
+        path.contains('/auth/google') ||
+        path.contains('/auth/facebook') ||
         path.contains('/auth/refresh') ||
         path.contains('/auth/register') ||
         path.contains('/auth/verify-email') ||
@@ -116,31 +131,42 @@ class AuthInterceptor extends Interceptor {
   }
 
   /// Single-flight: beberapa 401 bersamaan berbagi satu panggilan refresh.
-  Future<bool> _refreshToken() {
+  Future<_RefreshOutcome> _refreshToken() {
     return _refreshFuture ??= _doRefresh().whenComplete(() {
       _refreshFuture = null;
     });
   }
 
-  Future<bool> _doRefresh() async {
+  Future<_RefreshOutcome> _doRefresh() async {
     final refreshToken = await _tokenStorage.getRefreshToken();
-    if (refreshToken == null) return false;
+    if (refreshToken == null) return _RefreshOutcome.terminal;
 
     try {
+      final tier = _hostResolver.activeTier;
+      _refreshDio.options.baseUrl = tier.host;
+      // Refresh tidak boleh menunggu cold start 75s - session recovery
+      // yang menggantung main isolate terasa sebagai ANR.
+      _refreshDio.options.connectTimeout = kDefaultTierTimeout;
+      _refreshDio.options.receiveTimeout = kDefaultTierTimeout;
+      _refreshDio.options.sendTimeout = kDefaultTierTimeout;
       final response = await _refreshDio.post<Map<String, dynamic>>(
         '/api/v1/auth/refresh',
         data: {'refresh_token': refreshToken},
       );
 
       final raw = response.data;
-      if (raw == null || raw['success'] != true) return false;
+      if (raw == null || raw['success'] != true) {
+        return _RefreshOutcome.transient;
+      }
 
       final data = raw['data'];
-      if (data is! Map) return false;
+      if (data is! Map) return _RefreshOutcome.transient;
 
       final accessToken = data['access_token'] as String?;
       final rotatedRefresh = data['refresh_token'] as String?;
-      if (accessToken == null || accessToken.isEmpty) return false;
+      if (accessToken == null || accessToken.isEmpty) {
+        return _RefreshOutcome.transient;
+      }
 
       // Rotasi wajib di backend mobile; fallback ke token lama hanya
       // jika body tidak mengirimkan (mis. bug server).
@@ -150,9 +176,15 @@ class AuthInterceptor extends Interceptor {
             ? rotatedRefresh
             : refreshToken,
       );
-      return true;
+      return _RefreshOutcome.success;
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) return _RefreshOutcome.terminal;
+      return _RefreshOutcome.transient;
     } catch (_) {
-      return false;
+      return _RefreshOutcome.transient;
     }
   }
 }
+
+enum _RefreshOutcome { success, terminal, transient }

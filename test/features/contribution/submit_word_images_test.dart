@@ -16,6 +16,7 @@ class _FakeRepo implements ContributionRepository {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],

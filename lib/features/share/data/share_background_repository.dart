@@ -12,7 +12,7 @@ class ShareBackgroundRepository {
     String query, {
     int page = 1,
     String sort = 'relevant',
-    String provider = 'pexels',
+    String provider = 'pixabay',
     int limit = 3,
     String media = 'photo',
     String? orientation,

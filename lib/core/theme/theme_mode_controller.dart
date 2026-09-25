@@ -19,12 +19,15 @@ class ThemeModeController extends _$ThemeModeController {
 
   static Future<void> preload([SharedPreferences? prefs]) async {
     final p = prefs ?? await SharedPreferences.getInstance();
-    initial = _parse(p.getString(prefKey));
+    // Ada nilai tersimpan → pakai itu. Tidak ada / tidak dikenal → system.
+    final raw = p.getString(prefKey);
+    initial = raw == null || raw.isEmpty ? ThemeMode.system : _parse(raw);
   }
 
-  static ThemeMode _parse(String? raw) => switch (raw) {
+  static ThemeMode _parse(String raw) => switch (raw) {
     'light' => ThemeMode.light,
     'dark' => ThemeMode.dark,
+    'system' => ThemeMode.system,
     _ => ThemeMode.system,
   };
 

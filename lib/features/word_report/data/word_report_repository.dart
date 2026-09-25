@@ -15,6 +15,8 @@ class WordReportRepository {
     required String wordId,
     required String reasonCode,
     String? note,
+    /// Saat diisi, laporan dikaitkan ke gambar tertentu (reason: violent_image).
+    String? imageId,
   }) async {
     try {
       await _dio.post<Map<String, dynamic>>(
@@ -22,6 +24,8 @@ class WordReportRepository {
         data: {
           'reason_code': reasonCode,
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+          if (imageId != null && imageId.trim().isNotEmpty)
+            'image_id': imageId.trim(),
         },
       );
     } on DioException catch (error) {

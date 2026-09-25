@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../features/onboarding/onboarding_router.dart';
 import '../../flavors.dart';
+import '../router/app_router.dart';
 
 /// Banner versi di pojok kanan atas (pola jnn_mobile). Hanya staging.
 class VersionBanner extends StatefulWidget {
@@ -21,6 +23,21 @@ class _VersionBannerState extends State<VersionBanner> {
   Widget build(BuildContext context) {
     if (!F.isStaging || F.hideDevChrome) return widget.child;
 
+    return ListenableBuilder(
+      listenable: AppRouter.router.routerDelegate,
+      builder: (context, _) {
+        // state melempar "Bad state: No element" sebelum match pertama ada.
+        final config = AppRouter.router.routerDelegate.currentConfiguration;
+        if (config.isNotEmpty &&
+            config.uri.path == OnboardingRouter.onboarding.path) {
+          return widget.child;
+        }
+        return _ribbon(context);
+      },
+    );
+  }
+
+  Widget _ribbon(BuildContext context) {
     return FutureBuilder<PackageInfo>(
       future: _packageInfo,
       builder: (context, snapshot) {

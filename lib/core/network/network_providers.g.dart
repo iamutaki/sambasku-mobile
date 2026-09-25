@@ -55,18 +55,32 @@ final class AuthTokenStorageProvider
 
 String _$authTokenStorageHash() => r'e130a4f875fd7c9d293071d8a77c099ae6cad05b';
 
+/// Klien HTTP bersama. keepAlive: sheet Google/Facebook menaruh activity
+/// di background selama beberapa detik. Provider autoDispose akan menutup
+/// adapter di jeda itu (`Can't establish connection after the adapter was
+/// closed`) sebelum POST /auth/google sempat jalan.
+
 @ProviderFor(dio)
 final dioProvider = DioProvider._();
 
+/// Klien HTTP bersama. keepAlive: sheet Google/Facebook menaruh activity
+/// di background selama beberapa detik. Provider autoDispose akan menutup
+/// adapter di jeda itu (`Can't establish connection after the adapter was
+/// closed`) sebelum POST /auth/google sempat jalan.
+
 final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
+  /// Klien HTTP bersama. keepAlive: sheet Google/Facebook menaruh activity
+  /// di background selama beberapa detik. Provider autoDispose akan menutup
+  /// adapter di jeda itu (`Can't establish connection after the adapter was
+  /// closed`) sebelum POST /auth/google sempat jalan.
   DioProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'dioProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -93,4 +107,4 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$dioHash() => r'7b8b5a2dd7134e21466c475962ec8132a0c457c8';
+String _$dioHash() => r'95a82175518d683579f5927322344550c6d37fee';

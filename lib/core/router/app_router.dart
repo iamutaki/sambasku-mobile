@@ -10,6 +10,9 @@ import '../../features/bookmark/bookmark_router.dart';
 import '../../features/my_comments/my_comments_router.dart';
 import '../../features/my_votes/my_votes_router.dart';
 import '../../features/change_password/change_password_router.dart';
+import '../../features/delete_account/delete_account_router.dart';
+import '../../features/edit_profile/edit_profile_router.dart';
+import '../../features/linked_accounts/linked_accounts_router.dart';
 import '../../features/contribution/contribution_router.dart';
 import '../../features/dictionary/dictionary_router.dart';
 import '../../features/my_contributions/my_contributions_router.dart';
@@ -25,6 +28,8 @@ import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/report_bug/report_bug_router.dart';
 import '../../features/review/presentation/providers/review_providers.dart';
 import '../../features/review/review_router.dart';
+import '../../features/search_miss/search_miss_router.dart';
+import '../../features/translation_help/translation_help_router.dart';
 import '../../features/user_profile/user_profile_router.dart';
 import '../../features/verifier_application/verifier_application_router.dart';
 import '../../shared/splash/splash_router.dart';
@@ -52,6 +57,9 @@ class AppRouter {
       ...OnboardingRouter.routes,
       ...AuthRouter.routes,
       ...ChangePasswordRouter.routes,
+      ...DeleteAccountRouter.routes,
+      ...EditProfileRouter.routes,
+      ...LinkedAccountsRouter.routes,
       ...AboutRouter.routes,
       ...DictionaryRouter.routes,
       ...ContributionRouter.routes,
@@ -63,7 +71,9 @@ class AppRouter {
       ...UserProfileRouter.routes,
       ...VerifierApplicationRouter.routes,
       ...ReportBugRouter.routes,
+      ...TranslationHelpRouter.routes,
       ...ReviewRouter.routes,
+      ...SearchMissRouter.routes,
       ...ExploreRouter.routes,
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -113,7 +123,7 @@ class AppRouter {
       childPad: true,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Text('Halaman tidak ditemukan: ${state.error}'),
         ),
       ),
@@ -121,7 +131,7 @@ class AppRouter {
   );
 
   /// Tamu BOLEH pakai app (pencarian publik). Redirect:
-  /// - onboarding belum selesai → /onboarding
+  /// - onboarding belum selesai → /onboarding (kecuali deep link publik / auth)
   /// - onboarding selesai tapi masih di /onboarding → HOME
   /// - user sudah login tapi masih di /login → HOME
   /// Register, verify-email, forgot/reset tidak di-redirect: daftar akun
@@ -132,10 +142,19 @@ class AppRouter {
     GoRouterState state,
   ) async {
     final loc = state.matchedLocation;
+    final path = state.uri.path;
+    final query = state.uri.query;
+
+    // HTTPS / custom scheme: /hapus-akun → rute native hapus akun.
+    if (path == '/hapus-akun' || loc == '/hapus-akun') {
+      return query.isEmpty ? '/delete-account' : '/delete-account?$query';
+    }
+
     final onboardingDone = OnboardingPrefs.done;
     final isOnboarding = loc == OnboardingRouter.onboarding.path;
+    final isDeepLinkFriendly = _isDeepLinkFriendlyPath(path);
 
-    if (!onboardingDone && !isOnboarding) {
+    if (!onboardingDone && !isOnboarding && !isDeepLinkFriendly) {
       return OnboardingRouter.onboarding.path;
     }
     if (onboardingDone && isOnboarding) {
@@ -146,6 +165,22 @@ class AppRouter {
     if (isAuth && loc == AuthRouter.login.path) return '/';
 
     return null;
+  }
+
+  /// Path yang boleh dibuka dari deep link sebelum onboarding selesai.
+  static bool _isDeepLinkFriendlyPath(String path) {
+    if (path == AuthRouter.resetPassword.path ||
+        path == AuthRouter.forgotPassword.path ||
+        path == AuthRouter.verifyEmail.path ||
+        path == AuthRouter.register.path ||
+        path == DeleteAccountRouter.deleteAccount.path ||
+        path == '/hapus-akun') {
+      return true;
+    }
+    if (path.startsWith('/words/')) return true;
+    if (path.startsWith('/users/')) return true;
+    if (path.startsWith('/translation-helps')) return true;
+    return false;
   }
 }
 

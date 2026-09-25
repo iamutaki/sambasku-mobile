@@ -5,7 +5,11 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/network/network_providers.dart';
 import '../../../../shared/widgets/attachment_images_field.dart';
+import '../../../share/data/share_background_repository.dart';
+import '../../../share/domain/share_models.dart';
+import '../../../share/presentation/share_image_explorer_sheet.dart';
 import '../../data/models/create_word_image_dto.dart';
 import '../../data/providers/contribution_data_providers.dart';
 import '../../domain/repositories/contribution_repository.dart';
@@ -14,16 +18,22 @@ import '../../domain/repositories/contribution_repository.dart';
 typedef ContributeImageSlot = AttachmentImageSlot;
 
 /// Field gambar usul kata - thin wrapper di atas [AttachmentImagesField]
-/// (token admin `/words`, max 3, wajib login).
+/// (ImageKit staging `/words`, max 3, Media Explorer stock).
+///
+/// Tamu: [allowLocalPick] false → hanya Media Explorer (tanpa login).
+/// Login: kamera/galeri + Explorer.
 class ContributeImagesField extends ConsumerWidget {
   const ContributeImagesField({
     super.key,
     required this.enabled,
     required this.images,
     required this.onChanged,
+    this.allowLocalPick = true,
   });
 
   final bool enabled;
+  /// False = tamu: hanya stock Media Explorer (tanpa POST /images).
+  final bool allowLocalPick;
   final List<AttachmentImageSlot> images;
   final ValueChanged<List<AttachmentImageSlot>> onChanged;
 
@@ -31,17 +41,21 @@ class ContributeImagesField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return AttachmentImagesField(
       enabled: enabled,
+      allowLocalPick: allowLocalPick,
       maxImages: 3,
       maxSizeMb: 5,
       images: images,
       onChanged: onChanged,
-      disabledHint: 'Masuk untuk lampirkan gambar (opsional).',
-      disabledActionLabel: enabled ? null : 'Masuk',
-      onDisabledAction: enabled
+      disabledHint: allowLocalPick
+          ? 'Masuk untuk lampirkan gambar (opsional).'
+          : 'Pilih foto stock lewat Media Explorer (opsional).',
+      disabledActionLabel: enabled || !allowLocalPick ? null : 'Masuk',
+      onDisabledAction: enabled || !allowLocalPick
           ? null
           : () {
               context.push('/login');
             },
+      onPickStockImage: () => _pickStockImage(context, ref),
       upload: (File file, {required bool isPrimary}) async {
         final service = ref.read(wordImageUploadServiceProvider);
         final result = await service.uploadFile(file, isPrimary: isPrimary);
@@ -56,6 +70,7 @@ class ContributeImagesField extends ConsumerWidget {
             AttachmentUploadedImage(
               url: dto.url,
               providerFileId: dto.providerFileId,
+              provider: dto.provider ?? 'imagekit',
               sha: dto.sha,
               altText: dto.altText,
               isPrimary: dto.isPrimary,
@@ -65,19 +80,47 @@ class ContributeImagesField extends ConsumerWidget {
       },
     );
   }
+
+  Future<AttachmentUploadedImage?> _pickStockImage(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final selected = await showShareMediaExplorer(
+      context,
+      backgrounds: ShareBackgroundRepository(ref.read(dioProvider)),
+      photoOnly: true,
+    );
+    if (selected == null || selected.kind != ShareMediaKind.photo) {
+      return null;
+    }
+    final photographer = selected.photographer.trim().isEmpty
+        ? shareProviderLabel(selected.provider)
+        : selected.photographer.trim();
+    return AttachmentUploadedImage(
+      url: selected.url,
+      providerFileId: selected.id,
+      provider: selected.provider,
+      altText: 'Foto: $photographer / ${selected.provider}',
+    );
+  }
 }
 
 /// Map slot siap → domain image untuk submit kata.
 List<SubmitWordImage> readySubmitImages(List<AttachmentImageSlot> slots) {
   return [
-    for (final s in readyAttachmentImages(slots))
-      SubmitWordImage(
-        url: s.url,
-        providerFileId: s.providerFileId,
-        sha: s.sha,
-        altText: s.altText,
-        isPrimary: s.isPrimary,
-      ),
+    for (final s in slots)
+      if (s.isReady && s.uploaded != null)
+        SubmitWordImage(
+          url: s.uploaded!.url,
+          providerFileId: s.uploaded!.providerFileId,
+          provider: s.uploaded!.provider,
+          sha: s.uploaded!.sha,
+          altText: s.uploaded!.altText,
+          isPrimary: s.uploaded!.isPrimary,
+          // contentWarnings diambil dari slot (dipilih user via checkbox),
+          // bukan dari uploaded (respons server tidak menyertakannya).
+          contentWarnings: List<String>.from(s.contentWarnings),
+        ),
   ];
 }
 
@@ -88,6 +131,7 @@ CreateWordImageDto? contributeDtoOf(AttachmentImageSlot slot) {
   return CreateWordImageDto(
     url: u.url,
     providerFileId: u.providerFileId,
+    provider: u.provider,
     sha: u.sha,
     altText: u.altText,
     isPrimary: u.isPrimary,

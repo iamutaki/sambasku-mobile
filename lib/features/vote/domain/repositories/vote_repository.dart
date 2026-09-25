@@ -1,11 +1,12 @@
 import 'package:fpdart/fpdart.dart';
 
+import '../entities/vote_deck_item.dart';
 import '../entities/vote_target.dart';
 import '../entities/vote_view.dart';
 import '../failures/vote_failure.dart';
 
-/// Interface repository vote (08-api-upvote-downvote.md). Semua method
-/// mengembalikan `Either`, failure = [VoteFailure].
+/// Interface repository vote (08-api-upvote-downvote.md + 34 deck).
+/// Semua method mengembalikan `Either`, failure = [VoteFailure].
 abstract interface class VoteRepository {
   /// Toggle vote (1 = upvote, -1 = downvote). Semantik servernya: vote
   /// searah kedua kali = batal (my_vote null); beda arah = ganti arah.
@@ -24,4 +25,10 @@ abstract interface class VoteRepository {
   Future<Either<VoteFailure, Map<String, int>>> myVotes(
     List<VoteTarget> targets,
   );
+
+  /// Antrean kata published yang user belum vote (34-api-vote-deck.md).
+  Future<Either<VoteFailure, VoteDeckPage>> getDeck({
+    int limit = 10,
+    String? cursor,
+  });
 }

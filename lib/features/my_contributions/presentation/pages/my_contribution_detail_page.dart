@@ -4,7 +4,9 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../core/theme/f_colors_x.dart';
 import '../../../../core/utils/format_datetime.dart';
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../dictionary/domain/failures/dictionary_failure.dart';
 import '../../../dictionary/presentation/providers/word_detail_providers.dart';
 import '../../domain/entities/my_submission.dart';
@@ -64,7 +66,7 @@ class _ErrorState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -118,7 +120,28 @@ class _DetailBody extends ConsumerWidget {
           children: [
             FTile(
               title: const Text('Status'),
-              subtitle: Text(item.statusLabel),
+              subtitle: Text(
+                item.statusLabel,
+                style: TextStyle(
+                  color: switch (item.status) {
+                    'approved' => context.theme.colors.success,
+                    'rejected' => context.theme.colors.destructive,
+                    'corrected' => context.theme.colors.primary,
+                    _ => context.theme.colors.warning,
+                  },
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              prefix: item.isPendingReview
+                  ? Semantics(
+                      button: true,
+                      label: 'Menunggu pengecekan',
+                      child: GestureDetector(
+                        onTap: () => showPendingReviewInfo(context),
+                        child: const PendingReviewBadgeIcon(size: 16),
+                      ),
+                    )
+                  : null,
             ),
             FTile(title: const Text('Jenis'), subtitle: Text(item.kindLabel)),
             if (created.isNotEmpty)

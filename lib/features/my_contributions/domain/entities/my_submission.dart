@@ -59,6 +59,9 @@ class MySubmission {
     }
   }
 
+  bool get isPendingReview =>
+      status != 'approved' && status != 'rejected' && status != 'corrected';
+
   bool get canOpenWord => wordId != null && wordId!.isNotEmpty;
 
   String get displayTitle {

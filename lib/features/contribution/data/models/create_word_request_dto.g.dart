@@ -21,6 +21,11 @@ _CreateWordRequestDto _$CreateWordRequestDtoFromJson(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  usageLabels:
+      (json['usage_labels'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   notes: json['notes'] as String?,
   variants: (json['variants'] as List<dynamic>?)
       ?.map((e) => CreateWordVariantDto.fromJson(e as Map<String, dynamic>))
@@ -39,10 +44,11 @@ Map<String, dynamic> _$CreateWordRequestDtoToJson(
 ) => <String, dynamic>{
   'lemma': instance.lemma,
   'language_id': instance.languageId,
-  'dialect_id': instance.dialectId,
+  'dialect_id': ?instance.dialectId,
   'word_type': instance.wordType,
   'meanings': instance.meanings,
   'category_ids': instance.categoryIds,
+  'usage_labels': instance.usageLabels,
   'notes': ?instance.notes,
   'variants': ?instance.variants,
   'related_words': ?instance.relatedWords,

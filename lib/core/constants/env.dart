@@ -1,5 +1,4 @@
 import 'package:envied/envied.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../flavors.dart';
 
@@ -14,6 +13,16 @@ abstract final class Env {
 
   @EnviedField(varName: 'SAMBASKU_API_HOST_PRODUCTION', optional: true)
   static const String? apiHostProduction = _Env.apiHostProduction;
+
+  /// Tier cadangan produksi, urut. Dipakai circuit breaker di
+  /// `core/network/failover/` - layar tidak tahu ada lebih dari satu host.
+  @EnviedField(varName: 'SAMBASKU_API_HOST_FALLBACK_PRODUCTION', optional: true)
+  static const String? apiHostFallbackProduction =
+      _Env.apiHostFallbackProduction;
+
+  @EnviedField(varName: 'SAMBASKU_API_HOST_FALLBACK2_PRODUCTION', optional: true)
+  static const String? apiHostFallback2Production =
+      _Env.apiHostFallback2Production;
 
   /// Web OAuth client ID per env (sama dengan API `GOOGLE_CLIENT_ID`
   /// di wrangler/`.env` yang matching). Dipakai sebagai `serverClientId`.
@@ -32,22 +41,42 @@ abstract final class Env {
   @EnviedField(varName: 'FACEBOOK_APP_ID_PRODUCTION', optional: true)
   static const String? facebookAppIdProduction = _Env.facebookAppIdProduction;
 
-  /// Base URL API sesuai flavor aktif
+  /// Domain web publik (share URL + dokumentasi deep link). Staging vs prod.
+  @EnviedField(varName: 'SAMBASKU_WEB_APP_URL_STAGING', optional: true)
+  static const String? webAppUrlStaging = _Env.webAppUrlStaging;
+
+  @EnviedField(varName: 'SAMBASKU_WEB_APP_URL_PRODUCTION', optional: true)
+  static const String? webAppUrlProduction = _Env.webAppUrlProduction;
+
+  /// Base URL API sesuai flavor aktif (staging build → staging host, dst.).
   static String get apiHost {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      // production host kosong = belum rilis - jangan crash diam-diam
-      return apiHostStaging;
-    }
     return F.isStaging || apiHostProduction == null
         ? apiHostStaging
         : apiHostProduction!;
   }
 
+  /// Origin situs publik sesuai flavor (untuk caption share / deep link).
+  static String? get webAppUrl {
+    if (F.isStaging || webAppUrlProduction == null) {
+      return _nonEmpty(webAppUrlStaging) ?? 'https://sambasku-web-staging.iamutaki.com';
+    }
+    return _nonEmpty(webAppUrlProduction) ?? 'https://sambasku.com';
+  }
+
+  /// Host cadangan setelah [apiHost], urut tier 2 lalu tier 3.
+  ///
+  /// Kosong di staging: flavor itu tidak punya cadangan, jadi circuit breaker
+  /// tidak punya tujuan pindah dan diam saja.
+  static List<String> get apiHostFallbacks {
+    if (F.isStaging || apiHostProduction == null) return const [];
+    return [
+      _nonEmpty(apiHostFallbackProduction),
+      _nonEmpty(apiHostFallback2Production),
+    ].whereType<String>().toList(growable: false);
+  }
+
   /// Client ID Google mengikuti backend yang sedang dihubungi (`apiHost`).
   static String? get googleWebClientId {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      return _nonEmpty(googleWebClientIdStaging);
-    }
     if (F.isStaging || apiHostProduction == null) {
       return _nonEmpty(googleWebClientIdStaging);
     }
@@ -57,9 +86,6 @@ abstract final class Env {
 
   /// App ID Facebook mengikuti backend yang sedang dihubungi (`apiHost`).
   static String? get facebookAppId {
-    if (kDebugMode && F.appFlavor == Flavor.production) {
-      return _nonEmpty(facebookAppIdStaging);
-    }
     if (F.isStaging || apiHostProduction == null) {
       return _nonEmpty(facebookAppIdStaging);
     }

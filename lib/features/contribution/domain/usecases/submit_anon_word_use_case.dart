@@ -29,10 +29,14 @@ class SubmitAnonWordUseCase {
       final definition = isHaveDefinition ? m.definition.trim() : '-';
       final translations = isHaveTranslation
           ? m.translationTexts
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList(growable: false)
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList(growable: false)
           : <String>[];
+      final exampleSentences = m.exampleSentences
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
 
       meanings.add(
         SubmitWordMeaning(
@@ -41,11 +45,17 @@ class SubmitAnonWordUseCase {
           isHaveDefinition: isHaveDefinition,
           isHaveTranslation: isHaveTranslation,
           translationTexts: translations,
+          exampleSentences: exampleSentences,
         ),
       );
     }
 
     final categoryIds = params.categoryIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+
+    final usageLabels = params.usageLabels
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList(growable: false);
@@ -82,6 +92,7 @@ class SubmitAnonWordUseCase {
         SubmitWordImage(
           url: img.url,
           providerFileId: img.providerFileId,
+          provider: img.provider,
           sha: img.sha,
           altText: img.altText,
           isPrimary: primary,
@@ -93,6 +104,7 @@ class SubmitAnonWordUseCase {
       images[0] = SubmitWordImage(
         url: first.url,
         providerFileId: first.providerFileId,
+        provider: first.provider,
         sha: first.sha,
         altText: first.altText,
         isPrimary: true,
@@ -110,6 +122,7 @@ class SubmitAnonWordUseCase {
       dialectId: (dialectId != null && dialectId.isNotEmpty) ? dialectId : null,
       wordType: wordType,
       categoryIds: categoryIds,
+      usageLabels: usageLabels,
       notes: (notes != null && notes.isNotEmpty) ? notes : null,
       spellingVariants: spellingVariants,
       relatedWords: relatedWords,
@@ -127,6 +140,7 @@ class SubmitAnonWordMeaningParams {
     this.isHaveDefinition = true,
     this.isHaveTranslation = true,
     this.translationTexts = const [],
+    this.exampleSentences = const [],
   });
 
   final String wordClassId;
@@ -134,6 +148,7 @@ class SubmitAnonWordMeaningParams {
   final bool isHaveDefinition;
   final bool isHaveTranslation;
   final List<String> translationTexts;
+  final List<String> exampleSentences;
 }
 
 class SubmitAnonWordParams {
@@ -145,6 +160,7 @@ class SubmitAnonWordParams {
     this.dialectId,
     this.wordType = 'word',
     this.categoryIds = const [],
+    this.usageLabels = const [],
     this.notes,
     this.spellingVariants = const [],
     this.relatedWords = const [],
@@ -157,9 +173,11 @@ class SubmitAnonWordParams {
   final List<SubmitAnonWordMeaningParams> meanings;
   final String translationLanguageId;
   final String? dialectId;
+
   /// `word` | `idiom` | `peribahasa` | `ungkapan`
   final String wordType;
   final List<String> categoryIds;
+  final List<String> usageLabels;
   final String? notes;
   final List<String> spellingVariants;
   final List<SubmitWordRelation> relatedWords;

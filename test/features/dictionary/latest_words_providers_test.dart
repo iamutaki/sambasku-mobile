@@ -32,6 +32,7 @@ class _FakeDictionaryRepository implements DictionaryRepository {
   Future<Either<DictionaryFailure, WordSearchPage>> listLatest({
     required int limit,
     String? cursor,
+    bool forceRefresh = false,
   }) async {
     calls.add(cursor);
     if (failNext) {
@@ -84,7 +85,15 @@ class _FakeDictionaryRepository implements DictionaryRepository {
       throw UnimplementedError();
 
   @override
-  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay() async =>
+  Future<Either<DictionaryFailure, WordDetail>> getWordByLemma(
+    String lemma,
+  ) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<DictionaryFailure, WordOfDay?>> getWordOfDay({
+    bool forceRefresh = false,
+  }) async =>
       throw UnimplementedError();
 
   @override

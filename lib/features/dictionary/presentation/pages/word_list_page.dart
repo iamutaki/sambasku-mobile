@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
 import '../../dictionary_router.dart';
 import '../../domain/entities/word_summary.dart';
@@ -165,7 +166,7 @@ class WordListPage extends HookConsumerWidget {
       final askIndonesia = state.searchIn == 'translation' && query.isEmpty;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.zero,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -259,7 +260,7 @@ class _WordTile extends StatelessWidget with FTileMixin {
   @override
   Widget build(BuildContext context) {
     // Sambas: gloss A-Z / sense hasil search.
-    // Indonesia: sense (gloss Sambas) — fallback matched_translation.
+    // Indonesia: sense (gloss Sambas) - fallback matched_translation.
     final gloss = item.sense?.trim();
     final matched = item.matchedTranslation?.trim();
     String? subtitle;
@@ -274,7 +275,9 @@ class _WordTile extends StatelessWidget with FTileMixin {
     return FTile(
       title: Text(item.lemma),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      suffix: item.isVerified ? const VerifiedBadgeIcon() : null,
+      suffix: item.isVerified
+          ? const VerifiedBadgeIcon()
+          : const PendingReviewBadgeIcon(),
       onPress: () {
         FocusManager.instance.primaryFocus?.unfocus();
         context.push(DictionaryRouter.detail.path.replaceFirst(':id', item.id));
@@ -353,7 +356,7 @@ class _LoadingMoreFooter extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12, width: 12, child: FCircularProgress()),
+            const FCircularProgress(size: .xs),
             const Gap(8),
             Text(
               'Memuat...',

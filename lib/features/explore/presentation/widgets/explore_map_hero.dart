@@ -31,6 +31,8 @@ class ExploreMapHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    // Gradient/overlay mengecil ikut tinggi hero (landscape pendek).
+    final gradientHeight = (height * 0.45).clamp(64.0, 112.0);
 
     return SizedBox(
       height: height,
@@ -51,7 +53,7 @@ class ExploreMapHero extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: 0,
-              height: 112,
+              height: gradientHeight,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -75,17 +77,24 @@ class ExploreMapHero extends StatelessWidget {
                 children: [
                   Text(
                     'Jelajahi Sambas',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.typography.lg.copyWith(
                       fontWeight: FontWeight.w700,
+                      fontSize: height < 160 ? 16 : null,
                     ),
                   ),
-                  const Gap(4),
-                  Text(
-                    'Peta hidup Kabupaten Sambas - ketuk untuk membuka.',
-                    style: theme.typography.sm.copyWith(
-                      color: theme.colors.mutedForeground,
+                  if (height >= 130) ...[
+                    const Gap(4),
+                    Text(
+                      'Peta hidup Kabupaten Sambas - ketuk untuk membuka.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.sm.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

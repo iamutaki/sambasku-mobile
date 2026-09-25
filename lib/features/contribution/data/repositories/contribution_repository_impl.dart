@@ -6,6 +6,7 @@ import '../../domain/entities/submit_word_result.dart';
 import '../../domain/failures/contribution_failure.dart';
 import '../../domain/repositories/contribution_repository.dart';
 import '../datasources/contribution_remote_datasource.dart';
+import '../models/create_word_example_dto.dart';
 import '../models/create_word_image_dto.dart';
 import '../models/create_word_meaning_dto.dart';
 import '../models/create_word_related_word_dto.dart';
@@ -26,6 +27,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],
@@ -39,9 +41,11 @@ class ContributionRepositoryImpl implements ContributionRepository {
             (img) => CreateWordImageDto(
               url: img.url,
               providerFileId: img.providerFileId,
+              provider: img.provider,
               sha: img.sha,
               altText: img.altText,
               isPrimary: img.isPrimary,
+              contentWarnings: List<String>.from(img.contentWarnings),
             ),
           )
           .toList(growable: false);
@@ -76,6 +80,16 @@ class ContributionRepositoryImpl implements ContributionRepository {
                   ),
                 )
                 .toList(growable: false),
+            examples: m.exampleSentences.isEmpty
+                ? null
+                : m.exampleSentences
+                      .map(
+                        (sentence) => CreateWordExampleDto(
+                          sourceLanguageId: languageId,
+                          sourceSentence: sentence,
+                        ),
+                      )
+                      .toList(growable: false),
           ),
         );
       }
@@ -87,6 +101,7 @@ class ContributionRepositoryImpl implements ContributionRepository {
         wordType: wordType,
         meanings: meaningDtos,
         categoryIds: categoryIds,
+        usageLabels: usageLabels,
         notes: notes,
         variants: variantDtos.isEmpty ? null : variantDtos,
         relatedWords: relatedDtos.isEmpty ? null : relatedDtos,

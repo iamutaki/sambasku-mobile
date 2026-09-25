@@ -7,22 +7,29 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../utils/image_sheet_drawer.dart';
+import 'cached_network_image_with_fallback.dart';
 
-/// Hasil upload CDN siap dikirim di body submit.
+/// Hasil upload CDN ATAU referensi stock Media Explorer.
 class AttachmentUploadedImage {
   const AttachmentUploadedImage({
     required this.url,
     required this.providerFileId,
+    this.provider,
     this.sha,
     this.altText,
     this.isPrimary = false,
+    this.contentWarnings = const [],
   });
 
   final String url;
   final String providerFileId;
+  /// Stock: pexels|pixabay|… ; upload GitHub: null (diisi API).
+  final String? provider;
   final String? sha;
   final String? altText;
   final bool isPrimary;
+  /// Peringatan konten yang dipilih oleh kontributor. V1: 'kekerasan'.
+  final List<String> contentWarnings;
 }
 
 /// Gagal upload lampiran (token/CDN/jaringan).
@@ -34,6 +41,7 @@ class AttachmentUploadFailure {
 }
 
 /// Slot lokal + status upload (upload segera setelah pilih).
+/// Stock Media Explorer: [localPath] kosong, [uploaded] langsung terisi.
 class AttachmentImageSlot {
   const AttachmentImageSlot({
     required this.id,
@@ -41,6 +49,7 @@ class AttachmentImageSlot {
     this.uploaded,
     this.uploading = false,
     this.error = false,
+    this.contentWarnings = const [],
   });
 
   final String id;
@@ -48,14 +57,19 @@ class AttachmentImageSlot {
   final AttachmentUploadedImage? uploaded;
   final bool uploading;
   final bool error;
+  /// Peringatan konten dipilih oleh kontributor (mis. ['kekerasan']).
+  final List<String> contentWarnings;
 
   bool get isReady => uploaded != null && !uploading && !error;
+  bool get isNetworkOnly => localPath.isEmpty && uploaded != null;
+  bool get hasViolenceWarning => contentWarnings.contains('kekerasan');
 
   AttachmentImageSlot copyWith({
     AttachmentUploadedImage? uploaded,
     bool? uploading,
     bool? error,
     bool clearUploaded = false,
+    List<String>? contentWarnings,
   }) {
     return AttachmentImageSlot(
       id: id,
@@ -63,6 +77,7 @@ class AttachmentImageSlot {
       uploaded: clearUploaded ? null : (uploaded ?? this.uploaded),
       uploading: uploading ?? this.uploading,
       error: error ?? this.error,
+      contentWarnings: contentWarnings ?? this.contentWarnings,
     );
   }
 }
@@ -75,7 +90,7 @@ typedef AttachmentUploadFn =
 
 /// Field lampiran gambar kanonik (mobile-base-stack §9.1).
 ///
-/// Forui + sheet Kamera/Galeri + upload segera + overlay progress/error.
+/// Forui + sheet Kamera/Galeri/(Media Explorer) + upload segera + overlay.
 /// Token/folder di-inject lewat [upload] per fitur.
 class AttachmentImagesField extends StatefulWidget {
   const AttachmentImagesField({
@@ -84,6 +99,7 @@ class AttachmentImagesField extends StatefulWidget {
     required this.onChanged,
     required this.upload,
     this.enabled = true,
+    this.allowLocalPick = true,
     this.maxImages = 3,
     this.maxSizeMb = 5,
     this.disabledHint =
@@ -91,9 +107,13 @@ class AttachmentImagesField extends StatefulWidget {
     this.disabledActionLabel,
     this.onDisabledAction,
     this.onUnavailable,
+    /// Buka Media Explorer (foto stock). Null = opsi Explorer disembunyikan.
+    this.onPickStockImage,
   });
 
   final bool enabled;
+  /// Kamera/galeri (butuh upload CDN). False = hanya Media Explorer bila ada.
+  final bool allowLocalPick;
   final int maxImages;
   final int maxSizeMb;
   final List<AttachmentImageSlot> images;
@@ -107,6 +127,9 @@ class AttachmentImagesField extends StatefulWidget {
 
   /// Dipanggil sekali saat `IMAGE_UPLOAD_UNAVAILABLE` (UI sembunyikan field).
   final VoidCallback? onUnavailable;
+
+  /// Return null jika user batal; selain itu slot stock langsung `done`.
+  final Future<AttachmentUploadedImage?> Function()? onPickStockImage;
 
   @override
   State<AttachmentImagesField> createState() => _AttachmentImagesFieldState();
@@ -123,18 +146,64 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
       return;
     }
 
+    // Tamu / tanpa upload lokal: langsung Media Explorer (tanpa sheet kamera).
+    if (!widget.allowLocalPick) {
+      if (widget.onPickStockImage != null) {
+        _handleStockPick();
+        return;
+      }
+      _toast('Masuk untuk lampirkan dari kamera atau galeri');
+      return;
+    }
+
     showImageSheetDrawer(
       context,
       picker: _picker,
       filePicker: false,
-      maxWidth: 1600,
-      imageQuality: 80,
+      mediaExplorerPicker: widget.onPickStockImage != null,
+      onMediaExplorer: widget.onPickStockImage == null
+          ? null
+          : () {
+              _handleStockPick();
+            },
       onPicked: _handlePicked,
       onRemoved: () {
         widget.onChanged(const []);
         Navigator.of(context).pop();
       },
     );
+  }
+
+  Future<void> _handleStockPick() async {
+    final pick = widget.onPickStockImage;
+    if (pick == null || !mounted) return;
+    if (widget.images.length >= widget.maxImages) {
+      _toast('Maksimal ${widget.maxImages} gambar');
+      return;
+    }
+
+    final uploaded = await pick();
+    if (!mounted || uploaded == null) return;
+    if (widget.images.length >= widget.maxImages) {
+      _toast('Maksimal ${widget.maxImages} gambar');
+      return;
+    }
+
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final isPrimary = widget.images.isEmpty;
+    final slot = AttachmentImageSlot(
+      id: id,
+      localPath: '',
+      uploaded: AttachmentUploadedImage(
+        url: uploaded.url,
+        providerFileId: uploaded.providerFileId,
+        provider: uploaded.provider,
+        sha: uploaded.sha,
+        altText: uploaded.altText,
+        isPrimary: isPrimary,
+      ),
+    );
+    widget.onChanged([...widget.images, slot]);
   }
 
   Future<void> _handlePicked(File file) async {
@@ -234,6 +303,22 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
     ]);
   }
 
+  void _toggleViolence(String id) {
+    widget.onChanged([
+      for (final img in widget.images)
+        if (img.id == id)
+          img.copyWith(
+            contentWarnings: img.hasViolenceWarning
+                ? img.contentWarnings
+                      .where((w) => w != 'kekerasan')
+                      .toList(growable: false)
+                : [...img.contentWarnings, 'kekerasan'],
+          )
+        else
+          img,
+    ]);
+  }
+
   void _toast(String message) {
     showFToast(
       context: context,
@@ -278,28 +363,40 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
       );
     }
 
+    final hintParts = <String>[
+      if (widget.allowLocalPick) 'Kamera/galeri',
+      if (widget.onPickStockImage != null) 'Media Explorer',
+      if (widget.allowLocalPick) 'maks ${widget.maxSizeMb} MB',
+      'hingga ${widget.maxImages}',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            for (final img in widget.images)
-              _Thumb(slot: img, onRemove: () => _remove(img.id)),
-            if (widget.images.length < widget.maxImages)
-              FButton(
-                variant: FButtonVariant.outline,
-                onPress: _openPicker,
-                prefix: const Icon(FLucideIcons.imagePlus, size: 14),
-                child: const Text('Tambah'),
-              ),
-          ],
-        ),
+        for (var i = 0; i < widget.images.length; i++) ...[
+          _Thumb(
+            slot: widget.images[i],
+            onRemove: () => _remove(widget.images[i].id),
+            onViolenceToggle: () => _toggleViolence(widget.images[i].id),
+          ),
+          if (i != widget.images.length - 1)
+            Divider(height: 16, color: theme.colors.border),
+        ],
+        if (widget.images.isNotEmpty &&
+            widget.images.length < widget.maxImages)
+          const Gap(8),
+        if (widget.images.length < widget.maxImages)
+          FButton(
+            variant: FButtonVariant.outline,
+            onPress: _openPicker,
+            prefix: const Icon(FLucideIcons.imagePlus, size: 14),
+            child: Text(
+              widget.allowLocalPick ? 'Tambah' : 'Pilih dari Media Explorer',
+            ),
+          ),
         const Gap(4),
         Text(
-          'Kamera/galeri · maks ${widget.maxSizeMb} MB · hingga ${widget.maxImages}',
+          hintParts.join(' · '),
           style: theme.typography.sm.copyWith(
             color: theme.colors.mutedForeground,
             fontSize: 11,
@@ -311,77 +408,130 @@ class _AttachmentImagesFieldState extends State<AttachmentImagesField> {
 }
 
 class _Thumb extends StatelessWidget {
-  const _Thumb({required this.slot, required this.onRemove});
+  const _Thumb({
+    required this.slot,
+    required this.onRemove,
+    required this.onViolenceToggle,
+  });
 
   final AttachmentImageSlot slot;
   final VoidCallback onRemove;
+  final VoidCallback onViolenceToggle;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-    return SizedBox(
-      width: 88,
-      height: 88,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                File(slot.localPath),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => ColoredBox(
-                  color: theme.colors.muted,
-                  child: Icon(
-                    FLucideIcons.image,
-                    color: theme.colors.mutedForeground,
+    final networkUrl = slot.uploaded?.url;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 88,
+          height: 88,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: slot.localPath.isNotEmpty
+                      ? Image.file(
+                          File(slot.localPath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => ColoredBox(
+                            color: theme.colors.muted,
+                            child: Icon(
+                              FLucideIcons.image,
+                              color: theme.colors.mutedForeground,
+                            ),
+                          ),
+                        )
+                      : (networkUrl != null && networkUrl.isNotEmpty)
+                      ? CachedNetworkImageWithFallback(
+                          imageUrl: networkUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : ColoredBox(
+                          color: theme.colors.muted,
+                          child: Icon(
+                            FLucideIcons.image,
+                            color: theme.colors.mutedForeground,
+                          ),
+                        ),
+                ),
+              ),
+              if (slot.uploading)
+                const Positioned.fill(
+                  child: ColoredBox(
+                    color: Color(0x88000000),
+                    child: Center(child: FCircularProgress()),
+                  ),
+                ),
+              if (slot.error)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: const Color(0x88B91C1C),
+                    child: Icon(
+                      FLucideIcons.circleAlert,
+                      color: theme.colors.primaryForeground,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: -6,
+                right: -6,
+                child: GestureDetector(
+                  onTap: onRemove,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: theme.colors.destructive,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      FLucideIcons.x,
+                      size: 12,
+                      color: theme.colors.primaryForeground,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-          if (slot.uploading)
-            const Positioned.fill(
-              child: ColoredBox(
-                color: Color(0x88000000),
-                child: Center(child: FCircularProgress()),
-              ),
-            ),
-          if (slot.error)
-            Positioned.fill(
-              child: ColoredBox(
-                color: const Color(0x88B91C1C),
-                child: Icon(
-                  FLucideIcons.circleAlert,
-                  color: theme.colors.primaryForeground,
-                  size: 20,
+        ),
+        // Checkbox kekerasan di kanan thumb - hanya setelah upload siap.
+        if (slot.isReady) ...[
+          const Gap(10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FCheckbox(
+                  value: slot.hasViolenceWarning,
+                  label: Text(
+                    'Foto berisi kekerasan',
+                    style: theme.typography.xs.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                  onChange: (_) => onViolenceToggle(),
                 ),
-              ),
-            ),
-          Positioned(
-            top: -6,
-            right: -6,
-            child: GestureDetector(
-              onTap: onRemove,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: theme.colors.destructive,
-                  shape: BoxShape.circle,
+                const Gap(2),
+                Text(
+                  'Centang kalau fotonya menunjukkan kekerasan (misalnya luka, darah, atau senjata yang dipakai menyerang). Tim kami juga bisa menandai ini nanti.',
+                  style: theme.typography.xs.copyWith(
+                    color: theme.colors.mutedForeground,
+                    fontSize: 10,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: Icon(
-                  FLucideIcons.x,
-                  size: 12,
-                  color: theme.colors.primaryForeground,
-                ),
-              ),
+              ],
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }

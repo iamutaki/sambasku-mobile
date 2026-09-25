@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../domain/ports/facebook_sign_in_port.dart';
 import '../../domain/ports/google_sign_in_port.dart';
@@ -19,6 +20,7 @@ AuthRemoteDatasource authRemoteDatasource(Ref ref) =>
 AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
   ref.watch(authRemoteDatasourceProvider),
   ref.watch(authTokenStorageProvider),
+  responseCache: ref.watch(responseCacheStoreProvider),
 );
 
 @Riverpod(keepAlive: true)

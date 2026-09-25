@@ -38,6 +38,7 @@ _NetworkRequestRecord _$NetworkRequestRecordFromJson(
   responseBody: json['responseBody'] as String?,
   errorMessage: json['errorMessage'] as String?,
   isError: json['isError'] as bool? ?? false,
+  cacheSource: json['cacheSource'] as String?,
 );
 
 Map<String, dynamic> _$NetworkRequestRecordToJson(
@@ -58,4 +59,5 @@ Map<String, dynamic> _$NetworkRequestRecordToJson(
   'responseBody': instance.responseBody,
   'errorMessage': instance.errorMessage,
   'isError': instance.isError,
+  'cacheSource': instance.cacheSource,
 };

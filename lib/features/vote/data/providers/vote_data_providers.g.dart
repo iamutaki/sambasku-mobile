@@ -96,4 +96,4 @@ final class VoteRepositoryProvider
   }
 }
 
-String _$voteRepositoryHash() => r'f628019460ef1aac5e5c075407b90b09629f5fa3';
+String _$voteRepositoryHash() => r'45c40a5dff01ccc2ee3085fee42a3f01250f255d';

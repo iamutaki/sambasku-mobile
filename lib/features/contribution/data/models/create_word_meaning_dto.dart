@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'create_word_example_dto.dart';
 import 'create_word_translation_dto.dart';
 
 part 'create_word_meaning_dto.freezed.dart';
@@ -19,6 +20,7 @@ abstract class CreateWordMeaningDto with _$CreateWordMeaningDto {
     @JsonKey(name: 'is_have_translation') @Default(true) bool isHaveTranslation,
     @JsonKey(name: 'order_index') @Default(1) int orderIndex,
     required List<CreateWordTranslationDto> translations,
+    @JsonKey(includeIfNull: false) List<CreateWordExampleDto>? examples,
   }) = _CreateWordMeaningDto;
 
   factory CreateWordMeaningDto.fromJson(Map<String, dynamic> json) =>

@@ -10,11 +10,13 @@ android.apply {
             dimension = "flavor-type"
             applicationId = "com.iamutaki.sambasku.staging"
             resValue(type = "string", name = "app_name", value = "SambasKu Staging")
+            manifestPlaceholders["deepLinkHost"] = "sambasku-web-staging.iamutaki.com"
         }
         create("production") {
             dimension = "flavor-type"
             applicationId = "com.iamutaki.sambasku"
             resValue(type = "string", name = "app_name", value = "SambasKu")
+            manifestPlaceholders["deepLinkHost"] = "sambasku.com"
         }
     }
 

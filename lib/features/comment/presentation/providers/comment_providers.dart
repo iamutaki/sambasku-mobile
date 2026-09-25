@@ -88,7 +88,7 @@ class CommentListController extends _$CommentListController {
     );
   }
 
-  /// Kirim komentar — langsung published; invalidate list agar sync API.
+  /// Kirim komentar - langsung published; invalidate list agar sync API.
   Future<CommentFailure?> create(String body) async {
     final current = state.value;
     if (current == null) return null;

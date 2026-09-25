@@ -95,10 +95,10 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _durSub = player.durationStream.listen(_onDuration);
   }
 
-  bool _isCurrentOp(int op) => op == _opId;
+  bool _isCurrentOp(int op) => ref.mounted && op == _opId;
 
   void _onPosition(Duration pos) {
-    if (_endingPlayback || state.activeAudioId == null) return;
+    if (!ref.mounted || _endingPlayback || state.activeAudioId == null) return;
     final now = DateTime.now();
     final last = _lastPosEmit;
     if (last != null && now.difference(last) < _posThrottleInterval) {
@@ -113,12 +113,17 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _posThrottle = null;
     final pending = _pendingPos;
     _pendingPos = null;
-    if (pending != null && !_endingPlayback && state.activeAudioId != null) {
-      _emitPosition(pending);
+    if (!ref.mounted ||
+        pending == null ||
+        _endingPlayback ||
+        state.activeAudioId == null) {
+      return;
     }
+    _emitPosition(pending);
   }
 
   void _emitPosition(Duration pos) {
+    if (!ref.mounted) return;
     _lastPosEmit = DateTime.now();
     final dur = _player?.duration ?? state.duration;
     // Hindari rebuild no-op.
@@ -127,12 +132,13 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
   }
 
   void _onDuration(Duration? dur) {
-    if (dur == null || state.activeAudioId == null) return;
+    if (!ref.mounted || dur == null || state.activeAudioId == null) return;
     if (dur == state.duration) return;
     state = state.copyWith(duration: dur);
   }
 
   void _onPlayerState(PlayerState playerState) {
+    if (!ref.mounted) return;
     final id = state.activeAudioId;
     if (id == null) return;
 
@@ -187,19 +193,18 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
       await p.pause();
     } catch (_) {
       // ignore
-    } finally {
-      _endingPlayback = false;
-      final id = state.activeAudioId;
-      if (id != null) {
-        // Track kosong tetap terlihat sampai user ganti tile / play lagi.
-        state = WordDetailAudioView(
-          activeAudioId: id,
-          playbackState: AudioTilePlaybackState.idle,
-          position: Duration.zero,
-          duration: state.duration,
-        );
-      }
     }
+    _endingPlayback = false;
+    if (!ref.mounted) return;
+    final id = state.activeAudioId;
+    if (id == null) return;
+    // Track kosong tetap terlihat sampai user ganti tile / play lagi.
+    state = WordDetailAudioView(
+      activeAudioId: id,
+      playbackState: AudioTilePlaybackState.idle,
+      position: Duration.zero,
+      duration: state.duration,
+    );
   }
 
   /// [seedDuration] dari metadata API agar bar tidak loncat 0 → durasi stream.
@@ -383,7 +388,7 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     }
   }
 
-  /// Seek relatif (0..1) pada audio aktif — dipakai tap pada progress bar.
+  /// Seek relatif (0..1) pada audio aktif - dipakai tap pada progress bar.
   Future<void> seekRatio(double ratio) async {
     if (!state.canSeek) return;
     final p = _player;
@@ -393,6 +398,7 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
       milliseconds: (dur.inMilliseconds * ratio.clamp(0.0, 1.0)).round(),
     );
     await p.seek(target);
+    if (!ref.mounted) return;
     state = state.copyWith(position: target);
   }
 
@@ -402,8 +408,39 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _posThrottle?.cancel();
     _posThrottle = null;
     _pendingPos = null;
-    await _player?.stop();
+    // Lepas instance sepenuhnya: sumber lokal (pratinjau lama) / URL
+    // yang gagal tidak boleh menempel ke player berikutnya.
+    await _tearDownPlayer();
+    // Halaman sudah lepas: provider auto-dispose di tengah await ini.
+    if (!ref.mounted) return;
     state = const WordDetailAudioView();
+  }
+
+  Future<void> _tearDownPlayer() async {
+    final sub = _sub;
+    final posSub = _posSub;
+    final durSub = _durSub;
+    final player = _player;
+    _sub = null;
+    _posSub = null;
+    _durSub = null;
+    _player = null;
+    _endingPlayback = false;
+    try {
+      await sub?.cancel();
+    } catch (_) {}
+    try {
+      await posSub?.cancel();
+    } catch (_) {}
+    try {
+      await durSub?.cancel();
+    } catch (_) {}
+    try {
+      await player?.stop();
+    } catch (_) {}
+    try {
+      await player?.dispose();
+    } catch (_) {}
   }
 
   void _disposePlayer() {
@@ -411,14 +448,6 @@ class WordDetailAudioPlayer extends _$WordDetailAudioPlayer {
     _posThrottle?.cancel();
     _posThrottle = null;
     _pendingPos = null;
-    unawaited(_sub?.cancel());
-    unawaited(_posSub?.cancel());
-    unawaited(_durSub?.cancel());
-    unawaited(_player?.dispose());
-    _sub = null;
-    _posSub = null;
-    _durSub = null;
-    _player = null;
-    _endingPlayback = false;
+    unawaited(_tearDownPlayer());
   }
 }

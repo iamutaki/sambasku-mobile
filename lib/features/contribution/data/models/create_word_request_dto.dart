@@ -14,9 +14,9 @@ part 'create_word_request_dto.g.dart';
 /// minus `status` (backend memaksa `published` → approval gate
 /// pending_review). Anonim boleh mengirim `category_ids` kosong.
 ///
-/// `notes`, `variants`, `related_words`, `images` TIDAK ikut dikirim
-/// saat null (`includeIfNull: false`) - backend menolak nilai null pada
-/// field `z.*.optional()`.
+/// `dialect_id`, `notes`, `variants`, `related_words`, `images` TIDAK ikut
+/// dikirim saat null (`includeIfNull: false`) - backend menolak nilai null
+/// pada field `z.*.optional()` (Zod optional ≠ nullable).
 ///
 /// Antarmuka datar form (word_class_id/definition/translation_texts)
 /// di-transform menjadi `meanings[...]` di ContributionRepositoryImpl.
@@ -25,10 +25,11 @@ abstract class CreateWordRequestDto with _$CreateWordRequestDto {
   const factory CreateWordRequestDto({
     required String lemma,
     @JsonKey(name: 'language_id') required String languageId,
-    @JsonKey(name: 'dialect_id') String? dialectId,
+    @JsonKey(name: 'dialect_id', includeIfNull: false) String? dialectId,
     @JsonKey(name: 'word_type') @Default('word') String wordType,
     @JsonKey(name: 'meanings') required List<CreateWordMeaningDto> meanings,
     @JsonKey(name: 'category_ids') @Default([]) List<String> categoryIds,
+    @JsonKey(name: 'usage_labels') @Default([]) List<String> usageLabels,
     @JsonKey(name: 'notes', includeIfNull: false) String? notes,
     @JsonKey(name: 'variants', includeIfNull: false)
     List<CreateWordVariantDto>? variants,

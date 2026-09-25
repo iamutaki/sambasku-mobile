@@ -10,7 +10,7 @@ PronunciationAudioUploadService pronunciationAudioUploadService(Ref ref) {
   return PronunciationAudioUploadService(ref.watch(dioProvider));
 }
 
-/// Set true setelah 503 — sembunyikan tombol rekam di halaman ini.
+/// Set true setelah 503 - sembunyikan tombol rekam di halaman ini.
 @riverpod
 class PronunciationUploadUnavailable extends _$PronunciationUploadUnavailable {
   @override

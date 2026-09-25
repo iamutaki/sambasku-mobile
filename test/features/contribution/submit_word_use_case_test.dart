@@ -17,6 +17,7 @@ class _FakeRepo implements ContributionRepository {
   List<SubmitWordMeaning>? meanings;
   String? dialectId;
   List<String>? categoryIds;
+  List<String>? usageLabels;
   String? notes;
   List<String>? spellingVariants;
   List<SubmitWordRelation>? relatedWords;
@@ -32,6 +33,7 @@ class _FakeRepo implements ContributionRepository {
     String? dialectId,
     String wordType = 'word',
     List<String> categoryIds = const [],
+    List<String> usageLabels = const [],
     String? notes,
     List<String> spellingVariants = const [],
     List<SubmitWordRelation> relatedWords = const [],
@@ -44,6 +46,7 @@ class _FakeRepo implements ContributionRepository {
     this.meanings = meanings;
     this.dialectId = dialectId;
     this.categoryIds = categoryIds;
+    this.usageLabels = usageLabels;
     this.notes = notes;
     this.spellingVariants = spellingVariants;
     this.relatedWords = relatedWords;
@@ -62,6 +65,7 @@ SubmitAnonWordParams _params({
   bool isHaveDefinition = true,
   bool isHaveTranslation = true,
   List<String> translationTexts = const ['make'],
+  List<String> exampleSentences = const [],
   String? dialectId,
   List<String> categoryIds = const [],
   String? notes,
@@ -79,6 +83,7 @@ SubmitAnonWordParams _params({
         isHaveDefinition: isHaveDefinition,
         isHaveTranslation: isHaveTranslation,
         translationTexts: translationTexts,
+        exampleSentences: exampleSentences,
       ),
     ],
     dialectId: dialectId,
@@ -134,77 +139,90 @@ void main() {
     );
     final usecase = SubmitAnonWordUseCase(repo);
 
-    final r = await usecase(
-      _params(languageId: 'lan-xyz'),
-    );
+    final r = await usecase(_params(languageId: 'lan-xyz'));
 
     final failure = r.getLeft().toNullable();
     expect(failure?.message, 'Language ID tidak dikenal');
     expect(failure?.errorCode, 'VALIDATION_ERROR');
   });
 
-  test('translation teks tetap di-trim tapi tidak dipaksa minimal 1 di usecase',
-      () async {
+  test(
+    'translation teks tetap di-trim tapi tidak dipaksa minimal 1 di usecase',
+    () async {
+      final repo = _FakeRepo(Either.right(result));
+      final usecase = SubmitAnonWordUseCase(repo);
+
+      await usecase(
+        _params(lemma: 'x', definition: 'y', translationTexts: ['   ']),
+      );
+
+      // usecase hanya membersihkan; validasi minimal 1 ada di backend
+      // (VALIDATION_ERROR inline field translation_texts).
+      expect(repo.meanings!.first.translationTexts, isEmpty);
+    },
+  );
+
+  test('contoh kosong dibuang dan yang terisi di-trim', () async {
     final repo = _FakeRepo(Either.right(result));
     final usecase = SubmitAnonWordUseCase(repo);
 
     await usecase(
-      _params(
-        lemma: 'x',
-        definition: 'y',
-        translationTexts: ['   '],
-      ),
+      _params(exampleSentences: const ['  nak makan  ', '   ', 'udah makan']),
     );
 
-    // usecase hanya membersihkan; validasi minimal 1 ada di backend
-    // (VALIDATION_ERROR inline field translation_texts).
-    expect(repo.meanings!.first.translationTexts, isEmpty);
+    expect(repo.meanings!.first.exampleSentences, ['nak makan', 'udah makan']);
   });
 
-  test('tanpa definisi - paksa definition "-" saja; terjemahan tetap', () async {
-    final repo = _FakeRepo(Either.right(result));
-    final usecase = SubmitAnonWordUseCase(repo);
+  test(
+    'tanpa definisi - paksa definition "-" saja; terjemahan tetap',
+    () async {
+      final repo = _FakeRepo(Either.right(result));
+      final usecase = SubmitAnonWordUseCase(repo);
 
-    await usecase(
-      _params(
-        definition: 'akan diabaikan',
-        isHaveDefinition: false,
-        translationTexts: ['  memakai  '],
-        relatedWords: [
-          SubmitWordRelation(relationType: 'synonym', lemma: ' make '),
-          SubmitWordRelation(relationType: 'antonym', lemma: 'makai'),
-        ],
-      ),
-    );
+      await usecase(
+        _params(
+          definition: 'akan diabaikan',
+          isHaveDefinition: false,
+          translationTexts: ['  memakai  '],
+          relatedWords: [
+            SubmitWordRelation(relationType: 'synonym', lemma: ' make '),
+            SubmitWordRelation(relationType: 'antonym', lemma: 'makai'),
+          ],
+        ),
+      );
 
-    expect(repo.meanings!.first.definition, '-');
-    expect(repo.meanings!.first.translationTexts, ['memakai']);
-    expect(repo.meanings!.first.isHaveDefinition, false);
-    // lemma induk didrop; synonym tetap
-    expect(repo.relatedWords?.length, 1);
-    expect(repo.relatedWords?.first.lemma, 'make');
-    expect(repo.relatedWords?.first.relationType, 'synonym');
-  });
+      expect(repo.meanings!.first.definition, '-');
+      expect(repo.meanings!.first.translationTexts, ['memakai']);
+      expect(repo.meanings!.first.isHaveDefinition, false);
+      // lemma induk didrop; synonym tetap
+      expect(repo.relatedWords?.length, 1);
+      expect(repo.relatedWords?.first.lemma, 'make');
+      expect(repo.relatedWords?.first.relationType, 'synonym');
+    },
+  );
 
-  test('tanpa padanan - translations kosong, isHaveTranslation false', () async {
-    final repo = _FakeRepo(Either.right(result));
-    final usecase = SubmitAnonWordUseCase(repo);
+  test(
+    'tanpa padanan - translations kosong, isHaveTranslation false',
+    () async {
+      final repo = _FakeRepo(Either.right(result));
+      final usecase = SubmitAnonWordUseCase(repo);
 
-    await usecase(
-      _params(
-        definition: 'uraian makna tanpa padanan tunggal',
-        isHaveTranslation: false,
-        translationTexts: ['akan diabaikan'],
-      ),
-    );
+      await usecase(
+        _params(
+          definition: 'uraian makna tanpa padanan tunggal',
+          isHaveTranslation: false,
+          translationTexts: ['akan diabaikan'],
+        ),
+      );
 
-    expect(
-      repo.meanings!.first.definition,
-      'uraian makna tanpa padanan tunggal',
-    );
-    expect(repo.meanings!.first.translationTexts, isEmpty);
-    expect(repo.meanings!.first.isHaveTranslation, false);
-  });
+      expect(
+        repo.meanings!.first.definition,
+        'uraian makna tanpa padanan tunggal',
+      );
+      expect(repo.meanings!.first.translationTexts, isEmpty);
+      expect(repo.meanings!.first.isHaveTranslation, false);
+    },
+  );
 
   test('multi makna - semua blok di-trim dan order terjaga', () async {
     final repo = _FakeRepo(Either.right(result));

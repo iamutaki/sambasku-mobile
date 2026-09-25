@@ -177,7 +177,12 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
   }
 
   List<WordImage> get _wordImages {
-    final images = [...widget.detail.images];
+    // Exclude: gambar pending (tidak ada URL asli) dan gambar kekerasan
+    // (tidak auto-pilih sebagai latar kartu berbagi).
+    final images = [
+      for (final img in widget.detail.images)
+        if (!img.isPendingReview && !img.hasViolenceWarning) img,
+    ];
     images.sort((a, b) {
       if (a.isPrimary == b.isPrimary) return 0;
       return a.isPrimary ? -1 : 1;
@@ -277,7 +282,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         q,
         page: page,
         sort: 'relevant',
-        provider: 'pexels',
+        provider: 'pixabay',
         media: 'photo',
         orientation: orientation,
         limit: 3,
@@ -286,7 +291,7 @@ class _WordShareSheetBodyState extends State<_WordShareSheetBody> {
         q,
         page: page,
         sort: 'relevant',
-        provider: 'pexels',
+        provider: 'pixabay',
         media: 'video',
         orientation: orientation,
         limit: 3,

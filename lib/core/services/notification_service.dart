@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'device_registration_holder.dart';
+import 'notification_navigation.dart';
 
 /// Foreground FCM → Awesome Notifications (in-app saat app dibuka).
 /// Permission diminta dari onboarding slide 3, bukan di cold start.
@@ -19,7 +20,11 @@ class NotificationService {
   /// Dipanggil saat FCM foreground / tap / resume dari background.
   static VoidCallback? onNotificationsMayHaveChanged;
 
+  /// Navigasi dari tap notifikasi (di-set di `main` setelah router siap).
+  static void Function(Map<String, String?> payload)? onNotificationOpened;
+
   static bool _lifecycleAttached = false;
+  static bool _initialMessageHandled = false;
   static final _lifecycleObserver = _NotificationLifecycleObserver();
 
   /// Init channel + listener tanpa meminta izin OS.
@@ -42,15 +47,23 @@ class NotificationService {
     );
 
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
-    FirebaseMessaging.onMessageOpenedApp.listen((_) {
-      _notifyCachesStale();
-    });
+    FirebaseMessaging.onMessageOpenedApp.listen(_onRemoteMessageOpened);
 
     AwesomeNotifications().setListeners(
       onActionReceivedMethod: _onActionReceived,
     );
 
     debugPrint('NotificationService initialized (awesome_notifications)');
+  }
+
+  /// Cold start dari tap notifikasi (FCM). Panggil setelah [runApp].
+  static Future<void> handleInitialMessage() async {
+    if (_initialMessageHandled) return;
+    _initialMessageHandled = true;
+    final initial = await FirebaseMessaging.instance.getInitialMessage();
+    if (initial != null) {
+      _onRemoteMessageOpened(initial);
+    }
   }
 
   /// Pasang observer resume setelah [ProviderContainer] siap.
@@ -88,7 +101,7 @@ class NotificationService {
       ),
     );
 
-    // Banner tampil ≠ cache inbox/unread ikut berubah — invalidate di sini.
+    // Banner tampil ≠ cache inbox/unread ikut berubah - invalidate di sini.
     _notifyCachesStale();
   }
 
@@ -96,11 +109,30 @@ class NotificationService {
     onNotificationsMayHaveChanged?.call();
   }
 
+  static void _onRemoteMessageOpened(RemoteMessage message) {
+    debugPrint('Notification opened (FCM): ${message.data}');
+    _notifyCachesStale();
+    final payload = message.data.map((k, v) => MapEntry(k, v.toString()));
+    final handler = onNotificationOpened;
+    if (handler != null) {
+      handler(payload);
+    } else {
+      navigateFromNotificationPayload(payload);
+    }
+  }
+
   @pragma('vm:entry-point')
   static Future<void> _onActionReceived(ReceivedAction action) async {
     debugPrint('Notification tapped: ${action.payload}');
     _notifyCachesStale();
-    // TODO: navigasi berdasarkan payload (contribution_id, dll.)
+    final payload = action.payload;
+    if (payload == null || payload.isEmpty) return;
+    final handler = onNotificationOpened;
+    if (handler != null) {
+      handler(payload);
+    } else {
+      navigateFromNotificationPayload(payload);
+    }
   }
 }
 

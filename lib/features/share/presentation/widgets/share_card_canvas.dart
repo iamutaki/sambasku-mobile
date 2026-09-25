@@ -545,32 +545,20 @@ Widget _watermark({required ShareCardData data, required ShareFontPair pair}) {
   );
 }
 
-/// Wordmark di watermark. Aset 4167², logo hanya di pita tengah
-/// (alpha 611,1654–3595,2513); sisa piksel transparan.
+/// Wordmark putih untuk chip watermark (latar gelap/blur).
 class _WatermarkLogo extends StatelessWidget {
   const _WatermarkLogo();
 
-  static const _asset = 'assets/icons/sambasku_placeholder_horizontal.png';
-  static const _widthFactor = 2984 / 4167;
-  static const _heightFactor = 859 / 4167;
+  static const _asset = 'assets/icons/logo_horizontal_dark.png';
   static const _visibleHeight = 58.0;
 
   @override
   Widget build(BuildContext context) {
-    final side = _visibleHeight / _heightFactor;
-    return ClipRect(
-      child: Align(
-        alignment: const Alignment(0.03, 0),
-        widthFactor: _widthFactor,
-        heightFactor: _heightFactor,
-        child: Image.asset(
-          _asset,
-          width: side,
-          height: side,
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.high,
-        ),
-      ),
+    return const Image(
+      image: AssetImage(_asset),
+      height: _visibleHeight,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
     );
   }
 }

@@ -199,6 +199,54 @@ final class GetWordByIdUseCaseProvider
 String _$getWordByIdUseCaseHash() =>
     r'406ea3691c39a1305a828ed2f6e116c690bc4e66';
 
+@ProviderFor(getWordByLemmaUseCase)
+final getWordByLemmaUseCaseProvider = GetWordByLemmaUseCaseProvider._();
+
+final class GetWordByLemmaUseCaseProvider
+    extends
+        $FunctionalProvider<
+          GetWordByLemmaUseCase,
+          GetWordByLemmaUseCase,
+          GetWordByLemmaUseCase
+        >
+    with $Provider<GetWordByLemmaUseCase> {
+  GetWordByLemmaUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'getWordByLemmaUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$getWordByLemmaUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetWordByLemmaUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GetWordByLemmaUseCase create(Ref ref) {
+    return getWordByLemmaUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetWordByLemmaUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetWordByLemmaUseCase>(value),
+    );
+  }
+}
+
+String _$getWordByLemmaUseCaseHash() =>
+    r'1ffbfb8ba16a3569129dbbe55383a1d6a6e2df5a';
+
 @ProviderFor(getWordOfDayUseCase)
 final getWordOfDayUseCaseProvider = GetWordOfDayUseCaseProvider._();
 
