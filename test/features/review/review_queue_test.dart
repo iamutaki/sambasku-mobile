@@ -452,7 +452,7 @@ void main() {
     expect(find.text('kalintiak'), findsWidgets);
     expect(find.byIcon(FLucideIcons.check), findsOneWidget);
     expect(
-      find.textContaining('Geser kanan untuk setuju'),
+      find.textContaining('Kanan setuju · kiri tolak · atas lewati'),
       findsOneWidget,
     );
 

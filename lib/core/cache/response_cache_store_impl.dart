@@ -72,6 +72,9 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
 
   @override
   Future<CacheEntry?> get(String key) async {
+    // Belum open (mis. widget test tanpa initResponseCacheStore) → treat as miss
+    // supaya CachedJsonClient tetap bisa fetch via Dio.
+    if (!_opened) return null;
     final entry = CacheEntry.fromBoxes(
       key: key,
       indexRaw: _indexBox.get(key),
@@ -102,6 +105,7 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
     required String body,
     CacheScope scope = CacheScope.public,
   }) async {
+    if (!_opened) return;
     final now = DateTime.now().toUtc();
     final size = utf8.encode(body).length;
     final entry = CacheEntry(
@@ -120,12 +124,14 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
 
   @override
   Future<void> delete(String key) async {
+    if (!_opened) return;
     await _indexBox.delete(key);
     await _bodyBox.delete(key);
   }
 
   @override
   Future<void> deleteByPrefix(String prefix) async {
+    if (!_opened) return;
     final keys = _indexBox.keys
         .whereType<String>()
         .where((k) => k.startsWith(prefix))
@@ -137,6 +143,7 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
 
   @override
   Future<void> wipeScope(CacheScope scope) async {
+    if (!_opened) return;
     final keys = <String>[];
     for (final key in _indexBox.keys) {
       if (key is! String) continue;
@@ -151,6 +158,7 @@ class ResponseCacheStoreImpl implements ResponseCacheStore {
 
   @override
   Future<void> wipeAll() async {
+    if (!_opened) return;
     await _indexBox.clear();
     await _bodyBox.clear();
   }
