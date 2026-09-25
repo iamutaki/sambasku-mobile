@@ -6,6 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/cache/cache_entry.dart';
+import '../../../../core/cache/cache_key.dart';
+import '../../../../core/cache/cache_providers.dart';
+import '../../../../core/cache/cached_json_client.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
@@ -1358,14 +1362,29 @@ class _OptionItem {
 final _referenceLanguagesProvider = FutureProvider<List<_OptionItem>>((
   ref,
 ) async {
+  final cache = ref.watch(cachedJsonClientProvider);
   final dio = ref.watch(dioProvider);
-  final resp = await dio.get<dynamic>('/api/v1/languages?is_active=true');
-  final data = resp.data;
-  if (data is! Map<String, dynamic>) return [];
+  final key = buildCacheKey(
+    method: 'GET',
+    path: '/api/v1/languages',
+    query: const {'is_active': 'true'},
+  );
+  final data = await cache.getOrFetch(
+    key: key,
+    cacheClass: CacheClass.referenceStatic,
+    fetch: () async {
+      final resp = await dio.get<dynamic>('/api/v1/languages?is_active=true');
+      final body = resp.data;
+      if (body is! Map) {
+        throw StateError('Envelope languages tidak valid');
+      }
+      return Map<String, dynamic>.from(body);
+    },
+  );
   final arr = data['data'];
   if (arr is! List) return [];
   return arr
-      .whereType<Map<String, dynamic>>()
+      .whereType<Map>()
       .map(
         (e) => _OptionItem(
           id: e['id']?.toString() ?? '',
@@ -1380,14 +1399,25 @@ final _referenceLanguagesProvider = FutureProvider<List<_OptionItem>>((
 final _referenceWordClassesProvider = FutureProvider<List<_OptionItem>>((
   ref,
 ) async {
+  final cache = ref.watch(cachedJsonClientProvider);
   final dio = ref.watch(dioProvider);
-  final resp = await dio.get<dynamic>('/api/v1/word-classes');
-  final data = resp.data;
-  if (data is! Map<String, dynamic>) return [];
+  final key = buildCacheKey(method: 'GET', path: '/api/v1/word-classes');
+  final data = await cache.getOrFetch(
+    key: key,
+    cacheClass: CacheClass.referenceStatic,
+    fetch: () async {
+      final resp = await dio.get<dynamic>('/api/v1/word-classes');
+      final body = resp.data;
+      if (body is! Map) {
+        throw StateError('Envelope word-classes tidak valid');
+      }
+      return Map<String, dynamic>.from(body);
+    },
+  );
   final arr = data['data'];
   if (arr is! List) return [];
   return arr
-      .whereType<Map<String, dynamic>>()
+      .whereType<Map>()
       .map(
         (e) => _OptionItem(
           id: e['id']?.toString() ?? '',
@@ -1430,17 +1460,33 @@ String? _matchWordClassId(
 
 final _referenceDialectsProvider =
     FutureProvider.family<List<_OptionItem>, String>((ref, languageId) async {
+      final cache = ref.watch(cachedJsonClientProvider);
       final dio = ref.watch(dioProvider);
-      final resp = await dio.get<dynamic>(
-        '/api/v1/dialects',
-        queryParameters: <String, dynamic>{'language_id': languageId},
+      final query = <String, dynamic>{'language_id': languageId};
+      final key = buildCacheKey(
+        method: 'GET',
+        path: '/api/v1/dialects',
+        query: query,
       );
-      final data = resp.data;
-      if (data is! Map<String, dynamic>) return [];
+      final data = await cache.getOrFetch(
+        key: key,
+        cacheClass: CacheClass.referenceStatic,
+        fetch: () async {
+          final resp = await dio.get<dynamic>(
+            '/api/v1/dialects',
+            queryParameters: query,
+          );
+          final body = resp.data;
+          if (body is! Map) {
+            throw StateError('Envelope dialects tidak valid');
+          }
+          return Map<String, dynamic>.from(body);
+        },
+      );
       final arr = data['data'];
       if (arr is! List) return [];
       return arr
-          .whereType<Map<String, dynamic>>()
+          .whereType<Map>()
           .map(
             (e) => _OptionItem(
               id: e['id']?.toString() ?? '',

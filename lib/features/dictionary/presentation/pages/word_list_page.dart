@@ -356,7 +356,7 @@ class _LoadingMoreFooter extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12, width: 12, child: FCircularProgress()),
+            const FCircularProgress(size: .xs),
             const Gap(8),
             Text(
               'Memuat...',

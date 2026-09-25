@@ -17,6 +17,7 @@ class ListLatestWordsUseCase {
     return _repository.listLatest(
       limit: params.limit,
       cursor: params.cursor,
+      forceRefresh: params.forceRefresh,
     );
   }
 }
@@ -25,8 +26,10 @@ class ListLatestWordsParams {
   const ListLatestWordsParams({
     this.limit = 20,
     this.cursor,
+    this.forceRefresh = false,
   });
 
   final int limit;
   final String? cursor;
+  final bool forceRefresh;
 }

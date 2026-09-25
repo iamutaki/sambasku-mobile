@@ -13,6 +13,7 @@
 /// Untuk menambah inspector baru, extend [DevToolInspector].
 library;
 
+export 'dev_tool_group.dart';
 export 'dev_tool_inspector.dart';
 export 'dev_tool_overlay.dart';
 export 'dev_tool_page.dart';

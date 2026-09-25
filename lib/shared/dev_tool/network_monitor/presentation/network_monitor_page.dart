@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 
 import '../../dev_tool_inspector.dart';
+import '../cache_source_copy.dart';
 import '../data/models/network_request_record.dart';
 import '../network_monitor_registry.dart';
 import 'network_request_detail_page.dart';
@@ -86,11 +87,12 @@ class _NetworkRecordCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final statusText = record.statusCode?.toString() ?? '...';
-    final durationText = record.durationMs == null
-        ? '-'
-        : '${record.durationMs} ms';
+    final durationText = record.cacheSource != null
+        ? 'cache'
+        : (record.durationMs == null ? '-' : '${record.durationMs} ms');
     final host = Uri.tryParse(record.url)?.host ?? '';
     final statusColors = _statusColors(theme, record);
+    final cacheSource = record.cacheSource;
 
     return Material(
       color: theme.colors.secondary,
@@ -99,7 +101,7 @@ class _NetworkRecordCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: theme.colors.border),
@@ -107,32 +109,24 @@ class _NetworkRecordCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Path penuh dulu — jangan diperebutkan badge.
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Badge(
-                    label: record.method,
-                    textColor: theme.colors.primaryForeground,
-                    backgroundColor: theme.colors.primary,
-                  ),
-                  const Gap(6),
-                  _Badge(
-                    label: statusText,
-                    textColor: statusColors.$1,
-                    backgroundColor: statusColors.$2,
-                  ),
-                  const Gap(6),
                   Expanded(
                     child: Text(
                       record.path,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.typography.sm.copyWith(
-                        fontWeight: FontWeight.w700,
+                      style: theme.typography.xs.copyWith(
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w600,
                         color: theme.colors.foreground,
+                        height: 1.3,
                       ),
                     ),
                   ),
-                  const Gap(8),
+                  const Gap(10),
                   Text(
                     durationText,
                     style: theme.typography.xs.copyWith(
@@ -142,10 +136,36 @@ class _NetworkRecordCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const Gap(6),
-              Row(
+              const Gap(8),
+              // Badge di baris sendiri, boleh wrap.
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (host.isNotEmpty) ...[
+                  _Badge(
+                    label: record.method,
+                    textColor: theme.colors.primaryForeground,
+                    backgroundColor: theme.colors.primary,
+                  ),
+                  _Badge(
+                    label: statusText,
+                    textColor: statusColors.$1,
+                    backgroundColor: statusColors.$2,
+                  ),
+                  if (cacheSource != null)
+                    _Badge(
+                      label: cacheSource,
+                      textColor: _cacheBadgeColors(theme, cacheSource).$1,
+                      backgroundColor: _cacheBadgeColors(theme, cacheSource).$2,
+                      tooltip: cacheSourcePlainExplanation(cacheSource),
+                    ),
+                ],
+              ),
+              if (host.isNotEmpty) ...[
+                const Gap(8),
+                Row(
+                  children: [
                     Expanded(
                       child: Text(
                         host,
@@ -156,23 +176,23 @@ class _NetworkRecordCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ] else
-                    const Spacer(),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 16,
-                    color: theme.colors.mutedForeground,
-                  ),
-                ],
-              ),
+                    Icon(
+                      FLucideIcons.chevronRight,
+                      size: 14,
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ],
+                ),
+              ],
               if (record.errorMessage != null) ...[
                 const Gap(6),
                 Text(
                   record.errorMessage!,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.xs.copyWith(
                     color: theme.colors.destructive,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -202,20 +222,44 @@ class _NetworkRecordCard extends StatelessWidget {
   }
 }
 
+(Color, Color) _cacheBadgeColors(FThemeData theme, String source) {
+  switch (source) {
+    case 'HIT':
+      return (
+        const Color(0xFF0F766E),
+        const Color(0xFF0D9488).withValues(alpha: 0.16),
+      );
+    case 'STALE':
+      return (
+        const Color(0xFFB45309),
+        const Color(0xFFF59E0B).withValues(alpha: 0.18),
+      );
+    case 'DEGRADED':
+      return (
+        theme.colors.destructive,
+        theme.colors.destructive.withValues(alpha: 0.12),
+      );
+    default:
+      return (theme.colors.mutedForeground, theme.colors.muted);
+  }
+}
+
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.label,
     required this.textColor,
     required this.backgroundColor,
+    this.tooltip,
   });
 
   final String label;
   final Color textColor;
   final Color backgroundColor;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -229,6 +273,17 @@ class _Badge extends StatelessWidget {
           color: textColor,
         ),
       ),
+    );
+
+    final tip = tooltip;
+    if (tip == null || tip.isEmpty) return badge;
+
+    return Tooltip(
+      message: tip,
+      waitDuration: const Duration(milliseconds: 400),
+      showDuration: const Duration(seconds: 6),
+      triggerMode: TooltipTriggerMode.tap,
+      child: badge,
     );
   }
 }

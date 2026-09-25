@@ -1,12 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../core/cache/cache_entry.dart';
+import '../../../core/cache/cache_key.dart';
+import '../../../core/cache/cached_json_client.dart';
 import '../domain/translation_help_models.dart';
 
 class TranslationHelpRepository {
-  TranslationHelpRepository(this._dio);
+  TranslationHelpRepository(this._dio, {CachedJsonClient? cache})
+    : _cache = cache;
 
   final Dio _dio;
+  final CachedJsonClient? _cache;
 
   static const _base = '/api/v1/translation-helps';
 
@@ -62,17 +67,46 @@ class TranslationHelpRepository {
     int limit = 20,
     String? cursor,
     String sort = 'latest',
+    bool forceRefresh = false,
   }) async {
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        _base,
-        queryParameters: {
-          'limit': limit,
-          'sort': sort,
-          if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
-        },
-      );
-      return Either.right(_parsePage(res.data));
+      final query = <String, dynamic>{
+        'limit': limit,
+        'sort': sort,
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      };
+      final cache = _cache;
+      Map<String, dynamic>? envelope;
+      if (cache != null) {
+        final key = buildCacheKey(
+          method: 'GET',
+          path: _base,
+          query: query,
+        );
+        envelope = await cache.getOrFetch(
+          key: key,
+          cacheClass: CacheClass.socialPublic,
+          forceRefresh: forceRefresh && (cursor == null || cursor.isEmpty),
+          fetch: () async {
+            final res = await _dio.get<Map<String, dynamic>>(
+              _base,
+              queryParameters: query,
+            );
+            final data = res.data;
+            if (data == null) {
+              throw StateError('Envelope translation-help kosong');
+            }
+            return data;
+          },
+        );
+      } else {
+        final res = await _dio.get<Map<String, dynamic>>(
+          _base,
+          queryParameters: query,
+        );
+        envelope = res.data;
+      }
+      return Either.right(_parsePage(envelope));
     } on DioException catch (e) {
       return Either.left(_mapDio(e, 'Gagal memuat bantuan terjemahan'));
     } catch (e) {
@@ -103,19 +137,43 @@ class TranslationHelpRepository {
   }
 
   Future<Either<TranslationHelpFailure, TranslationHelpItem>> getDetail(
-    String id,
-  ) async {
+    String id, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      final res = await _dio.get<Map<String, dynamic>>('$_base/$id');
-      final data = res.data?['data'];
-      if (data is! Map) {
+      final cache = _cache;
+      Map<String, dynamic>? data;
+      if (cache != null) {
+        final key = buildCacheKey(
+          method: 'GET',
+          path: '$_base/$id',
+        );
+        final envelope = await cache.getOrFetch(
+          key: key,
+          cacheClass: CacheClass.socialPublic,
+          forceRefresh: forceRefresh,
+          fetch: () async {
+            final res = await _dio.get<Map<String, dynamic>>('$_base/$id');
+            final body = res.data;
+            if (body == null) {
+              throw StateError('Envelope detail bantuan kosong');
+            }
+            return body;
+          },
+        );
+        final raw = envelope['data'];
+        if (raw is Map) data = Map<String, dynamic>.from(raw);
+      } else {
+        final res = await _dio.get<Map<String, dynamic>>('$_base/$id');
+        final raw = res.data?['data'];
+        if (raw is Map) data = Map<String, dynamic>.from(raw);
+      }
+      if (data == null) {
         return Either.left(
           const TranslationHelpFailure('Detail bantuan tidak lengkap'),
         );
       }
-      return Either.right(
-        TranslationHelpItem.fromJson(Map<String, dynamic>.from(data)),
-      );
+      return Either.right(TranslationHelpItem.fromJson(data));
     } on DioException catch (e) {
       return Either.left(_mapDio(e, 'Gagal memuat detail bantuan'));
     } catch (e) {

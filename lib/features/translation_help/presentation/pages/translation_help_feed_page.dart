@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../shared/utils/public_account_name.dart';
@@ -56,6 +57,9 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
       ),
       child: RefreshIndicator(
         onRefresh: () async {
+          await ref
+              .read(responseCacheStoreProvider)
+              .deleteByPrefix('GET|/api/v1/translation-helps');
           ref.invalidate(translationHelpFeedProvider);
           await ref.read(translationHelpFeedProvider.future);
         },

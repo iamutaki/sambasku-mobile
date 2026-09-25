@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/cache/cache_key.dart';
+import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/theme_toggle_header_action.dart';
@@ -185,9 +187,14 @@ class HomeSearchPage extends HookConsumerWidget {
   }
 
   Future<void> _refresh(WidgetRef ref) async {
+    final store = ref.read(responseCacheStoreProvider);
+    await store.delete(
+      buildCacheKey(method: 'GET', path: '/api/v1/words/today'),
+    );
+    await store.deleteByPrefix('GET|/api/v1/words/latest');
     ref.invalidate(wordOfDayProvider);
     await Future.wait([
-      ref.read(latestWordsProvider.notifier).load(),
+      ref.read(latestWordsProvider.notifier).load(forceRefresh: true),
       ref.read(wordOfDayProvider.future),
     ]);
   }
@@ -395,7 +402,7 @@ class _LoadingMoreFooter extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12, width: 12, child: FCircularProgress()),
+            const FCircularProgress(size: .xs),
             const Gap(8),
             Text(
               'Memuat...',

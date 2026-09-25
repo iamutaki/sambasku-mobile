@@ -9,6 +9,8 @@ class GetWordOfDayUseCase {
 
   final DictionaryRepository _repository;
 
-  Future<Either<DictionaryFailure, WordOfDay?>> call() =>
-      _repository.getWordOfDay();
+  Future<Either<DictionaryFailure, WordOfDay?>> call({
+    bool forceRefresh = false,
+  }) =>
+      _repository.getWordOfDay(forceRefresh: forceRefresh);
 }

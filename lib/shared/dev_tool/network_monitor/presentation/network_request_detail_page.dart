@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
 
+import '../cache_source_copy.dart';
 import '../data/models/network_request_record.dart';
 
 class NetworkRequestDetailPage extends StatelessWidget {
@@ -84,7 +85,22 @@ class NetworkRequestDetailPage extends StatelessWidget {
         children: [
           _Row(label: 'URL', value: record.url),
           _Row(label: 'Status', value: record.statusCode?.toString() ?? '-'),
-          _Row(label: 'Duration', value: '${record.durationMs ?? '-'} ms'),
+          if (record.cacheSource != null) ...[
+            _Row(label: 'Cache', value: record.cacheSource!),
+            const Gap(6),
+            Text(
+              cacheSourcePlainExplanation(record.cacheSource!),
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const Gap(8),
+          ],
+          _Row(label: 'Duration', value: record.cacheSource != null
+              ? '0 ms (local)'
+              : '${record.durationMs ?? '-'} ms'),
           _Row(label: 'Started', value: record.startedAt.toIso8601String()),
           _Row(label: 'Finished', value: record.finishedAt?.toIso8601String() ?? '-'),
           if (record.errorMessage != null) ...[

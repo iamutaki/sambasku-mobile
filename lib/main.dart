@@ -10,6 +10,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/cache/cache_providers.dart';
 import 'core/network/auth_token_storage.dart';
 import 'core/network/failover/api_host_resolver.dart';
 import 'core/network/network_providers.dart';
@@ -73,6 +74,10 @@ Future<void> main() async {
   await ThemeModeController.preload(prefs);
   await ForuiPaletteController.preload(prefs);
   await OnboardingPrefs.preload(prefs);
+
+  // L1 response cache (hive_ce) sebelum frame pertama — cold start
+  // boleh menyajikan reference/WOTD dari disk.
+  await initResponseCacheStore();
 
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

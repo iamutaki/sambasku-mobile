@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 ///
 /// Setiap inspector baru cukup meng-extend class ini dan mengimplementasi
 /// semua getter serta [buildPage]. Inspector akan otomatis muncul di
-/// DevTool dashboard grid.
+/// DevTool dashboard. Untuk folder / submenu, pakai [DevToolGroup]
+/// (atau override [children]).
 ///
 /// Contoh:
 /// ```dart
@@ -38,7 +39,13 @@ abstract class DevToolInspector {
   /// Warna tema untuk icon background.
   Color get color;
 
-  /// Halaman inspector yang ditampilkan saat card di-tap.
+  /// Sub-menu. Jika tidak kosong, tap membuka daftar anak (bukan [buildPage]).
+  List<DevToolInspector> get children => const [];
+
+  /// True jika inspector ini adalah folder / group.
+  bool get isGroup => children.isNotEmpty;
+
+  /// Halaman inspector yang ditampilkan saat card di-tap (hanya untuk leaf).
   Widget buildPage(BuildContext context);
 
   /// Aksi tambahan di pojok kanan AppBar saat inspector aktif.

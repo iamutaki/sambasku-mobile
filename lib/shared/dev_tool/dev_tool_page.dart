@@ -19,24 +19,50 @@ class DevToolPage extends StatefulWidget {
 }
 
 class _DevToolPageState extends State<DevToolPage> {
-  DevToolInspector? _activeInspector;
+  /// Stack folder yang sedang dibuka (root = kosong).
+  final List<DevToolInspector> _groupPath = [];
+
+  /// Leaf inspector yang sedang menampilkan [DevToolInspector.buildPage].
+  DevToolInspector? _activeLeaf;
+
+  List<DevToolInspector> get _currentList =>
+      _groupPath.isEmpty ? widget.inspectors : _groupPath.last.children;
+
+  String get _title {
+    if (_activeLeaf != null) return _activeLeaf!.name;
+    if (_groupPath.isNotEmpty) return _groupPath.last.name;
+    return 'Dev Tools';
+  }
+
+  bool get _canGoBack => _activeLeaf != null || _groupPath.isNotEmpty;
 
   void _close() {
-    if (_activeInspector != null) {
-      setState(() => _activeInspector = null);
+    if (_activeLeaf != null) {
+      setState(() => _activeLeaf = null);
+    } else if (_groupPath.isNotEmpty) {
+      setState(() => _groupPath.removeLast());
     } else {
       widget.onClose?.call();
     }
   }
 
+  void _open(DevToolInspector inspector) {
+    if (inspector.isGroup) {
+      setState(() => _groupPath.add(inspector));
+    } else {
+      setState(() => _activeLeaf = inspector);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final inspector = _activeInspector;
+    final leaf = _activeLeaf;
+    final theme = context.theme;
 
     return PopScope(
-      canPop: inspector == null,
+      canPop: !_canGoBack,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _activeInspector = null);
+        if (!didPop) _close();
       },
       child: FScaffold(
         childPad: true,
@@ -51,47 +77,46 @@ class _DevToolPageState extends State<DevToolPage> {
                     GestureDetector(
                       onTap: _close,
                       child: Icon(
-                        inspector != null
-                            ? FLucideIcons.arrowLeft
-                            : FLucideIcons.x,
+                        _canGoBack ? FLucideIcons.arrowLeft : FLucideIcons.x,
                         size: 24,
                       ),
                     ),
                     const Gap(12),
                     Expanded(
                       child: Text(
-                        inspector?.name ?? 'Dev Tools',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        _title,
+                        style: theme.typography.xl.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    if (inspector != null) ...inspector.appBarActions ?? [],
+                    if (leaf != null) ...leaf.appBarActions ?? [],
                   ],
                 ),
               ),
-              const Divider(height: 24),
+              const Gap(16),
               Expanded(
-                child: inspector != null
+                child: leaf != null
                     ? Material(
                         type: MaterialType.transparency,
-                        child: inspector.buildPage(context),
+                        child: leaf.buildPage(context),
                       )
-                    : widget.inspectors.isEmpty
+                    : _currentList.isEmpty
                         ? const _EmptyState()
-                        : ListView.separated(
-                            padding: EdgeInsets.zero,
-                            itemCount: widget.inspectors.length,
-                            separatorBuilder: (_, _) =>
-                                const Divider(height: 1, indent: 64),
-                            itemBuilder: (context, index) => _InspectorCard(
-                              inspector: widget.inspectors[index],
-                              onTap: () => setState(
-                                () => _activeInspector =
-                                    widget.inspectors[index],
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                            children: [
+                              FTileGroup(
+                                physics: const NeverScrollableScrollPhysics(),
+                                children: [
+                                  for (final inspector in _currentList)
+                                    _InspectorTile(
+                                      inspector: inspector,
+                                      onPress: () => _open(inspector),
+                                    ),
+                                ],
                               ),
-                            ),
+                            ],
                           ),
               ),
             ],
@@ -102,66 +127,23 @@ class _DevToolPageState extends State<DevToolPage> {
   }
 }
 
-class _InspectorCard extends StatelessWidget {
-  const _InspectorCard({
+class _InspectorTile extends StatelessWidget with FTileMixin {
+  const _InspectorTile({
     required this.inspector,
-    required this.onTap,
+    required this.onPress,
   });
 
   final DevToolInspector inspector;
-  final VoidCallback onTap;
+  final VoidCallback onPress;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: inspector.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(inspector.icon, color: inspector.color, size: 20),
-              ),
-              const Gap(12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      inspector.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const Gap(5),
-                    Text(
-                      inspector.description,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                FLucideIcons.chevronRight,
-                size: 16,
-                color: Colors.grey.shade400,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return FTile(
+      title: Text(inspector.name),
+      subtitle: Text(inspector.description),
+      prefix: Icon(inspector.icon, color: inspector.color),
+      suffix: const Icon(FLucideIcons.chevronRight),
+      onPress: onPress,
     );
   }
 }
@@ -171,28 +153,28 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             FLucideIcons.wrench,
-            size: 48,
-            color: Colors.grey.shade400,
+            size: 40,
+            color: theme.colors.mutedForeground,
           ),
-          const Gap(12),
+          const Gap(10),
           Text(
             'Belum ada inspector',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade500,
-            ),
+            style: theme.typography.md.copyWith(fontWeight: FontWeight.w600),
           ),
           const Gap(4),
           Text(
             'Tambahkan DevToolInspector ke daftar inspectors',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            style: theme.typography.sm.copyWith(
+              color: theme.colors.mutedForeground,
+            ),
             textAlign: TextAlign.center,
           ),
         ],

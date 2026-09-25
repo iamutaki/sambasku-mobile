@@ -87,7 +87,7 @@ class LatestWordsNotifier extends _$LatestWordsNotifier {
     }
   }
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     if (_isLoadingSync || !ref.mounted) return;
     _isLoadingSync = true;
     final reqId = ++_loadReqId;
@@ -104,7 +104,7 @@ class LatestWordsNotifier extends _$LatestWordsNotifier {
 
     try {
       final result = await ref.read(listLatestWordsUseCaseProvider)(
-        const ListLatestWordsParams(),
+        ListLatestWordsParams(forceRefresh: forceRefresh),
       );
 
       if (!ref.mounted || reqId != _loadReqId) return;
