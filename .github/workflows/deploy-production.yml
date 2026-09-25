@@ -3,7 +3,8 @@ name: Deploy (Production)
 # Build flavor `production` → draft ke track production.
 # Rollout tetap manual di Play Console (draft, bukan auto-publish).
 # Track internal diisi workflow deploy-staging.yml dari branch staging.
-# Trigger: push branch `main` (atau workflow_dispatch).
+# Trigger: push tag semver saja, misalnya v0.1.1.
+# Nama rilis "SambasKu (Staging) v0.1.2" dan tag staging-v* tidak cocok.
 #
 # versionCode = 1 + versionCode tertinggi yang sudah ada di package Play
 # yang sama (semua track, termasuk draft). Staging dan production berbagi
@@ -19,9 +20,9 @@ name: Deploy (Production)
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      # v0.1.1 - bukan "SambasKu (Staging) v0.1.2" dan bukan staging-v*
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: write
@@ -65,6 +66,19 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Require production semver tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          printf '%s\n' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "tag harus berbentuk v0.1.1, dapat: $TAG" >&2; exit 1; }
+          case "$TAG" in
+            *Staging*|*staging*)
+              echo "tag staging tidak masuk track production: $TAG" >&2
+              exit 1
+              ;;
+          esac
+          echo "Production tag: $TAG"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -92,22 +106,24 @@ jobs:
           printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
             "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
 
-      - name: Resolve production version (Play versionCode + 1)
+      - name: Resolve production version (tag name + Play versionCode)
         id: version
-        # major.minor dari pubspec.yaml. versionCode dari Play, bukan git.
+        # versionName dari tag (v0.1.1 -> 0.1.1). versionCode dari Play.
         env:
           PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           PLAY_PACKAGE_NAME: ${{ env.PLAY_PACKAGE_NAME }}
         run: |
-          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
-          MAJOR_MINOR=$(printf '%s' "$BASE" | awk -F. '{print $1"."$2}')
+          TAG="${GITHUB_REF_NAME}"
+          NAME="${TAG#v}"
+          printf '%s\n' "$NAME" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "invalid version name from tag: '$TAG'" >&2; exit 1; }
           N=$(node scripts/next-play-version-code.mjs)
           case "$N" in
             ''|*[!0-9]*) echo "invalid version code: '$N'" >&2; exit 1 ;;
           esac
-          echo "name=${MAJOR_MINOR}.${N}" >> "$GITHUB_OUTPUT"
-          echo "code=${N}"              >> "$GITHUB_OUTPUT"
-          echo "Production version: ${MAJOR_MINOR}.${N}+${N}"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "code=${N}"    >> "$GITHUB_OUTPUT"
+          echo "Production version: ${NAME}+${N}"
 
       - name: Write resolved version into pubspec.yaml
         env:

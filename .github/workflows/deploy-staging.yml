@@ -3,7 +3,7 @@ name: Deploy (Staging)
 # Build flavor `staging` → GitHub Release (bukan "latest").
 # Sekaligus build flavor `production` → draft ke track internal
 # app Play `com.iamutaki.sambasku` (bukan package .staging).
-# Track production diisi workflow deploy-production.yml dari branch main.
+# Track production diisi workflow deploy-production.yml dari tag v0.1.1.
 # Trigger: push branch `staging` (atau workflow_dispatch).
 #
 # versionCode = 1 + versionCode tertinggi yang sudah ada di package Play
