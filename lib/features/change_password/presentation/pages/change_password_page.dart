@@ -74,7 +74,7 @@ class ChangePasswordPage extends HookConsumerWidget {
       ),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
             FTextField.password(
               control: .managed(controller: oldPassword),

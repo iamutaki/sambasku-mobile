@@ -26,7 +26,7 @@ void showPendingReviewInfo(BuildContext context) {
     context: context,
     title: const Text('Menunggu pengecekan'),
     description: const Text(
-      'Kata ini belum diperiksa tim Sambasku. Artinya atau terjemahannya bisa saja kurang tepat.',
+      'Kata ini belum diperiksa tim Sambasku. Makna atau terjemahannya bisa saja kurang tepat.',
     ),
   );
 }

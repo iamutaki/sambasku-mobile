@@ -47,6 +47,8 @@ String voteTargetLabel(String targetType) {
     'pronunciation' => 'Pelafalan',
     'word_image' => 'Gambar',
     'comment' => 'Komentar',
+    'translation_help_reply' => 'Balasan terjemahan',
+    'translation_help' => 'Pertanyaan terjemahan',
     _ => targetType,
   };
 }

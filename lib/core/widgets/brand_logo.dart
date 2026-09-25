@@ -8,7 +8,8 @@ const kBrandWordmarkDarkAsset = 'assets/icons/logo_horizontal_dark.png';
 const kBrandWordmarkLightAsset = 'assets/icons/logo_horizontal_light.png';
 
 /// Logo stacked (perisai + wordmark) adaptif terang/gelap.
-/// Onboarding, about. Teks "SambasKu" sudah di aset.
+/// Login, onboarding, about. Teks "SambasKu" sudah di aset.
+/// Gelap: [kBrandMarkDarkAsset]. Terang: [kBrandMarkLightAsset].
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 168, this.frameBuilder});
 
@@ -40,7 +41,7 @@ class BrandMark extends StatelessWidget {
 }
 
 /// Logo persegi per flavor (`logo.png` / `logo.staging.png`), radius 15.
-/// Login, splash. Staging: pita STG di aset.
+/// Splash. Staging: pita STG di aset.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({
     super.key,

@@ -18,16 +18,22 @@ import '../../domain/repositories/contribution_repository.dart';
 typedef ContributeImageSlot = AttachmentImageSlot;
 
 /// Field gambar usul kata - thin wrapper di atas [AttachmentImagesField]
-/// (token admin `/words`, max 3, wajib login + Media Explorer stock).
+/// (ImageKit staging `/words`, max 3, Media Explorer stock).
+///
+/// Tamu: [allowLocalPick] false → hanya Media Explorer (tanpa login).
+/// Login: kamera/galeri + Explorer.
 class ContributeImagesField extends ConsumerWidget {
   const ContributeImagesField({
     super.key,
     required this.enabled,
     required this.images,
     required this.onChanged,
+    this.allowLocalPick = true,
   });
 
   final bool enabled;
+  /// False = tamu: hanya stock Media Explorer (tanpa POST /images).
+  final bool allowLocalPick;
   final List<AttachmentImageSlot> images;
   final ValueChanged<List<AttachmentImageSlot>> onChanged;
 
@@ -35,13 +41,16 @@ class ContributeImagesField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return AttachmentImagesField(
       enabled: enabled,
+      allowLocalPick: allowLocalPick,
       maxImages: 3,
       maxSizeMb: 5,
       images: images,
       onChanged: onChanged,
-      disabledHint: 'Masuk untuk lampirkan gambar (opsional).',
-      disabledActionLabel: enabled ? null : 'Masuk',
-      onDisabledAction: enabled
+      disabledHint: allowLocalPick
+          ? 'Masuk untuk lampirkan gambar (opsional).'
+          : 'Pilih foto stock lewat Media Explorer (opsional).',
+      disabledActionLabel: enabled || !allowLocalPick ? null : 'Masuk',
+      onDisabledAction: enabled || !allowLocalPick
           ? null
           : () {
               context.push('/login');
@@ -61,6 +70,7 @@ class ContributeImagesField extends ConsumerWidget {
             AttachmentUploadedImage(
               url: dto.url,
               providerFileId: dto.providerFileId,
+              provider: dto.provider ?? 'imagekit',
               sha: dto.sha,
               altText: dto.altText,
               isPrimary: dto.isPrimary,
@@ -98,15 +108,19 @@ class ContributeImagesField extends ConsumerWidget {
 /// Map slot siap → domain image untuk submit kata.
 List<SubmitWordImage> readySubmitImages(List<AttachmentImageSlot> slots) {
   return [
-    for (final s in readyAttachmentImages(slots))
-      SubmitWordImage(
-        url: s.url,
-        providerFileId: s.providerFileId,
-        provider: s.provider,
-        sha: s.sha,
-        altText: s.altText,
-        isPrimary: s.isPrimary,
-      ),
+    for (final s in slots)
+      if (s.isReady && s.uploaded != null)
+        SubmitWordImage(
+          url: s.uploaded!.url,
+          providerFileId: s.uploaded!.providerFileId,
+          provider: s.uploaded!.provider,
+          sha: s.uploaded!.sha,
+          altText: s.uploaded!.altText,
+          isPrimary: s.uploaded!.isPrimary,
+          // contentWarnings diambil dari slot (dipilih user via checkbox),
+          // bukan dari uploaded (respons server tidak menyertakannya).
+          contentWarnings: List<String>.from(s.contentWarnings),
+        ),
   ];
 }
 

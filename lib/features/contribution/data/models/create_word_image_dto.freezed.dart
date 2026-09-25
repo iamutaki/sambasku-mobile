@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 mixin _$CreateWordImageDto {
 
  String get url;@JsonKey(name: 'provider_file_id') String get providerFileId;/// Stock Media Explorer; absen = storage aktif (GitHub) di API.
-@JsonKey(includeIfNull: false) String? get provider;@JsonKey(includeIfNull: false) String? get sha;@JsonKey(name: 'alt_text', includeIfNull: false) String? get altText;@JsonKey(name: 'is_primary') bool get isPrimary;
+@JsonKey(includeIfNull: false) String? get provider;@JsonKey(includeIfNull: false) String? get sha;@JsonKey(name: 'alt_text', includeIfNull: false) String? get altText;@JsonKey(name: 'is_primary') bool get isPrimary;/// Peringatan konten dipilih kontributor. V1: 'kekerasan'. Kosong = [].
+@JsonKey(name: 'content_warnings') List<String> get contentWarnings;
 /// Create a copy of CreateWordImageDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +30,16 @@ $CreateWordImageDtoCopyWith<CreateWordImageDto> get copyWith => _$CreateWordImag
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateWordImageDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.sha, sha) || other.sha == sha)&&(identical(other.altText, altText) || other.altText == altText)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateWordImageDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.sha, sha) || other.sha == sha)&&(identical(other.altText, altText) || other.altText == altText)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&const DeepCollectionEquality().equals(other.contentWarnings, contentWarnings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,url,providerFileId,provider,sha,altText,isPrimary);
+int get hashCode => Object.hash(runtimeType,url,providerFileId,provider,sha,altText,isPrimary,const DeepCollectionEquality().hash(contentWarnings));
 
 @override
 String toString() {
-  return 'CreateWordImageDto(url: $url, providerFileId: $providerFileId, provider: $provider, sha: $sha, altText: $altText, isPrimary: $isPrimary)';
+  return 'CreateWordImageDto(url: $url, providerFileId: $providerFileId, provider: $provider, sha: $sha, altText: $altText, isPrimary: $isPrimary, contentWarnings: $contentWarnings)';
 }
 
 
@@ -49,7 +50,7 @@ abstract mixin class $CreateWordImageDtoCopyWith<$Res>  {
   factory $CreateWordImageDtoCopyWith(CreateWordImageDto value, $Res Function(CreateWordImageDto) _then) = _$CreateWordImageDtoCopyWithImpl;
 @useResult
 $Res call({
- String url,@JsonKey(name: 'provider_file_id') String providerFileId,@JsonKey(includeIfNull: false) String? provider,@JsonKey(includeIfNull: false) String? sha,@JsonKey(name: 'alt_text', includeIfNull: false) String? altText,@JsonKey(name: 'is_primary') bool isPrimary
+ String url,@JsonKey(name: 'provider_file_id') String providerFileId,@JsonKey(includeIfNull: false) String? provider,@JsonKey(includeIfNull: false) String? sha,@JsonKey(name: 'alt_text', includeIfNull: false) String? altText,@JsonKey(name: 'is_primary') bool isPrimary,@JsonKey(name: 'content_warnings') List<String> contentWarnings
 });
 
 
@@ -66,7 +67,7 @@ class _$CreateWordImageDtoCopyWithImpl<$Res>
 
 /// Create a copy of CreateWordImageDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? providerFileId = null,Object? provider = freezed,Object? sha = freezed,Object? altText = freezed,Object? isPrimary = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? providerFileId = null,Object? provider = freezed,Object? sha = freezed,Object? altText = freezed,Object? isPrimary = null,Object? contentWarnings = null,}) {
   return _then(_self.copyWith(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String,providerFileId: null == providerFileId ? _self.providerFileId : providerFileId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +75,8 @@ as String,provider: freezed == provider ? _self.provider : provider // ignore: c
 as String?,sha: freezed == sha ? _self.sha : sha // ignore: cast_nullable_to_non_nullable
 as String?,altText: freezed == altText ? _self.altText : altText // ignore: cast_nullable_to_non_nullable
 as String?,isPrimary: null == isPrimary ? _self.isPrimary : isPrimary // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,contentWarnings: null == contentWarnings ? _self.contentWarnings : contentWarnings // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary, @JsonKey(name: 'content_warnings')  List<String> contentWarnings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CreateWordImageDto() when $default != null:
-return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary);case _:
+return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary,_that.contentWarnings);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.al
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary, @JsonKey(name: 'content_warnings')  List<String> contentWarnings)  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordImageDto():
-return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary);case _:
+return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary,_that.contentWarnings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.al
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url, @JsonKey(name: 'provider_file_id')  String providerFileId, @JsonKey(includeIfNull: false)  String? provider, @JsonKey(includeIfNull: false)  String? sha, @JsonKey(name: 'alt_text', includeIfNull: false)  String? altText, @JsonKey(name: 'is_primary')  bool isPrimary, @JsonKey(name: 'content_warnings')  List<String> contentWarnings)?  $default,) {final _that = this;
 switch (_that) {
 case _CreateWordImageDto() when $default != null:
-return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary);case _:
+return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.altText,_that.isPrimary,_that.contentWarnings);case _:
   return null;
 
 }
@@ -215,7 +217,7 @@ return $default(_that.url,_that.providerFileId,_that.provider,_that.sha,_that.al
 @JsonSerializable()
 
 class _CreateWordImageDto implements CreateWordImageDto {
-  const _CreateWordImageDto({required this.url, @JsonKey(name: 'provider_file_id') required this.providerFileId, @JsonKey(includeIfNull: false) this.provider, @JsonKey(includeIfNull: false) this.sha, @JsonKey(name: 'alt_text', includeIfNull: false) this.altText, @JsonKey(name: 'is_primary') this.isPrimary = false});
+  const _CreateWordImageDto({required this.url, @JsonKey(name: 'provider_file_id') required this.providerFileId, @JsonKey(includeIfNull: false) this.provider, @JsonKey(includeIfNull: false) this.sha, @JsonKey(name: 'alt_text', includeIfNull: false) this.altText, @JsonKey(name: 'is_primary') this.isPrimary = false, @JsonKey(name: 'content_warnings') final  List<String> contentWarnings = const []}): _contentWarnings = contentWarnings;
   factory _CreateWordImageDto.fromJson(Map<String, dynamic> json) => _$CreateWordImageDtoFromJson(json);
 
 @override final  String url;
@@ -225,6 +227,15 @@ class _CreateWordImageDto implements CreateWordImageDto {
 @override@JsonKey(includeIfNull: false) final  String? sha;
 @override@JsonKey(name: 'alt_text', includeIfNull: false) final  String? altText;
 @override@JsonKey(name: 'is_primary') final  bool isPrimary;
+/// Peringatan konten dipilih kontributor. V1: 'kekerasan'. Kosong = [].
+ final  List<String> _contentWarnings;
+/// Peringatan konten dipilih kontributor. V1: 'kekerasan'. Kosong = [].
+@override@JsonKey(name: 'content_warnings') List<String> get contentWarnings {
+  if (_contentWarnings is EqualUnmodifiableListView) return _contentWarnings;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_contentWarnings);
+}
+
 
 /// Create a copy of CreateWordImageDto
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +250,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateWordImageDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.sha, sha) || other.sha == sha)&&(identical(other.altText, altText) || other.altText == altText)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateWordImageDto&&(identical(other.url, url) || other.url == url)&&(identical(other.providerFileId, providerFileId) || other.providerFileId == providerFileId)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.sha, sha) || other.sha == sha)&&(identical(other.altText, altText) || other.altText == altText)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&const DeepCollectionEquality().equals(other._contentWarnings, _contentWarnings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,url,providerFileId,provider,sha,altText,isPrimary);
+int get hashCode => Object.hash(runtimeType,url,providerFileId,provider,sha,altText,isPrimary,const DeepCollectionEquality().hash(_contentWarnings));
 
 @override
 String toString() {
-  return 'CreateWordImageDto(url: $url, providerFileId: $providerFileId, provider: $provider, sha: $sha, altText: $altText, isPrimary: $isPrimary)';
+  return 'CreateWordImageDto(url: $url, providerFileId: $providerFileId, provider: $provider, sha: $sha, altText: $altText, isPrimary: $isPrimary, contentWarnings: $contentWarnings)';
 }
 
 
@@ -259,7 +270,7 @@ abstract mixin class _$CreateWordImageDtoCopyWith<$Res> implements $CreateWordIm
   factory _$CreateWordImageDtoCopyWith(_CreateWordImageDto value, $Res Function(_CreateWordImageDto) _then) = __$CreateWordImageDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String url,@JsonKey(name: 'provider_file_id') String providerFileId,@JsonKey(includeIfNull: false) String? provider,@JsonKey(includeIfNull: false) String? sha,@JsonKey(name: 'alt_text', includeIfNull: false) String? altText,@JsonKey(name: 'is_primary') bool isPrimary
+ String url,@JsonKey(name: 'provider_file_id') String providerFileId,@JsonKey(includeIfNull: false) String? provider,@JsonKey(includeIfNull: false) String? sha,@JsonKey(name: 'alt_text', includeIfNull: false) String? altText,@JsonKey(name: 'is_primary') bool isPrimary,@JsonKey(name: 'content_warnings') List<String> contentWarnings
 });
 
 
@@ -276,7 +287,7 @@ class __$CreateWordImageDtoCopyWithImpl<$Res>
 
 /// Create a copy of CreateWordImageDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? providerFileId = null,Object? provider = freezed,Object? sha = freezed,Object? altText = freezed,Object? isPrimary = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? providerFileId = null,Object? provider = freezed,Object? sha = freezed,Object? altText = freezed,Object? isPrimary = null,Object? contentWarnings = null,}) {
   return _then(_CreateWordImageDto(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String,providerFileId: null == providerFileId ? _self.providerFileId : providerFileId // ignore: cast_nullable_to_non_nullable
@@ -284,7 +295,8 @@ as String,provider: freezed == provider ? _self.provider : provider // ignore: c
 as String?,sha: freezed == sha ? _self.sha : sha // ignore: cast_nullable_to_non_nullable
 as String?,altText: freezed == altText ? _self.altText : altText // ignore: cast_nullable_to_non_nullable
 as String?,isPrimary: null == isPrimary ? _self.isPrimary : isPrimary // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,contentWarnings: null == contentWarnings ? _self._contentWarnings : contentWarnings // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

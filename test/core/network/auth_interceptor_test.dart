@@ -212,6 +212,54 @@ void main() {
     expect(await storage.getAccessToken(), 'new-access');
     expect(await storage.getRefreshToken(), 'new-refresh');
   });
+
+  test('timeout saat refresh tidak menghapus sesi', () async {
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionTimeout,
+        );
+      }
+      return _json(401, {'success': false});
+    };
+
+    await expectLater(
+      () => dio.get('/api/v1/words/w1'),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(await storage.getAccessToken(), 'stale-access');
+    expect(await storage.getRefreshToken(), 'stale-refresh');
+    expect(await storage.getIsAuth(), isTrue);
+  });
+
+  test('refresh sukses lalu retry 500 tidak menghapus sesi', () async {
+    var wordHits = 0;
+    adapter.handler = (options) {
+      if (options.path.contains('/auth/refresh')) {
+        return _json(200, {
+          'success': true,
+          'data': {
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          },
+        });
+      }
+      wordHits++;
+      if (wordHits == 1) return _json(401, {'success': false});
+      return _json(500, {'success': false});
+    };
+
+    await expectLater(
+      () => dio.get('/api/v1/words/w1'),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(await storage.getAccessToken(), 'new-access');
+    expect(await storage.getRefreshToken(), 'new-refresh');
+    expect(await storage.getIsAuth(), isTrue);
+  });
 }
 
 ResponseBody _json(int status, Map<String, Object?> body) {

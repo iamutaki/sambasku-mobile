@@ -148,6 +148,11 @@ abstract class WordImageDto with _$WordImageDto {
     required String url,
     @JsonKey(name: 'alt_text') String? altText,
     @JsonKey(name: 'is_primary') @Default(false) bool isPrimary,
+    /// false = gambar staging belum diverifikasi. Default true agar
+    /// response lama (tanpa field ini) tetap bekerja normal.
+    @JsonKey(name: 'is_verified') @Default(true) bool isVerified,
+    /// Peringatan konten visual per gambar. V1: ['kekerasan'].
+    @JsonKey(name: 'content_warnings') @Default([]) List<String> contentWarnings,
   }) = _WordImageDto;
 
   factory WordImageDto.fromJson(Map<String, dynamic> json) =>

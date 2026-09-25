@@ -129,7 +129,7 @@ class ResetPasswordPage extends HookConsumerWidget {
       ),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
             Text(
               hasTokenFromLink

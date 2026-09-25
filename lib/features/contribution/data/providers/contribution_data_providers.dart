@@ -25,7 +25,10 @@ ImageRemoteDatasource imageRemoteDatasource(Ref ref) =>
 
 @riverpod
 WordImageUploadService wordImageUploadService(Ref ref) =>
-    WordImageUploadService(ref.watch(dioProvider));
+    WordImageUploadService(
+      ref.watch(imageRemoteDatasourceProvider),
+      ImageKitUploader(),
+    );
 
 @riverpod
 PrivateImageUploadService privateImageUploadService(Ref ref) =>

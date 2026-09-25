@@ -390,6 +390,8 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
             url: i.url,
             altText: i.altText,
             isPrimary: i.isPrimary,
+            isVerified: i.isVerified,
+            contentWarnings: List<String>.from(i.contentWarnings),
           ),
         )
         .toList(),

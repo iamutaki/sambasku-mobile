@@ -39,7 +39,7 @@ class ActivityPage extends ConsumerWidget {
             child: missesAsync.when(
               loading: () => SearchMissSkeletonList(
                 itemCount: 8,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
                 header: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -64,7 +64,7 @@ class ActivityPage extends ConsumerWidget {
               ),
               error: (_, _) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
                 children: [
                   _BlankContributeTile(theme: theme),
                   const Gap(14),
@@ -77,7 +77,7 @@ class ActivityPage extends ConsumerWidget {
               ),
               data: (items) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
                 children: [
                   _BlankContributeTile(theme: theme),
                   const Gap(14),

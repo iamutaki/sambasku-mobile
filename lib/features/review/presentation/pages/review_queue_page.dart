@@ -9,6 +9,7 @@ import '../../../../core/utils/format_datetime.dart';
 import '../../domain/entities/review_contribution.dart';
 import '../../domain/failures/review_failure.dart';
 import '../../domain/review_access.dart';
+import '../../review_router.dart';
 import '../providers/review_providers.dart';
 import 'review_forbidden_page.dart';
 
@@ -85,7 +86,7 @@ class _QueueList extends ConsumerWidget {
               SizedBox(
                 height: constraints.maxHeight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -120,16 +121,40 @@ class _QueueList extends ConsumerWidget {
       );
     }
 
+    void openSession({String? startId}) {
+      ref.read(reviewSessionProvider.notifier).startFromQueue(
+        state,
+        query: query,
+        startId: startId,
+      );
+      context.push(
+        ReviewRouter.sessionPath(
+          startId: startId ?? state.items.first.id,
+          wordId: query.wordId,
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: refresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
         children: [
+          FButton(
+            onPress: () => openSession(),
+            prefix: const Icon(FLucideIcons.play),
+            child: Text('Mulai tinjau (${state.items.length}${state.hasMore ? '+' : ''})'),
+          ),
+          const Gap(12),
           FTileGroup(
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              for (final item in state.items) _ReviewTile(item: item),
+              for (final item in state.items)
+                _ReviewTile(
+                  item: item,
+                  onPress: () => openSession(startId: item.id),
+                ),
             ],
           ),
           if (state.hasMore)
@@ -158,9 +183,10 @@ class _QueueList extends ConsumerWidget {
 }
 
 class _ReviewTile extends StatelessWidget with FTileMixin {
-  const _ReviewTile({required this.item});
+  const _ReviewTile({required this.item, required this.onPress});
 
   final ReviewItem item;
+  final VoidCallback onPress;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +206,7 @@ class _ReviewTile extends StatelessWidget with FTileMixin {
         color: theme.colors.primary,
       ),
       suffix: const Icon(FLucideIcons.chevronRight),
-      onPress: () => context.push('/review/${item.id}'),
+      onPress: onPress,
     );
   }
 }
@@ -196,7 +222,7 @@ class _ErrorState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

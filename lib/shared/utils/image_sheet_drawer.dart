@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'file_persist_helper.dart';
 import 'permission_helper.dart';
+import 'photo_pick_constants.dart';
 
 enum PhotoPickSource { camera, gallery, file, mediaExplorer }
 
@@ -27,9 +28,10 @@ void showImageSheetDrawer(
   bool filePicker = true,
   bool mediaExplorerPicker = false,
   bool requireGpsForCamera = false,
-  // Kompresi picker (mobile-base-stack §9.1) - tanpa paket ekstra.
-  double maxWidth = 1600,
-  int imageQuality = 80,
+  // Kompresi picker (mobile-base-stack §9.2) — tanpa paket ekstra.
+  double maxWidth = kPhotoPickMaxWidth,
+  double maxHeight = kPhotoPickMaxHeight,
+  int imageQuality = kPhotoPickQuality,
 }) {
   final imagePicker = picker ?? ImagePicker();
 
@@ -56,82 +58,114 @@ void showImageSheetDrawer(
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(sheetContext).pop(),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, size: 20),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 5),
-                Wrap(
-                  spacing: 20,
-                  runSpacing: 10,
-                  children: [
-                    if (cameraPicker)
-                      _SourceButton(
-                        icon: Icons.camera_alt_outlined,
-                        label: 'Kamera',
-                        onTap: () => openCamera(
-                          sheetContext,
-                          imagePicker,
-                          (xfile) {
-                            final file = File(xfile.path);
-                            onCameraCaptured?.call(xfile);
-                            onPickedWithSource?.call(file, PhotoPickSource.camera);
-                            onPicked?.call(file);
-                          },
-                          maxWidth: maxWidth,
-                          imageQuality: imageQuality,
+                // GridView di bottom sheet memicu assert semantics
+                // ("Invisible SemanticsNodes…"); pakai Wrap 4 kolom.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    const gap = 8.0;
+                    const columns = 4;
+                    final cellWidth =
+                        (constraints.maxWidth - gap * (columns - 1)) / columns;
+                    final buttons = <Widget>[
+                      if (cameraPicker)
+                        _SourceButton(
+                          icon: Icons.camera_alt_outlined,
+                          label: 'Kamera',
+                          onTap: () => openCamera(
+                            sheetContext,
+                            imagePicker,
+                            (xfile) {
+                              final file = File(xfile.path);
+                              onCameraCaptured?.call(xfile);
+                              onPickedWithSource?.call(
+                                file,
+                                PhotoPickSource.camera,
+                              );
+                              onPicked?.call(file);
+                            },
+                            maxWidth: maxWidth,
+                            maxHeight: maxHeight,
+                            imageQuality: imageQuality,
+                          ),
                         ),
-                      ),
-                    if (galleryPicker)
-                      _SourceButton(
-                        icon: Icons.photo_outlined,
-                        label: 'Galeri',
-                        onTap: () => pickImageFromGallery(
-                          sheetContext,
-                          imagePicker,
-                          (xfile) {
-                            final file = File(xfile.path);
-                            onImagePicked?.call(xfile);
-                            onPickedWithSource?.call(
-                              file,
-                              PhotoPickSource.gallery,
-                            );
-                            onPicked?.call(file);
-                          },
-                          maxWidth: maxWidth,
-                          imageQuality: imageQuality,
+                      if (galleryPicker)
+                        _SourceButton(
+                          icon: Icons.photo_outlined,
+                          label: 'Galeri',
+                          onTap: () => pickImageFromGallery(
+                            sheetContext,
+                            imagePicker,
+                            (xfile) {
+                              final file = File(xfile.path);
+                              onImagePicked?.call(xfile);
+                              onPickedWithSource?.call(
+                                file,
+                                PhotoPickSource.gallery,
+                              );
+                              onPicked?.call(file);
+                            },
+                            maxWidth: maxWidth,
+                            maxHeight: maxHeight,
+                            imageQuality: imageQuality,
+                          ),
                         ),
-                      ),
-                    if (filePicker)
-                      _SourceButton(
-                        icon: Icons.insert_drive_file_outlined,
-                        label: 'File',
-                        onTap: () => pickImageFromFile(
-                          sheetContext,
-                          (file) {
-                            onFilePicked?.call(file);
-                            onPickedWithSource?.call(file, PhotoPickSource.file);
-                            onPicked?.call(file);
+                      if (filePicker)
+                        _SourceButton(
+                          icon: Icons.insert_drive_file_outlined,
+                          label: 'File',
+                          onTap: () => pickImageFromFile(
+                            sheetContext,
+                            (file) {
+                              onFilePicked?.call(file);
+                              onPickedWithSource?.call(
+                                file,
+                                PhotoPickSource.file,
+                              );
+                              onPicked?.call(file);
+                            },
+                          ),
+                        ),
+                      if (mediaExplorerPicker && onMediaExplorer != null)
+                        _SourceButton(
+                          icon: Icons.travel_explore_outlined,
+                          label: 'Explorer',
+                          onTap: () {
+                            Navigator.of(sheetContext).pop();
+                            onMediaExplorer();
                           },
                         ),
-                      ),
-                    if (mediaExplorerPicker && onMediaExplorer != null)
                       _SourceButton(
-                        icon: Icons.travel_explore_outlined,
-                        label: 'Explorer',
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          onMediaExplorer();
-                        },
+                        icon: Icons.restart_alt,
+                        label: 'Reset',
+                        onTap: () => onRemoved?.call(),
                       ),
-                    _SourceButton(
-                      icon: Icons.restart_alt,
-                      label: 'Reset',
-                      onTap: () => onRemoved?.call(),
-                    ),
-                  ],
+                    ];
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final button in buttons)
+                          SizedBox(
+                            width: cellWidth,
+                            height: cellWidth * 0.95,
+                            child: button,
+                          ),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -145,8 +179,9 @@ Future<void> openCamera(
   BuildContext context,
   ImagePicker picker,
   Function(XFile) onSuccess, {
-  double maxWidth = 1600,
-  int imageQuality = 80,
+  double maxWidth = kPhotoPickMaxWidth,
+  double maxHeight = kPhotoPickMaxHeight,
+  int imageQuality = kPhotoPickQuality,
 }) async {
   try {
     final status = await Permission.camera.request();
@@ -158,6 +193,7 @@ Future<void> openCamera(
     final picked = await picker.pickImage(
       source: ImageSource.camera,
       maxWidth: maxWidth,
+      maxHeight: maxHeight,
       imageQuality: imageQuality,
     );
     if (picked == null) return;
@@ -179,13 +215,15 @@ Future<void> pickImageFromGallery(
   BuildContext context,
   ImagePicker picker,
   Function(XFile) onSuccess, {
-  double maxWidth = 1600,
-  int imageQuality = 80,
+  double maxWidth = kPhotoPickMaxWidth,
+  double maxHeight = kPhotoPickMaxHeight,
+  int imageQuality = kPhotoPickQuality,
 }) async {
   try {
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: maxWidth,
+      maxHeight: maxHeight,
       imageQuality: imageQuality,
     );
     if (picked == null) return;
@@ -257,20 +295,23 @@ class _SourceButton extends StatelessWidget {
     final borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.6);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(6),
       child: Container(
-        width: 75,
-        height: 75,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: borderColor),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 30),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12)),
+            Icon(icon, size: 20),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10),
+            ),
           ],
         ),
       ),

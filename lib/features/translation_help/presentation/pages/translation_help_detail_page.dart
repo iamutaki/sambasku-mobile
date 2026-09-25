@@ -10,8 +10,10 @@ import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/image_preview.dart';
 import '../../../../shared/utils/public_account_name.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
+import '../../../../shared/widgets/thread_message.dart';
 import '../../../auth/presentation/providers/auth_status_providers.dart';
 import '../../../user_profile/user_profile_router.dart';
+import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/translation_help_models.dart';
 import '../providers/translation_help_list_providers.dart';
 
@@ -44,13 +46,45 @@ class _TranslationHelpDetailPageState
 
   bool _isAuth() => ref.read(authStatusProvider).value?.isAuth ?? false;
 
-  void _promptLogin() {
+  void _promptLogin({String message = 'Masuk dulu untuk membalas'}) {
     showFToast(
       context: context,
-      title: const Text('Masuk dulu untuk membalas'),
+      title: Text(message),
       variant: FToastVariant.primary,
     );
     context.push('/login');
+  }
+
+  Future<void> _toggleHelpVote(int value) async {
+    if (!_isAuth()) {
+      _promptLogin(message: 'Masuk dulu untuk memberi vote');
+      return;
+    }
+    final failure = await ref
+        .read(translationHelpDetailProvider(widget.id).notifier)
+        .toggleHelpVote(value);
+    if (!mounted || failure == null) return;
+    showFToast(
+      context: context,
+      title: Text(failure.message),
+      variant: FToastVariant.destructive,
+    );
+  }
+
+  Future<void> _toggleVote(TranslationHelpReply reply, int value) async {
+    if (!_isAuth()) {
+      _promptLogin(message: 'Masuk dulu untuk memberi vote');
+      return;
+    }
+    final failure = await ref
+        .read(translationHelpDetailProvider(widget.id).notifier)
+        .toggleVote(reply, value);
+    if (!mounted || failure == null) return;
+    showFToast(
+      context: context,
+      title: Text(failure.message),
+      variant: FToastVariant.destructive,
+    );
   }
 
   Future<void> _sendReply() async {
@@ -129,7 +163,7 @@ class _TranslationHelpDetailPageState
         loading: () => const _DetailSkeleton(),
         error: (error, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -175,7 +209,7 @@ class _TranslationHelpDetailPageState
                     );
                   },
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
                     children: [
                       _HelpHeader(item: item),
                       if (item.body?.trim().isNotEmpty == true) ...[
@@ -185,6 +219,30 @@ class _TranslationHelpDetailPageState
                       if (item.imageDisplayUrls.isNotEmpty) ...[
                         const Gap(12),
                         _ImageRow(urls: item.imageDisplayUrls),
+                      ],
+                      if (item.isPublished) ...[
+                        const Gap(12),
+                        Row(
+                          children: [
+                            VoteButtons(
+                              upvotes: item.upvotes,
+                              downvotes: 0,
+                              myVote: item.myVote,
+                              onVote: _toggleHelpVote,
+                              compact: true,
+                              upvoteOnly: true,
+                            ),
+                            const Gap(10),
+                            Expanded(
+                              child: Text(
+                                'Saya juga ingin tahu',
+                                style: theme.typography.sm.copyWith(
+                                  color: theme.colors.mutedForeground,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                       if (item.status == 'rejected' &&
                           (item.rejectionNote?.trim().isNotEmpty ?? false)) ...[
@@ -222,9 +280,20 @@ class _TranslationHelpDetailPageState
                         )
                       else
                         for (final reply in replies)
-                          _ReplyRow(
-                            reply: reply,
+                          ThreadMessageRow(
+                            username: reply.username,
+                            body: !reply.isPublished
+                                ? (reply.status == 'taken_down'
+                                      ? 'Balasan dihapus moderator'
+                                      : 'Balasan dihapus penulis')
+                                : (reply.body ?? ''),
                             dateLabel: formatDateTimeIso(reply.createdAt),
+                            metaParts: [
+                              if (reply.isVerifier) 'Verifikator',
+                              if (reply.isPinned) 'Disematkan',
+                            ],
+                            isRedacted: !reply.isPublished,
+                            highlighted: reply.isPinned && reply.isPublished,
                             onDelete:
                                 reply.isPublished &&
                                     reply.isOwner(auth?.userId)
@@ -238,37 +307,52 @@ class _TranslationHelpDetailPageState
                                     reply.username!,
                                   )
                                 : null,
+                            footer: reply.isPublished
+                                ? Row(
+                                    children: [
+                                      VoteButtons(
+                                        upvotes: reply.upvotes,
+                                        downvotes: reply.downvotes,
+                                        myVote: reply.myVote,
+                                        onVote: (value) =>
+                                            _toggleVote(reply, value),
+                                        compact: true,
+                                      ),
+                                      const Gap(10),
+                                      Expanded(
+                                        child: Text(
+                                          'Jawaban membantu?',
+                                          style: theme.typography.sm.copyWith(
+                                            color: theme.colors.mutedForeground,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : null,
                           ),
                     ],
                   ),
                 ),
               ),
               if (canReply)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: !isAuth
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Masuk untuk membalas',
-                                style: theme.typography.sm.copyWith(
-                                  color: theme.colors.mutedForeground,
-                                ),
-                              ),
-                            ),
-                            FButton(
-                              variant: FButtonVariant.outline,
-                              onPress: _promptLogin,
-                              child: const Text('Masuk'),
-                            ),
-                          ],
-                        )
-                      : _ReplyComposer(
-                          controller: _replyCtrl,
-                          isSubmitting: state.isSubmittingReply,
-                          onSubmit: _sendReply,
-                        ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+                    child: !isAuth
+                        ? ThreadLoginPrompt(
+                            message: 'Masuk untuk membalas',
+                            onLogin: _promptLogin,
+                          )
+                        : ThreadComposer(
+                            controller: _replyCtrl,
+                            isSubmitting: state.isSubmittingReply,
+                            onSubmit: _sendReply,
+                            hint: 'Tulis balasan…',
+                          ),
+                  ),
                 ),
             ],
           );
@@ -368,155 +452,6 @@ class _ImageRow extends StatelessWidget {
   }
 }
 
-class _ReplyRow extends StatelessWidget {
-  const _ReplyRow({
-    required this.reply,
-    required this.dateLabel,
-    this.onDelete,
-    this.onUsernameTap,
-  });
-
-  final TranslationHelpReply reply;
-  final String dateLabel;
-  final VoidCallback? onDelete;
-  final VoidCallback? onUsernameTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final isRedacted = !reply.isPublished;
-    final username = displayPublicUsername(reply.username);
-    final pinned = reply.isPinned;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: pinned
-              ? theme.colors.secondary
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: pinned
-              ? Border.all(color: theme.colors.primary.withValues(alpha: 0.35))
-              : null,
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(pinned ? 10 : 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        GestureDetector(
-                          onTap: onUsernameTap,
-                          child: Text(
-                            username,
-                            style: theme.typography.sm.copyWith(
-                              color: onUsernameTap != null
-                                  ? theme.colors.primary
-                                  : theme.colors.mutedForeground,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (reply.isVerifier)
-                          FBadge(
-                            variant: FBadgeVariant.primary,
-                            child: const Text('Verifikator'),
-                          ),
-                        if (pinned)
-                          FBadge(
-                            variant: FBadgeVariant.secondary,
-                            child: const Text('Disematkan'),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (onDelete != null)
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onDelete,
-                      icon: Icon(
-                        FLucideIcons.trash2,
-                        size: 16,
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                ],
-              ),
-              if (dateLabel.isNotEmpty)
-                Text(
-                  dateLabel,
-                  style: theme.typography.sm.copyWith(
-                    color: theme.colors.mutedForeground,
-                    fontSize: 11,
-                  ),
-                ),
-              const Gap(4),
-              Text(
-                isRedacted
-                    ? (reply.status == 'taken_down'
-                          ? 'Balasan dihapus moderator'
-                          : 'Balasan dihapus penulis')
-                    : (reply.body ?? ''),
-                style: theme.typography.sm.copyWith(
-                  color: isRedacted
-                      ? theme.colors.mutedForeground
-                      : theme.colors.foreground,
-                  fontStyle: isRedacted ? FontStyle.italic : FontStyle.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ReplyComposer extends StatelessWidget {
-  const _ReplyComposer({
-    required this.controller,
-    required this.isSubmitting,
-    required this.onSubmit,
-  });
-
-  final TextEditingController controller;
-  final bool isSubmitting;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: FTextField(
-            control: FTextFieldControl.managed(controller: controller),
-            enabled: !isSubmitting,
-            hint: 'Tulis balasan...',
-            maxLines: 3,
-            minLines: 1,
-          ),
-        ),
-        const Gap(8),
-        FButton(
-          onPress: isSubmitting ? null : onSubmit,
-          prefix: isSubmitting ? const FCircularProgress() : null,
-          child: const Text('Kirim'),
-        ),
-      ],
-    );
-  }
-}
-
 class _DetailSkeleton extends StatelessWidget {
   const _DetailSkeleton();
 
@@ -524,7 +459,7 @@ class _DetailSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Skeletonizer(
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         children: const [
           Bone.text(words: 3),
           Gap(12),

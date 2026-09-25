@@ -47,7 +47,7 @@ class ProfilePage extends ConsumerWidget {
             loading: () => const Center(child: FCircularProgress()),
             error: (_, _) => const Center(child: FCircularProgress()),
             data: (status) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
               children: [
                 _IdentityTileGroup(status: status),
                 const Gap(14),

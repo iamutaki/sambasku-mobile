@@ -1,5 +1,7 @@
 // Model domain + wire mapping untuk Bantuan Terjemahan.
 
+import '../../vote/domain/entities/vote_target.dart';
+
 class TranslationHelpImageRef {
   const TranslationHelpImageRef({
     required this.url,
@@ -104,6 +106,9 @@ class TranslationHelpReply {
     required this.isVerifier,
     required this.isPinned,
     required this.createdAt,
+    this.upvotes = 0,
+    this.downvotes = 0,
+    this.myVote,
   });
 
   final String id;
@@ -114,6 +119,14 @@ class TranslationHelpReply {
   final bool isVerifier;
   final bool isPinned;
   final String createdAt;
+  final int upvotes;
+  final int downvotes;
+  final int? myVote;
+
+  VoteTarget get voteTarget =>
+      VoteTarget(type: 'translation_help_reply', id: id);
+
+  int get netScore => upvotes - downvotes;
 
   bool get isPublished => status == 'published';
 
@@ -130,8 +143,32 @@ class TranslationHelpReply {
       isVerifier: json['is_verifier'] == true,
       isPinned: json['is_pinned'] == true,
       createdAt: json['created_at']?.toString() ?? '',
+      upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
+      downvotes: (json['downvotes'] as num?)?.toInt() ?? 0,
     );
   }
+
+  TranslationHelpReply copyWith({
+    int? upvotes,
+    int? downvotes,
+    Object? myVote = _unset,
+  }) {
+    return TranslationHelpReply(
+      id: id,
+      userId: userId,
+      username: username,
+      body: body,
+      status: status,
+      isVerifier: isVerifier,
+      isPinned: isPinned,
+      createdAt: createdAt,
+      upvotes: upvotes ?? this.upvotes,
+      downvotes: downvotes ?? this.downvotes,
+      myVote: identical(myVote, _unset) ? this.myVote : myVote as int?,
+    );
+  }
+
+  static const Object _unset = Object();
 }
 
 class TranslationHelpItem {
@@ -148,6 +185,8 @@ class TranslationHelpItem {
     this.reviewedAt,
     this.updatedAt,
     this.replies = const [],
+    this.upvotes = 0,
+    this.myVote,
   });
 
   final String id;
@@ -162,6 +201,10 @@ class TranslationHelpItem {
   final String? reviewedAt;
   final String? updatedAt;
   final List<TranslationHelpReply> replies;
+  final int upvotes;
+  final int? myVote;
+
+  VoteTarget get voteTarget => VoteTarget(type: 'translation_help', id: id);
 
   bool get isPublished => status == 'published';
 
@@ -173,19 +216,17 @@ class TranslationHelpItem {
     _ => status,
   };
 
-  /// Balasan: pinned dulu, lalu sisanya (urut API).
+  /// Balasan: pinned → net score desc → created_at desc (sinkron API).
   List<TranslationHelpReply> get orderedReplies {
     if (replies.isEmpty) return const [];
-    final pinned = <TranslationHelpReply>[];
-    final rest = <TranslationHelpReply>[];
-    for (final r in replies) {
-      if (r.isPinned) {
-        pinned.add(r);
-      } else {
-        rest.add(r);
-      }
-    }
-    return [...pinned, ...rest];
+    final copy = [...replies];
+    copy.sort((a, b) {
+      if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+      final netCmp = b.netScore.compareTo(a.netScore);
+      if (netCmp != 0) return netCmp;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return copy;
   }
 
   List<String> get imageDisplayUrls => [
@@ -213,6 +254,7 @@ class TranslationHelpItem {
       rejectionNote: json['rejection_note']?.toString(),
       reviewedAt: json['reviewed_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
       replies: repliesRaw is List
           ? [
               for (final raw in repliesRaw.whereType<Map>())
@@ -225,6 +267,8 @@ class TranslationHelpItem {
   TranslationHelpItem copyWith({
     List<TranslationHelpReply>? replies,
     String? pinnedReplyId,
+    int? upvotes,
+    Object? myVote = _unset,
   }) {
     return TranslationHelpItem(
       id: id,
@@ -239,8 +283,12 @@ class TranslationHelpItem {
       reviewedAt: reviewedAt,
       updatedAt: updatedAt,
       replies: replies ?? this.replies,
+      upvotes: upvotes ?? this.upvotes,
+      myVote: identical(myVote, _unset) ? this.myVote : myVote as int?,
     );
   }
+
+  static const Object _unset = Object();
 }
 
 class TranslationHelpPage {

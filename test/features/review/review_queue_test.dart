@@ -11,14 +11,33 @@ import 'package:sambasku_mobile/features/review/domain/entities/review_contribut
 import 'package:sambasku_mobile/features/review/domain/failures/review_failure.dart';
 import 'package:sambasku_mobile/features/review/domain/repositories/review_repository.dart';
 import 'package:sambasku_mobile/features/review/presentation/pages/review_queue_page.dart';
+import 'package:sambasku_mobile/features/review/presentation/pages/review_session_page.dart';
 import 'package:sambasku_mobile/features/review/presentation/providers/review_providers.dart';
 import 'package:sambasku_mobile/features/review/presentation/widgets/review_gate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeReviewRepository implements ReviewRepository {
-  _FakeReviewRepository(this.failure);
+  _FakeReviewRepository({
+    this.failure,
+    this.items = const [
+      ReviewItem(
+        id: '01REVIEWITEM00000000000001',
+        contributorUsername: 'budi',
+        entityType: 'word',
+        entityId: '01WORD00000000000000000001',
+        action: 'create',
+        status: 'pending',
+        createdAt: '2026-09-23T00:00:00.000Z',
+        wordLemma: 'kalintiak',
+      ),
+    ],
+    this.details = const {},
+  });
 
   final ReviewFailure? failure;
+  final List<ReviewItem> items;
+  final Map<String, ReviewDetail> details;
+  final List<String> approvedIds = [];
 
   @override
   Future<Either<ReviewFailure, ReviewListPage>> list({
@@ -29,35 +48,24 @@ class _FakeReviewRepository implements ReviewRepository {
     String? cursor,
   }) async {
     if (failure != null) return Either.left(failure!);
-    return Either.right(
-      const ReviewListPage(
-        items: [
-          ReviewItem(
-            id: '01REVIEWITEM00000000000001',
-            contributorUsername: 'budi',
-            entityType: 'word',
-            entityId: '01WORD00000000000000000001',
-            action: 'create',
-            status: 'pending',
-            createdAt: '2026-09-23T00:00:00.000Z',
-            wordLemma: 'kalintiak',
-          ),
-        ],
-      ),
-    );
+    return Either.right(ReviewListPage(items: items));
   }
 
   @override
-  Future<Either<ReviewFailure, ReviewDetail>> detail(String id) async =>
-      Either.left(ReviewFailure('tidak dipakai'));
+  Future<Either<ReviewFailure, ReviewDetail>> detail(String id) async {
+    final cached = details[id];
+    if (cached != null) return Either.right(cached);
+    return Either.left(ReviewFailure('tidak dipakai'));
+  }
 
   @override
   Future<Either<ReviewFailure, ReviewDecisionResult>> approve(
     String id, {
     String? comment,
-  }) async => Either.left(
-    ReviewFailure('sudah', errorCode: 'CONTRIBUTION_ALREADY_REVIEWED'),
-  );
+  }) async {
+    approvedIds.add(id);
+    return Either.right(const ReviewDecisionResult(status: 'approved'));
+  }
 
   @override
   Future<Either<ReviewFailure, ReviewDecisionResult>> reject(
@@ -70,6 +78,31 @@ class _FakeReviewRepository implements ReviewRepository {
     String id,
     Map<String, dynamic> body,
   ) async => Either.left(ReviewFailure('tidak dipakai'));
+}
+
+ReviewDetail _wordDetail({
+  required String id,
+  required String lemma,
+}) {
+  return ReviewDetail(
+    contribution: ReviewItem(
+      id: id,
+      contributorUsername: 'budi',
+      entityType: 'word',
+      entityId: '01WORD$lemma',
+      action: 'create',
+      status: 'pending',
+      createdAt: '2026-09-23T00:00:00.000Z',
+      wordLemma: lemma,
+    ),
+    entity: {
+      'lemma': lemma,
+      'wordType': 'word',
+      'isVerified': false,
+      'meanings': const <Map<String, dynamic>>[],
+      'images': const <Map<String, dynamic>>[],
+    },
+  );
 }
 
 void main() {
@@ -183,6 +216,112 @@ void main() {
     );
   });
 
+  test('advanceAfterDecision setelah 409 menggeser seperti keputusan sukses',
+      () async {
+    final container = ProviderContainer(
+      overrides: [
+        reviewRepositoryProvider.overrideWithValue(_FakeReviewRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(reviewSessionProvider.notifier).start(
+      ids: const ['a', 'b'],
+      index: 0,
+    );
+
+    // Simulasi jalur UI: CONTRIBUTION_ALREADY_REVIEWED → advanceAfterDecision.
+    final failure = ReviewFailure(
+      'Kontribusi ini sudah diproses',
+      errorCode: 'CONTRIBUTION_ALREADY_REVIEWED',
+    );
+    expect(failure.isAlreadyDecided, isTrue);
+
+    final hasNext = await container
+        .read(reviewSessionProvider.notifier)
+        .advanceAfterDecision('a');
+
+    expect(hasNext, isTrue);
+    expect(container.read(reviewSessionProvider)?.currentId, 'b');
+  });
+
+  test('advanceAfterDecision menggeser ke item berikutnya', () async {
+    final repo = _FakeReviewRepository(
+      items: const [
+        ReviewItem(
+          id: 'a',
+          contributorUsername: 'budi',
+          entityType: 'word',
+          entityId: 'w1',
+          action: 'create',
+          status: 'pending',
+          createdAt: '2026-09-23T00:00:00.000Z',
+          wordLemma: 'satu',
+        ),
+        ReviewItem(
+          id: 'b',
+          contributorUsername: 'budi',
+          entityType: 'word',
+          entityId: 'w2',
+          action: 'create',
+          status: 'pending',
+          createdAt: '2026-09-23T00:00:00.000Z',
+          wordLemma: 'dua',
+        ),
+        ReviewItem(
+          id: 'c',
+          contributorUsername: 'budi',
+          entityType: 'word',
+          entityId: 'w3',
+          action: 'create',
+          status: 'pending',
+          createdAt: '2026-09-23T00:00:00.000Z',
+          wordLemma: 'tiga',
+        ),
+      ],
+    );
+    final container = ProviderContainer(
+      overrides: [reviewRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+
+    container.read(reviewSessionProvider.notifier).start(
+      ids: const ['a', 'b', 'c'],
+      index: 0,
+    );
+
+    final hasNext = await container
+        .read(reviewSessionProvider.notifier)
+        .advanceAfterDecision('a');
+
+    expect(hasNext, isTrue);
+    final session = container.read(reviewSessionProvider);
+    expect(session?.currentId, 'b');
+    expect(session?.position, 1);
+    expect(session?.total, 2);
+  });
+
+  test('advanceAfterDecision menghabiskan sesi bila item terakhir', () async {
+    final container = ProviderContainer(
+      overrides: [
+        reviewRepositoryProvider.overrideWithValue(_FakeReviewRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(reviewSessionProvider.notifier).start(
+      ids: const ['only'],
+      index: 0,
+    );
+
+    final hasNext = await container
+        .read(reviewSessionProvider.notifier)
+        .advanceAfterDecision('only');
+
+    expect(hasNext, isFalse);
+    expect(container.read(reviewSessionProvider), isNull);
+  });
+
   testWidgets('kontributor tidak lolos penjaga antrean', (tester) async {
     SharedPreferences.setMockInitialValues({
       'isAuth': true,
@@ -231,7 +370,7 @@ void main() {
           authTokenStorageProvider.overrideWithValue(AuthTokenStorage()),
           reviewRepositoryProvider.overrideWithValue(
             _FakeReviewRepository(
-              ReviewFailure(
+              failure: ReviewFailure(
                 'Role tidak diizinkan mengakses endpoint ini',
                 errorCode: 'FORBIDDEN',
               ),
@@ -256,5 +395,79 @@ void main() {
       find.text('Role tidak diizinkan mengakses endpoint ini'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('sesi menampilkan progress dan mode koreksi inline', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'isAuth': true,
+      'sessionUsername': 'rina',
+      'sessionRole': 'reviewer',
+    });
+    FlutterSecureStorage.setMockInitialValues({
+      'accessToken': 'test-access',
+      'refreshToken': 'test-refresh',
+    });
+
+    const idA = '01REVIEWITEM0000000000000A';
+    const idB = '01REVIEWITEM0000000000000B';
+    final detailA = _wordDetail(id: idA, lemma: 'kalintiak');
+    final detailB = _wordDetail(id: idB, lemma: 'bujak');
+    final repo = _FakeReviewRepository(
+      items: [detailA.contribution, detailB.contribution],
+      details: {idA: detailA, idB: detailB},
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        authTokenStorageProvider.overrideWithValue(AuthTokenStorage()),
+        reviewRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(reviewSessionProvider.notifier).start(
+      ids: const [idA, idB],
+      index: 0,
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: FThemes.zinc.light.touch.toApproximateMaterialTheme(),
+          localizationsDelegates: FLocalizations.localizationsDelegates,
+          supportedLocales: FLocalizations.supportedLocales,
+          home: FTheme(
+            data: FThemes.zinc.light.touch,
+            child: const ReviewSessionPage(startId: idA),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('Tinjau · 1/2'), findsOneWidget);
+    expect(find.text('kalintiak'), findsWidgets);
+    expect(find.byIcon(FLucideIcons.check), findsOneWidget);
+    expect(
+      find.textContaining('Geser kanan untuk setuju'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Koreksi'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.textContaining('Koreksi · 1/2'), findsOneWidget);
+    expect(find.text('Simpan dan terbitkan'), findsOneWidget);
+    expect(find.text('Batal koreksi'), findsOneWidget);
+    expect(find.byIcon(FLucideIcons.check), findsNothing);
+
+    await tester.tap(find.text('Batal koreksi'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.byIcon(FLucideIcons.check), findsOneWidget);
   });
 }

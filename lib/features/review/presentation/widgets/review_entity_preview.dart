@@ -106,9 +106,8 @@ class _SectionCard extends StatelessWidget {
     final theme = context.theme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colors.secondary.withValues(alpha: 0.35),
+        color: theme.colors.muted.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -596,7 +595,7 @@ class _InlineAudioPlayerState extends State<_InlineAudioPlayer> {
         : 'Putar rekaman';
 
     return Material(
-      color: theme.colors.background,
+      color: theme.colors.background.withValues(alpha: 0.55),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),

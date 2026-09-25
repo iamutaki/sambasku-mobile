@@ -226,6 +226,12 @@ _WordImageDto _$WordImageDtoFromJson(Map<String, dynamic> json) =>
       url: json['url'] as String,
       altText: json['alt_text'] as String?,
       isPrimary: json['is_primary'] as bool? ?? false,
+      isVerified: json['is_verified'] as bool? ?? true,
+      contentWarnings:
+          (json['content_warnings'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$WordImageDtoToJson(_WordImageDto instance) =>
@@ -234,6 +240,8 @@ Map<String, dynamic> _$WordImageDtoToJson(_WordImageDto instance) =>
       'url': instance.url,
       'alt_text': instance.altText,
       'is_primary': instance.isPrimary,
+      'is_verified': instance.isVerified,
+      'content_warnings': instance.contentWarnings,
     };
 
 _RelatedWordDto _$RelatedWordDtoFromJson(Map<String, dynamic> json) =>

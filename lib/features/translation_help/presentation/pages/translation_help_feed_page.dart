@@ -10,6 +10,8 @@ import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../shared/utils/public_account_name.dart';
 import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
+import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/translation_help_models.dart';
 import '../../translation_help_router.dart';
 import '../providers/translation_help_list_providers.dart';
@@ -21,6 +23,7 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(translationHelpFeedProvider);
+    final sort = ref.watch(translationHelpFeedSortProvider);
     final scroll = useScrollController();
 
     useEffect(() {
@@ -60,7 +63,7 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
           loading: () => const _FeedSkeleton(),
           error: (error, _) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(vertical: 24),
             children: [
               const Gap(40),
               Icon(
@@ -90,8 +93,14 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
             if (state.items.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                padding: const EdgeInsets.fromLTRB(0, 24, 0, 32),
                 children: [
+                  _SortChips(
+                    sort: sort,
+                    onSelect: (s) =>
+                        ref.read(translationHelpFeedSortProvider.notifier).select(s),
+                  ),
+                  const Gap(24),
                   Icon(
                     FLucideIcons.languages,
                     size: 40,
@@ -126,18 +135,30 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
             return ListView.separated(
               controller: scroll,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+              itemCount: state.items.length + 1 + (state.isLoadingMore ? 1 : 0),
               separatorBuilder: (_, _) =>
                   Divider(height: 1, color: context.theme.colors.border),
               itemBuilder: (context, index) {
-                if (index >= state.items.length) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: _SortChips(
+                      sort: sort,
+                      onSelect: (s) => ref
+                          .read(translationHelpFeedSortProvider.notifier)
+                          .select(s),
+                    ),
+                  );
+                }
+                final itemIndex = index - 1;
+                if (itemIndex >= state.items.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(child: FCircularProgress()),
                   );
                 }
-                return _FeedTile(item: state.items[index]);
+                return _FeedTile(item: state.items[itemIndex]);
               },
             );
           },
@@ -147,13 +168,36 @@ class TranslationHelpFeedPage extends HookConsumerWidget {
   }
 }
 
-class _FeedTile extends StatelessWidget {
+class _FeedTile extends ConsumerWidget {
   const _FeedTile({required this.item});
 
   final TranslationHelpItem item;
 
+  Future<void> _toggleVote(BuildContext context, WidgetRef ref, int value) async {
+    final auth = ref.read(authStatusProvider).value;
+    if (!(auth?.isAuth ?? false)) {
+      showFToast(
+        context: context,
+        title: const Text('Masuk dulu untuk memberi vote'),
+        variant: FToastVariant.primary,
+      );
+      context.push('/login');
+      return;
+    }
+    final failure = await ref
+        .read(translationHelpFeedProvider.notifier)
+        .toggleHelpVote(item, value);
+    if (failure != null && context.mounted) {
+      showFToast(
+        context: context,
+        title: Text(failure.message),
+        variant: FToastVariant.destructive,
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
     final when = formatRelative(DateTime.tryParse(item.createdAt));
     final username = displayPublicUsername(item.username);
@@ -226,10 +270,74 @@ class _FeedTile extends StatelessWidget {
                   ),
                 ),
               ],
+              const Gap(8),
+              // GestureDetector menyerap tap vote agar tidak buka detail.
+              GestureDetector(
+                onTap: () {},
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    VoteButtons(
+                      upvotes: item.upvotes,
+                      downvotes: 0,
+                      myVote: item.myVote,
+                      onVote: (value) => _toggleVote(context, ref, value),
+                      compact: true,
+                      upvoteOnly: true,
+                    ),
+                    const Gap(10),
+                    Expanded(
+                      child: Text(
+                        'Saya juga ingin tahu',
+                        style: theme.typography.sm.copyWith(
+                          color: theme.colors.mutedForeground,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SortChips extends StatelessWidget {
+  const _SortChips({required this.sort, required this.onSelect});
+
+  final String sort;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    Widget chip(String value, String label) {
+      final selected = sort == value;
+      return FButton(
+        variant: selected ? FButtonVariant.primary : FButtonVariant.outline,
+        onPress: selected ? null : () => onSelect(value),
+        child: Text(label),
+      );
+    }
+
+    return Row(
+      children: [
+        chip('latest', 'Terbaru'),
+        const Gap(8),
+        chip('popular', 'Populer'),
+        const Spacer(),
+        Text(
+          sort == 'popular' ? 'Menurut upvote' : 'Menurut waktu',
+          style: theme.typography.sm.copyWith(
+            color: theme.colors.mutedForeground,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -241,7 +349,7 @@ class _FeedSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Skeletonizer(
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
         itemCount: 6,
         itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.symmetric(vertical: 12),

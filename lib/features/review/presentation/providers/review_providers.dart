@@ -144,6 +144,252 @@ final reviewDetailProvider = FutureProvider.autoDispose.family<ReviewDetail, Str
   return result.match((failure) => throw failure, (detail) => detail);
 });
 
+/// State sesi tinjau satu layar: urutan ID pending + index aktif.
+class ReviewSessionState {
+  const ReviewSessionState({
+    required this.ids,
+    required this.index,
+    this.query = const ReviewQueueQuery(),
+    this.hasMore = false,
+    this.nextCursor,
+  });
+
+  final List<String> ids;
+  final int index;
+  final ReviewQueueQuery query;
+  final bool hasMore;
+  final String? nextCursor;
+
+  String? get currentId {
+    if (ids.isEmpty || index < 0 || index >= ids.length) return null;
+    return ids[index];
+  }
+
+  String? get nextId {
+    final next = index + 1;
+    if (next < 0 || next >= ids.length) return null;
+    return ids[next];
+  }
+
+  /// Posisi 1-based untuk UI progress ("3 dari 24").
+  int get position => ids.isEmpty ? 0 : index + 1;
+
+  int get total => ids.length;
+
+  bool get isExhausted => currentId == null;
+
+  ReviewSessionState copyWith({
+    List<String>? ids,
+    int? index,
+    ReviewQueueQuery? query,
+    bool? hasMore,
+    String? nextCursor,
+    bool clearCursor = false,
+  }) {
+    return ReviewSessionState(
+      ids: ids ?? this.ids,
+      index: index ?? this.index,
+      query: query ?? this.query,
+      hasMore: hasMore ?? this.hasMore,
+      nextCursor: clearCursor ? null : (nextCursor ?? this.nextCursor),
+    );
+  }
+}
+
+final reviewSessionProvider =
+    NotifierProvider<ReviewSessionController, ReviewSessionState?>(
+      ReviewSessionController.new,
+    );
+
+class ReviewSessionController extends Notifier<ReviewSessionState?> {
+  static const _pageSize = 20;
+
+  @override
+  ReviewSessionState? build() => null;
+
+  void start({
+    required List<String> ids,
+    int index = 0,
+    ReviewQueueQuery query = const ReviewQueueQuery(),
+    bool hasMore = false,
+    String? nextCursor,
+  }) {
+    if (ids.isEmpty) {
+      state = null;
+      return;
+    }
+    final safeIndex = index.clamp(0, ids.length - 1);
+    state = ReviewSessionState(
+      ids: List<String>.of(ids),
+      index: safeIndex,
+      query: query,
+      hasMore: hasMore,
+      nextCursor: nextCursor,
+    );
+    _prefetchAround();
+  }
+
+  /// Mulai sesi dari isi antrean yang sudah dimuat; [startId] opsional.
+  void startFromQueue(
+    ReviewQueueState queue, {
+    required ReviewQueueQuery query,
+    String? startId,
+  }) {
+    final ids = queue.items.map((item) => item.id).toList(growable: false);
+    if (ids.isEmpty) {
+      state = null;
+      return;
+    }
+    var index = 0;
+    if (startId != null) {
+      final found = ids.indexOf(startId);
+      index = found >= 0 ? found : 0;
+    }
+    start(
+      ids: ids,
+      index: index,
+      query: query,
+      hasMore: queue.hasMore,
+      nextCursor: queue.nextCursor,
+    );
+  }
+
+  /// Deep link / satu ID saja: sesi dengan item tunggal, lalu coba isi dari antrean.
+  Future<void> startWithId(
+    String id, {
+    ReviewQueueQuery query = const ReviewQueueQuery(),
+  }) async {
+    start(ids: [id], index: 0, query: query);
+    final queue = ref.read(reviewQueueProvider(query)).value;
+    if (queue != null && queue.items.isNotEmpty) {
+      startFromQueue(queue, query: query, startId: id);
+      return;
+    }
+    try {
+      final page = await ref.read(reviewRepositoryProvider).list(
+        status: 'pending',
+        entityType: query.entityType,
+        wordId: query.wordId,
+        limit: _pageSize,
+      );
+      page.match((_) {}, (value) {
+        if (value.items.isEmpty) return;
+        startFromQueue(
+          ReviewQueueState(
+            items: value.items,
+            nextCursor: value.nextCursor,
+            hasMore: value.hasMore,
+          ),
+          query: query,
+          startId: id,
+        );
+      });
+    } catch (_) {
+      // Tetap pakai sesi satu ID.
+    }
+  }
+
+  void clear() => state = null;
+
+  /// Setelah approve / reject / correct yang menutup usulan.
+  /// `true` = masih ada item berikutnya; `false` = sesi habis.
+  Future<bool> advanceAfterDecision(String decidedId) async {
+    final current = state;
+    if (current == null) return false;
+
+    ref.read(reviewQueueProvider(current.query).notifier).drop(decidedId);
+    ref.invalidate(reviewQueueHasPendingProvider);
+
+    final ids = List<String>.of(current.ids)..remove(decidedId);
+    final removedIndex = current.ids.indexOf(decidedId);
+    var newIndex = current.index;
+    if (removedIndex >= 0 && removedIndex < current.index) {
+      newIndex = current.index - 1;
+    } else if (removedIndex == current.index) {
+      newIndex = current.index;
+    }
+    if (ids.isNotEmpty && newIndex >= ids.length) {
+      newIndex = ids.length - 1;
+    }
+
+    if (ids.isEmpty) {
+      state = current.copyWith(ids: const [], index: 0);
+      final appended = await _appendMore();
+      if (appended && state != null && state!.ids.isNotEmpty) {
+        state = state!.copyWith(index: 0);
+        _prefetchAround();
+        return true;
+      }
+      state = null;
+      return false;
+    }
+
+    state = current.copyWith(ids: ids, index: newIndex);
+    if (state!.hasMore && state!.ids.length - state!.index <= 3) {
+      await _appendMore();
+    }
+    _prefetchAround();
+    return state?.currentId != null;
+  }
+
+  Future<bool> _appendMore() async {
+    final current = state;
+    if (current == null || !current.hasMore) return false;
+
+    final page = await ref.read(reviewRepositoryProvider).list(
+      status: 'pending',
+      entityType: current.query.entityType,
+      wordId: current.query.wordId,
+      limit: _pageSize,
+      cursor: current.nextCursor,
+    );
+
+    return page.match(
+      (_) => false,
+      (value) {
+        final existing = current.ids.toSet();
+        final added = [
+          for (final item in value.items)
+            if (!existing.contains(item.id)) item.id,
+        ];
+        if (added.isEmpty && !value.hasMore) {
+          state = current.copyWith(
+            hasMore: false,
+            clearCursor: true,
+          );
+          return false;
+        }
+        state = current.copyWith(
+          ids: [...current.ids, ...added],
+          nextCursor: value.nextCursor,
+          hasMore: value.hasMore,
+          clearCursor: value.nextCursor == null,
+        );
+        return added.isNotEmpty;
+      },
+    );
+  }
+
+  void _prefetchAround() {
+    final current = state;
+    if (current == null) return;
+    final id = current.currentId;
+    if (id != null) {
+      // Baca provider untuk memicu fetch; error tetap di AsyncValue.
+      ref.read(reviewDetailProvider(id));
+    }
+    final next = current.nextId;
+    if (next != null) {
+      ref.read(reviewDetailProvider(next));
+    }
+    // Prefetch satu lagi supaya advance cepat tidak kena cold fetch.
+    final afterNext = current.index + 2;
+    if (afterNext >= 0 && afterNext < current.ids.length) {
+      ref.read(reviewDetailProvider(current.ids[afterNext]));
+    }
+  }
+}
+
 void invalidateReviewQueue(WidgetRef ref) {
   ref.invalidate(reviewQueueHasPendingProvider);
   ref.invalidate(reviewQueueProvider);

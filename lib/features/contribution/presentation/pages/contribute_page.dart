@@ -63,6 +63,7 @@ class _MeaningDraft {
 
 class _ContributePageState extends ConsumerState<ContributePage> {
   late final TextEditingController _lemmaCtrl;
+  late final FocusNode _lemmaFocus;
   late final TextEditingController _standardTranslationCtrl;
   late final List<_MeaningDraft> _meanings;
 
@@ -96,6 +97,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     _lemmaCtrl = TextEditingController(
       text: isTranslationMiss ? '' : (widget.initialLemma ?? ''),
     );
+    _lemmaFocus = FocusNode();
     _standardTranslationCtrl = TextEditingController(
       text: isTranslationMiss ? (widget.initialLemma ?? '') : '',
     );
@@ -149,6 +151,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   @override
   void dispose() {
     _lemmaCtrl.dispose();
+    _lemmaFocus.dispose();
     _standardTranslationCtrl.dispose();
     for (final m in _meanings) {
       m.dispose();
@@ -191,6 +194,39 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     setState(() {
       final removed = _meanings.removeAt(index);
       removed.dispose();
+    });
+  }
+
+  /// Form kosong di halaman yang sama setelah "Tambah lagi".
+  void _resetFormForAnother() {
+    for (final m in _meanings) {
+      m.defCtrl.removeListener(_onFieldEdited);
+      m.trCtrl.removeListener(_onFieldEdited);
+      m.dispose();
+    }
+    _meanings.clear();
+    final draft = _MeaningDraft();
+    draft.wordClassId = _umumWordClassId;
+    draft.defCtrl.addListener(_onFieldEdited);
+    draft.trCtrl.addListener(_onFieldEdited);
+    _meanings.add(draft);
+
+    _lemmaCtrl.clear();
+    _standardTranslationCtrl.clear();
+    setState(() {
+      _advanced = false;
+      _standardDefinition = '';
+      _standardWordClassId = null;
+      _standardKbbiLemma = null;
+      _applyingKbbiPick = false;
+      _wordType = 'word';
+      _usageLabels.clear();
+      _relations = const ContributeRelationsDraft();
+      _images = const [];
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _lemmaFocus.requestFocus();
     });
   }
 
@@ -295,7 +331,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
       footer: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,7 +355,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
         ),
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
         children: [
           Text(
             isAuth
@@ -362,6 +398,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
 
           FTextField(
             control: FTextFieldControl.managed(controller: _lemmaCtrl),
+            focusNode: _lemmaFocus,
             label: const Text('Kata / ungkapan Sambas *'),
             hint: 'Isi kata, peribahasa, atau ungkapan',
             textInputAction: TextInputAction.next,
@@ -567,10 +604,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             const _FieldCaption(
               'Gambar',
               info:
-                  'Opsional. Perlu login. Kamera/galeri, upload langsung, maks 3.',
+                  'Opsional. Media Explorer tanpa login; kamera/galeri perlu masuk. Maks 3.',
             ),
             ContributeImagesField(
-              enabled: isAuth,
+              enabled: true,
+              allowLocalPick: isAuth,
               images: _images,
               onChanged: (next) => setState(() => _images = next),
             ),
@@ -883,34 +921,36 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   }
 
   Future<void> _showSuccessDialog(BuildContext context, String lemma) async {
-    final theme = context.theme;
     final isAuth = ref.read(authStatusProvider).value?.isAuth ?? false;
     final successText = isAuth
         ? (lemma.isNotEmpty
               ? '"$lemma" sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.'
               : 'Kata sudah tayang dengan label Menunggu pengecekan. Tim akan memeriksanya.')
         : 'Dikirim sebagai tamu. Kata belum tayang. Tim akan memeriksanya dulu.';
-    final choice = await showDialog<String>(
+
+    final choice = await showFDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Usulan terkirim',
-          style: theme.typography.lg.copyWith(fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text(successText, style: theme.typography.sm)],
-        ),
+      builder: (dialogContext, style, animation) => FDialog(
+        style: style,
+        animation: animation,
+        direction: Axis.vertical,
+        title: const Text('Usulan terkirim'),
+        body: Text(successText),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('home'),
-            child: const Text('Ke beranda'),
+          FButton(
+            onPress: () => Navigator.of(dialogContext).pop('again'),
+            child: const Text('Tambah lagi'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('list'),
+          FButton(
+            variant: FButtonVariant.outline,
+            onPress: () => Navigator.of(dialogContext).pop('list'),
             child: const Text('Lihat usulan'),
+          ),
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: () => Navigator.of(dialogContext).pop('home'),
+            child: const Text('Ke beranda'),
           ),
         ],
       ),
@@ -919,6 +959,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     // Form sudah terkirim. Jangan biarkan /contribute tetap di bawah
     // halaman berikutnya: tombol kembali akan membuka isian yang sama lagi.
     switch (choice) {
+      case 'again':
+        ref.read(submitWordProvider.notifier).resetForAnother();
+        _resetFormForAnother();
       case 'list':
         ref.invalidate(myContributionsListControllerProvider);
         context.pushReplacement('/contributions');

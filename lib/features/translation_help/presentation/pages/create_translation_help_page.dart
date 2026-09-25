@@ -52,10 +52,7 @@ class CreateTranslationHelpPage extends HookConsumerWidget {
       final text = data?.text?.trim() ?? '';
       if (text.isEmpty) {
         if (!context.mounted) return;
-        showFToast(
-          context: context,
-          title: const Text('Clipboard kosong'),
-        );
+        showFToast(context: context, title: const Text('Clipboard kosong'));
         return;
       }
       final next = body.text.isEmpty ? text : '${body.text.trim()}\n$text';
@@ -144,9 +141,7 @@ class CreateTranslationHelpPage extends HookConsumerWidget {
           context: context,
           title: const Text('Permintaan terkirim, menunggu pengecekan'),
         );
-        context.pushReplacement(
-          TranslationHelpRouter.detailPath(result.id),
-        );
+        context.pushReplacement(TranslationHelpRouter.detailPath(result.id));
       } on DioException catch (e) {
         errorMessage.value = _mapDio(e);
       } on ImageUploadUnavailable {
@@ -164,19 +159,26 @@ class CreateTranslationHelpPage extends HookConsumerWidget {
         title: const Text('Minta Bantuan'),
         prefixes: [
           FHeaderAction.back(
-            onPress: () =>
-                context.canPop() ? context.pop() : context.go(TranslationHelpRouter.feed.path),
+            onPress: () => context.canPop()
+                ? context.pop()
+                : context.go(TranslationHelpRouter.feed.path),
           ),
         ],
       ),
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.zero,
           children: [
-            if (!isAuth) ...[
-              const FAlert(
-                title: Text('Masuk dulu untuk mengirim permintaan'),
+            const FAlert(
+              icon: Icon(FLucideIcons.info),
+              title: Text('Diperiksa tim sebelum tayang'),
+              subtitle: Text(
+                'Kirim teks atau foto yang sulit diterjemahkan. Setelah disetujui, permintaanmu tampil dan warga bisa membalas.',
               ),
+            ),
+            const Gap(16),
+            if (!isAuth) ...[
+              const FAlert(title: Text('Masuk dulu untuk mengirim permintaan')),
               const Gap(8),
               FButton(
                 variant: FButtonVariant.outline,
@@ -203,7 +205,9 @@ class CreateTranslationHelpPage extends HookConsumerWidget {
                 children: [
                   FButton(
                     variant: FButtonVariant.ghost,
-                    onPress: submitting.value || !isAuth ? null : pasteClipboard,
+                    onPress: submitting.value || !isAuth
+                        ? null
+                        : pasteClipboard,
                     prefix: const Icon(FLucideIcons.clipboardPaste, size: 14),
                     child: const Text('Tempel'),
                   ),
@@ -322,8 +326,7 @@ String _mapDio(DioException error) {
   return switch (error.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
-    DioExceptionType.receiveTimeout =>
-      'Koneksi lambat, coba lagi',
+    DioExceptionType.receiveTimeout => 'Koneksi lambat, coba lagi',
     DioExceptionType.connectionError => 'Tidak ada koneksi internet',
     _ => 'Terjadi kesalahan, coba lagi',
   };

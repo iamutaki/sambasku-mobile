@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../vote/domain/providers/vote_domain_providers.dart';
 import '../../data/translation_help_providers.dart';
 import '../../domain/translation_help_models.dart';
 
@@ -11,6 +12,7 @@ class TranslationHelpListState {
     this.hasMore = false,
     this.isLoadingMore = false,
     this.status,
+    this.sort = 'latest',
   });
 
   final List<TranslationHelpItem> items;
@@ -18,6 +20,7 @@ class TranslationHelpListState {
   final bool hasMore;
   final bool isLoadingMore;
   final String? status;
+  final String sort;
 
   TranslationHelpListState copyWith({
     List<TranslationHelpItem>? items,
@@ -25,6 +28,7 @@ class TranslationHelpListState {
     bool? hasMore,
     bool? isLoadingMore,
     String? status,
+    String? sort,
     bool clearCursor = false,
   }) {
     return TranslationHelpListState(
@@ -33,8 +37,21 @@ class TranslationHelpListState {
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       status: status ?? this.status,
+      sort: sort ?? this.sort,
     );
   }
+}
+
+final translationHelpFeedSortProvider =
+    NotifierProvider.autoDispose<TranslationHelpFeedSort, String>(
+      TranslationHelpFeedSort.new,
+    );
+
+class TranslationHelpFeedSort extends Notifier<String> {
+  @override
+  String build() => 'latest';
+
+  void select(String sort) => state = sort;
 }
 
 final translationHelpFeedProvider =
@@ -49,16 +66,73 @@ class TranslationHelpFeedController
 
   @override
   Future<TranslationHelpListState> build() async {
+    final sort = ref.watch(translationHelpFeedSortProvider);
     final page = await ref
         .watch(translationHelpRepositoryProvider)
-        .listPublished(limit: _pageSize);
-    return page.match(
-      (failure) => throw failure,
-      (value) => TranslationHelpListState(
-        items: value.items,
-        nextCursor: value.nextCursor,
-        hasMore: value.hasMore,
+        .listPublished(limit: _pageSize, sort: sort);
+    final value = page.match((failure) => throw failure, (v) => v);
+    final items = await _attachMyVotes(value.items);
+    return TranslationHelpListState(
+      items: items,
+      nextCursor: value.nextCursor,
+      hasMore: value.hasMore,
+      sort: sort,
+    );
+  }
+
+  Future<List<TranslationHelpItem>> _attachMyVotes(
+    List<TranslationHelpItem> items,
+  ) async {
+    if (items.isEmpty) return items;
+    final auth = await ref.watch(authStatusProvider.future);
+    if (!auth.isAuth) return items;
+
+    final mine = await ref.watch(getMyVotesUseCaseProvider)(
+      items.map((i) => i.voteTarget).toList(growable: false),
+    );
+    return mine.match(
+      (failure) => items,
+      (map) => items
+          .map(
+            (i) => map.containsKey(i.voteTarget.key)
+                ? i.copyWith(myVote: map[i.voteTarget.key])
+                : i,
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Future<TranslationHelpFailure?> toggleHelpVote(
+    TranslationHelpItem item,
+    int value,
+  ) async {
+    final current = state.value;
+    if (current == null) {
+      return const TranslationHelpFailure('Belum siap');
+    }
+
+    final result = await ref.watch(toggleVoteUseCaseProvider)(
+      target: item.voteTarget,
+      value: value,
+    );
+    return result.match(
+      (failure) => TranslationHelpFailure(
+        failure.message,
+        errorCode: failure.errorCode,
       ),
+      (view) {
+        state = AsyncData(
+          current.copyWith(
+            items: [
+              for (final i in current.items)
+                i.id == item.id
+                    ? i.copyWith(upvotes: view.upvotes, myVote: view.myVote)
+                    : i,
+            ],
+          ),
+        );
+        return null;
+      },
     );
   }
 
@@ -73,24 +147,30 @@ class TranslationHelpFeedController
     state = AsyncData(current.copyWith(isLoadingMore: true));
     final page = await ref
         .read(translationHelpRepositoryProvider)
-        .listPublished(limit: _pageSize, cursor: current.nextCursor);
-    return page.match(
-      (failure) {
-        state = AsyncData(current.copyWith(isLoadingMore: false));
-        return failure;
-      },
-      (value) {
-        state = AsyncData(
-          current.copyWith(
-            items: [...current.items, ...value.items],
-            nextCursor: value.nextCursor,
-            hasMore: value.hasMore,
-            isLoadingMore: false,
-          ),
+        .listPublished(
+          limit: _pageSize,
+          cursor: current.nextCursor,
+          sort: current.sort,
         );
-        return null;
-      },
+    final failureOrNull = page.match(
+      (failure) => failure,
+      (_) => null,
     );
+    if (failureOrNull != null) {
+      state = AsyncData(current.copyWith(isLoadingMore: false));
+      return failureOrNull;
+    }
+    final value = page.match((_) => throw StateError('unreachable'), (v) => v);
+    final more = await _attachMyVotes(value.items);
+    state = AsyncData(
+      current.copyWith(
+        items: [...current.items, ...more],
+        nextCursor: value.nextCursor,
+        hasMore: value.hasMore,
+        isLoadingMore: false,
+      ),
+    );
+    return null;
   }
 }
 
@@ -209,9 +289,125 @@ class TranslationHelpDetailController
     final result = await ref
         .watch(translationHelpRepositoryProvider)
         .getDetail(helpId);
+    final item = result.match((failure) => throw failure, (item) => item);
+    final withHelpVote = await _attachHelpMyVote(item);
+    final replies = await _attachMyVotes(withHelpVote.replies);
+    return TranslationHelpDetailState(
+      item: withHelpVote.copyWith(replies: replies),
+    );
+  }
+
+  Future<TranslationHelpItem> _attachHelpMyVote(TranslationHelpItem item) async {
+    if (!item.isPublished) return item;
+
+    final auth = await ref.watch(authStatusProvider.future);
+    if (!auth.isAuth) return item;
+
+    final mine = await ref.watch(getMyVotesUseCaseProvider)([item.voteTarget]);
+    return mine.match(
+      (failure) => item,
+      (map) => map.containsKey(item.voteTarget.key)
+          ? item.copyWith(myVote: map[item.voteTarget.key])
+          : item,
+    );
+  }
+
+  /// Seed myVote per balasan (batch) saat login; gagal = bukan blocker.
+  Future<List<TranslationHelpReply>> _attachMyVotes(
+    List<TranslationHelpReply> items,
+  ) async {
+    if (items.isEmpty) return items;
+
+    final auth = await ref.watch(authStatusProvider.future);
+    if (!auth.isAuth) return items;
+
+    final published = items.where((r) => r.isPublished).toList(growable: false);
+    if (published.isEmpty) return items;
+
+    final mine = await ref.watch(getMyVotesUseCaseProvider)(
+      published.map((r) => r.voteTarget).toList(growable: false),
+    );
+    return mine.match(
+      (failure) => items,
+      (map) => items
+          .map(
+            (r) => map.containsKey(r.voteTarget.key)
+                ? r.copyWith(myVote: map[r.voteTarget.key])
+                : r,
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Future<TranslationHelpFailure?> toggleHelpVote(int value) async {
+    final current = state.value;
+    if (current == null) {
+      return const TranslationHelpFailure('Belum siap');
+    }
+    final item = current.item;
+    if (!item.isPublished) {
+      return const TranslationHelpFailure('Pertanyaan belum tayang');
+    }
+
+    final result = await ref.watch(toggleVoteUseCaseProvider)(
+      target: item.voteTarget,
+      value: value,
+    );
     return result.match(
-      (failure) => throw failure,
-      (item) => TranslationHelpDetailState(item: item),
+      (failure) => TranslationHelpFailure(
+        failure.message,
+        errorCode: failure.errorCode,
+      ),
+      (view) {
+        state = AsyncData(
+          current.copyWith(
+            item: item.copyWith(
+              upvotes: view.upvotes,
+              myVote: view.myVote,
+            ),
+          ),
+        );
+        return null;
+      },
+    );
+  }
+
+  Future<TranslationHelpFailure?> toggleVote(
+    TranslationHelpReply reply,
+    int value,
+  ) async {
+    final current = state.value;
+    if (current == null) {
+      return const TranslationHelpFailure('Belum siap');
+    }
+
+    final result = await ref.watch(toggleVoteUseCaseProvider)(
+      target: reply.voteTarget,
+      value: value,
+    );
+    return result.match(
+      (failure) => TranslationHelpFailure(
+        failure.message,
+        errorCode: failure.errorCode,
+      ),
+      (view) {
+        final updated = reply.copyWith(
+          upvotes: view.upvotes,
+          downvotes: view.downvotes,
+          myVote: view.myVote,
+        );
+        state = AsyncData(
+          current.copyWith(
+            item: current.item.copyWith(
+              replies: [
+                for (final r in current.item.replies)
+                  r.id == updated.id ? updated : r,
+              ],
+            ),
+          ),
+        );
+        return null;
+      },
     );
   }
 

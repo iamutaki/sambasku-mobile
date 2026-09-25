@@ -5,8 +5,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
+import '../../../shared/utils/photo_pick_constants.dart';
+
 /// Crop 1:1 di dalam Flutter supaya warna ikut [FTheme] (terang/gelap + palet).
-/// Batal → null. Berkas yang diunggah PNG persegi; avatar ditampilkan lingkaran.
+/// Batal → null. Berkas yang diunggah PNG persegi [kPhotoPickMaxWidth]×sama;
+/// avatar ditampilkan lingkaran.
 Future<File?> cropProfilePhoto(BuildContext context, String sourcePath) {
   return Navigator.of(context).push<File?>(
     MaterialPageRoute(
@@ -107,12 +110,12 @@ class _ProfilePhotoCropPageState extends State<ProfilePhotoCropPage> {
         scale: _scale,
         offset: _offset,
       );
-      const out = 1024.0;
+      final out = kPhotoPickMaxWidth;
       final recorder = ui.PictureRecorder();
       Canvas(recorder).drawImageRect(
         image,
         src,
-        const Rect.fromLTWH(0, 0, out, out),
+        Rect.fromLTWH(0, 0, out, out),
         Paint()..filterQuality = FilterQuality.high,
       );
       final cropped = await recorder.endRecording().toImage(out.toInt(), out.toInt());
@@ -136,6 +139,7 @@ class _ProfilePhotoCropPageState extends State<ProfilePhotoCropPage> {
     final image = _image;
 
     return FScaffold(
+      childPad: false,
       header: FHeader.nested(
         title: const Text('Atur foto profil'),
         prefixes: [
@@ -204,12 +208,15 @@ class _ProfilePhotoCropPageState extends State<ProfilePhotoCropPage> {
                     },
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: FButton(
-              onPress: image == null || _saving ? null : _save,
-              prefix: _saving ? const FCircularProgress() : null,
-              child: Text(_saving ? 'Menyimpan...' : 'Pakai'),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: FButton(
+                onPress: image == null || _saving ? null : _save,
+                prefix: _saving ? const FCircularProgress() : null,
+                child: Text(_saving ? 'Menyimpan...' : 'Pakai'),
+              ),
             ),
           ),
         ],

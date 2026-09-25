@@ -8,9 +8,10 @@ const kSkipAuthRefreshExtra = 'skipAuthRefresh';
 
 /// Interceptor auth (pola jnn_mobile, varian sambasku):
 /// - onRequest: sisipkan Bearer access token
-/// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry;
-///   gagal refresh → clear token saja (tanpa revoke FCM — revoke butuh
-///   Bearer valid dan akan loop jika dipanggil di sini)
+/// - onError 401: refresh SEKALI (queue via `_refreshFuture`), lalu retry.
+///   Hanya 401/403 pada refresh yang menghapus sesi. Timeout, 5xx, dan
+///   gagalnya request yang diulang TIDAK logout — jaringan putus bukan
+///   sesi mati.
 ///
 /// Path yang di-skip (tidak trigger refresh):
 /// - `/auth/login|google|facebook|refresh|register|verify-email|resend-otp`
@@ -51,7 +52,7 @@ class AuthInterceptor extends Interceptor {
   /// tetap menembak tier 1 yang sedang mati.
   final ApiHostResolver _hostResolver;
   final Dio _refreshDio;
-  Future<bool>? _refreshFuture;
+  Future<_RefreshOutcome>? _refreshFuture;
   bool _clearingSession = false;
 
   @override
@@ -77,9 +78,12 @@ class AuthInterceptor extends Interceptor {
     }
 
     try {
-      final refreshed = await _refreshToken();
-      if (!refreshed) {
+      final outcome = await _refreshToken();
+      if (outcome == _RefreshOutcome.terminal) {
         await _clearSession();
+        return handler.next(err);
+      }
+      if (outcome != _RefreshOutcome.success) {
         return handler.next(err);
       }
 
@@ -92,7 +96,7 @@ class AuthInterceptor extends Interceptor {
       final response = await _refreshDio.fetch(options);
       return handler.resolve(response);
     } on DioException catch (e) {
-      await _clearSession();
+      // Refresh sudah sukses. Gagalnya retry bukan alasan menghapus sesi.
       return handler.next(e);
     } catch (_) {
       return handler.next(err);
@@ -127,15 +131,15 @@ class AuthInterceptor extends Interceptor {
   }
 
   /// Single-flight: beberapa 401 bersamaan berbagi satu panggilan refresh.
-  Future<bool> _refreshToken() {
+  Future<_RefreshOutcome> _refreshToken() {
     return _refreshFuture ??= _doRefresh().whenComplete(() {
       _refreshFuture = null;
     });
   }
 
-  Future<bool> _doRefresh() async {
+  Future<_RefreshOutcome> _doRefresh() async {
     final refreshToken = await _tokenStorage.getRefreshToken();
-    if (refreshToken == null) return false;
+    if (refreshToken == null) return _RefreshOutcome.terminal;
 
     try {
       final tier = _hostResolver.activeTier;
@@ -151,14 +155,18 @@ class AuthInterceptor extends Interceptor {
       );
 
       final raw = response.data;
-      if (raw == null || raw['success'] != true) return false;
+      if (raw == null || raw['success'] != true) {
+        return _RefreshOutcome.transient;
+      }
 
       final data = raw['data'];
-      if (data is! Map) return false;
+      if (data is! Map) return _RefreshOutcome.transient;
 
       final accessToken = data['access_token'] as String?;
       final rotatedRefresh = data['refresh_token'] as String?;
-      if (accessToken == null || accessToken.isEmpty) return false;
+      if (accessToken == null || accessToken.isEmpty) {
+        return _RefreshOutcome.transient;
+      }
 
       // Rotasi wajib di backend mobile; fallback ke token lama hanya
       // jika body tidak mengirimkan (mis. bug server).
@@ -168,9 +176,15 @@ class AuthInterceptor extends Interceptor {
             ? rotatedRefresh
             : refreshToken,
       );
-      return true;
+      return _RefreshOutcome.success;
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) return _RefreshOutcome.terminal;
+      return _RefreshOutcome.transient;
     } catch (_) {
-      return false;
+      return _RefreshOutcome.transient;
     }
   }
 }
+
+enum _RefreshOutcome { success, terminal, transient }

@@ -279,12 +279,28 @@ class WordImage {
     required this.url,
     this.altText,
     required this.isPrimary,
+    this.isVerified = true,
+    this.contentWarnings = const [],
   });
 
   final String id;
   final String url;
   final String? altText;
   final bool isPrimary;
+
+  /// false jika API mengembalikan is_verified: false (gambar staging belum
+  /// disetujui). Default true agar payload lama yang tidak menyertakan
+  /// field ini tetap berfungsi normal.
+  final bool isVerified;
+
+  /// Peringatan konten per gambar. V1: 'kekerasan'. Kosong = aman.
+  final List<String> contentWarnings;
+
+  /// Gambar belum terverifikasi; tampilkan asset lokal, bukan URL asli.
+  bool get isPendingReview => !isVerified;
+
+  /// Gambar mengandung konten kekerasan; blur sampai user konfirmasi.
+  bool get hasViolenceWarning => contentWarnings.contains('kekerasan');
 }
 
 class RelatedWord {

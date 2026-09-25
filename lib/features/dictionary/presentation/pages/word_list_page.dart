@@ -166,7 +166,7 @@ class WordListPage extends HookConsumerWidget {
       final askIndonesia = state.searchIn == 'translation' && query.isEmpty;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.zero,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

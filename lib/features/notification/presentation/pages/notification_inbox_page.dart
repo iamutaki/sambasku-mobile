@@ -52,7 +52,7 @@ class _GuestState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -92,7 +92,7 @@ class _InboxList extends ConsumerWidget {
       final error = async.error!;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -147,7 +147,7 @@ class _InboxList extends ConsumerWidget {
               SizedBox(
                 height: constraints.maxHeight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

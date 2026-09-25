@@ -5,14 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../../core/utils/format_datetime.dart';
-import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../../shared/utils/public_account_name.dart';
+import '../../../../shared/widgets/thread_message.dart';
+import '../../../user_profile/user_profile_router.dart';
 import '../../../vote/presentation/widgets/vote_buttons.dart';
 import '../../domain/entities/word_comment.dart';
 import '../../domain/failures/comment_failure.dart';
 import '../providers/comment_providers.dart';
-import '../../../../shared/utils/public_account_name.dart';
-import '../../../user_profile/user_profile_router.dart';
+import '../../../auth/presentation/providers/auth_status_providers.dart';
+import '../../../../core/utils/format_datetime.dart';
 
 /// Buka thread komentar tanpa memanjangkan entri kata.
 Future<void> showWordCommentsSheet(BuildContext context, String wordId) {
@@ -54,35 +55,38 @@ class WordCommentEntryBar extends ConsumerWidget {
 
     return Material(
       color: theme.colors.background,
-      child: InkWell(
-        onTap: () => showWordCommentsSheet(context, wordId),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: theme.colors.border)),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Icon(
-                FLucideIcons.messageSquare,
-                size: 18,
-                color: theme.colors.foreground,
-              ),
-              const Gap(8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.typography.sm.copyWith(
-                    fontWeight: FontWeight.w600,
+      child: SafeArea(
+        top: false,
+        child: InkWell(
+          onTap: () => showWordCommentsSheet(context, wordId),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: theme.colors.border)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Icon(
+                  FLucideIcons.messageSquare,
+                  size: 18,
+                  color: theme.colors.foreground,
+                ),
+                const Gap(8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.typography.sm.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              Icon(
-                FLucideIcons.chevronUp,
-                size: 16,
-                color: theme.colors.mutedForeground,
-              ),
-            ],
+                Icon(
+                  FLucideIcons.chevronUp,
+                  size: 16,
+                  color: theme.colors.mutedForeground,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -91,6 +95,7 @@ class WordCommentEntryBar extends ConsumerWidget {
 }
 
 /// Thread komentar di dalam sheet (09-api-comment.md).
+/// Layout baris/composer: [ThreadMessageRow] / [ThreadComposer] (shared).
 class WordCommentsSection extends ConsumerStatefulWidget {
   const WordCommentsSection({super.key, required this.wordId});
 
@@ -281,15 +286,27 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
                           auth != null &&
                           c.isPublished &&
                           c.isOwner(auth.userId);
-                      return _CommentRow(
-                        comment: c,
+                      return ThreadMessageRow(
+                        username: c.username,
+                        body: c.displayBody,
                         dateLabel: formatDateTimeIso(c.createdAt),
-                        onVote: c.isPublished
-                            ? (value) => _toggleVote(c, value)
-                            : null,
+                        metaParts: [
+                          if (c.isTakenDown) 'dihapus moderator',
+                          if (c.isDeletedByAuthor) 'dihapus penulis',
+                        ],
+                        isRedacted: !c.isPublished,
                         onDelete: canDelete ? () => _deleteComment(c) : null,
                         onUsernameTap: isLinkablePublicUsername(c.username)
                             ? () => UserProfileRouter.open(context, c.username!)
+                            : null,
+                        footer: c.isPublished
+                            ? VoteButtons(
+                                upvotes: c.upvotes,
+                                downvotes: c.downvotes,
+                                myVote: c.myVote,
+                                onVote: (value) => _toggleVote(c, value),
+                                compact: true,
+                              )
                             : null,
                       );
                     }),
@@ -325,191 +342,15 @@ class _WordCommentsSectionState extends ConsumerState<WordCommentsSection> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: !isAuth
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Masuk untuk menulis komentar',
-                        style: theme.typography.sm.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    ),
-                    FButton(
-                      variant: FButtonVariant.outline,
-                      onPress: _promptLogin,
-                      child: const Text('Masuk'),
-                    ),
-                  ],
+              ? ThreadLoginPrompt(
+                  message: 'Masuk untuk menulis komentar',
+                  onLogin: _promptLogin,
                 )
-              : _Composer(
+              : ThreadComposer(
                   controller: _bodyCtrl,
                   isSubmitting: listState?.isSubmitting ?? false,
                   onSubmit: _sendComment,
                 ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CommentRow extends StatelessWidget {
-  const _CommentRow({
-    required this.comment,
-    required this.dateLabel,
-    this.onVote,
-    this.onDelete,
-    this.onUsernameTap,
-  });
-
-  final WordComment comment;
-  final String dateLabel;
-  final Future<void> Function(int value)? onVote;
-  final VoidCallback? onDelete;
-  final VoidCallback? onUsernameTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final isRedacted = !comment.isPublished;
-    final username = displayPublicUsername(comment.username);
-    final rest = [
-      if (dateLabel.isNotEmpty) dateLabel,
-      if (comment.isTakenDown) 'dihapus moderator',
-      if (comment.isDeletedByAuthor) 'dihapus penulis',
-    ].join(' · ');
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: onUsernameTap == null || isRedacted
-                          ? Text(
-                              username,
-                              style: theme.typography.sm.copyWith(
-                                color: theme.colors.mutedForeground,
-                                fontSize: 11,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            )
-                          : Semantics(
-                              button: true,
-                              label: 'Lihat profil $username',
-                              child: GestureDetector(
-                                onTap: onUsernameTap,
-                                child: Text(
-                                  username,
-                                  style: theme.typography.sm.copyWith(
-                                    color: theme.colors.primary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                    ),
-                    if (rest.isNotEmpty)
-                      Flexible(
-                        child: Text(
-                          ' · $rest',
-                          style: theme.typography.sm.copyWith(
-                            color: theme.colors.mutedForeground,
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (onDelete != null)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(6),
-                    onTap: onDelete,
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(
-                        FLucideIcons.trash,
-                        size: 14,
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const Gap(2),
-          Text(
-            comment.displayBody,
-            style: theme.typography.sm.copyWith(
-              height: 1.35,
-              fontStyle: isRedacted ? FontStyle.italic : FontStyle.normal,
-              color: isRedacted
-                  ? theme.colors.mutedForeground
-                  : theme.colors.foreground,
-            ),
-          ),
-          if (onVote != null) ...[
-            const Gap(4),
-            VoteButtons(
-              upvotes: comment.upvotes,
-              downvotes: comment.downvotes,
-              myVote: comment.myVote,
-              onVote: onVote!,
-              compact: true,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Composer extends StatelessWidget {
-  const _Composer({
-    required this.controller,
-    required this.isSubmitting,
-    required this.onSubmit,
-  });
-
-  final TextEditingController controller;
-  final bool isSubmitting;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FTextField(
-          control: FTextFieldControl.managed(controller: controller),
-          hint: 'Tulis komentar…',
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          maxLines: 3,
-          minLines: 1,
-        ),
-        const Gap(6),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FButton(
-            onPress: isSubmitting ? null : onSubmit,
-            prefix: isSubmitting ? const FCircularProgress() : null,
-            child: Text(isSubmitting ? 'Mengirim...' : 'Kirim'),
-          ),
         ),
       ],
     );

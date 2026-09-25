@@ -16,29 +16,49 @@ const _reasons = <(String, String)>[
   ('other', 'Lainnya'),
 ];
 
-Future<bool> showReportWordSheet(BuildContext context, String wordId) async {
+/// Alasan khusus pelaporan gambar. Ditampilkan ketika [imageId] diisi.
+const _imageReasons = <(String, String)>[
+  ('violent_image', 'Laporkan foto ini berisi kekerasan'),
+];
+
+Future<bool> showReportWordSheet(
+  BuildContext context,
+  String wordId, {
+  /// Saat diisi, sheet menampilkan alasan khusus gambar (mis. kekerasan).
+  String? imageId,
+}) async {
   final sent = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (sheetContext) => _ReportWordSheet(wordId: wordId),
+    builder: (sheetContext) =>
+        _ReportWordSheet(wordId: wordId, imageId: imageId),
   );
   return sent ?? false;
 }
 
 class _ReportWordSheet extends ConsumerStatefulWidget {
-  const _ReportWordSheet({required this.wordId});
+  const _ReportWordSheet({required this.wordId, this.imageId});
 
   final String wordId;
+  /// Saat diisi, laporan merujuk ke gambar tertentu.
+  final String? imageId;
 
   @override
   ConsumerState<_ReportWordSheet> createState() => _ReportWordSheetState();
 }
 
 class _ReportWordSheetState extends ConsumerState<_ReportWordSheet> {
-  String _reason = 'inappropriate';
+  late String _reason;
   final _note = TextEditingController();
   bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Saat imageId ada, mulai dari alasan kekerasan gambar.
+    _reason = widget.imageId != null ? 'violent_image' : 'inappropriate';
+  }
 
   @override
   void dispose() {
@@ -63,6 +83,7 @@ class _ReportWordSheetState extends ConsumerState<_ReportWordSheet> {
             wordId: widget.wordId,
             reasonCode: _reason,
             note: note,
+            imageId: widget.imageId,
           );
       if (!mounted) return;
       AnalyticsService.instance.log(
@@ -92,10 +113,15 @@ class _ReportWordSheetState extends ConsumerState<_ReportWordSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Laporkan entri', style: theme.typography.lg.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            widget.imageId != null ? 'Laporkan foto' : 'Laporkan entri',
+            style: theme.typography.lg.copyWith(fontWeight: FontWeight.w600),
+          ),
           const Gap(4),
           Text(
-            'Untuk entri yang tidak layak tayang. Perbaikan isi tetap lewat Usulkan perubahan.',
+            widget.imageId != null
+                ? 'Laporkan foto ini ke tim Sambasku untuk ditinjau.'
+                : 'Untuk entri yang tidak layak tayang. Perbaikan isi tetap lewat Usulkan perubahan.',
             style: theme.typography.sm.copyWith(color: theme.colors.mutedForeground),
           ),
           const Gap(12),
@@ -103,7 +129,8 @@ class _ReportWordSheetState extends ConsumerState<_ReportWordSheet> {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final reason in _reasons)
+              for (final reason
+                  in widget.imageId != null ? _imageReasons : _reasons)
                 GestureDetector(
                   onTap: _sending
                       ? null

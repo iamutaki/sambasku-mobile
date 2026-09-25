@@ -121,7 +121,7 @@ class AppRouter {
       childPad: true,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Text('Halaman tidak ditemukan: ${state.error}'),
         ),
       ),

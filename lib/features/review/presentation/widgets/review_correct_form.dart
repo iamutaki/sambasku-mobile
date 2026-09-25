@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
-import '../../../../core/services/analytics_service.dart';
 import '../../../contribution/presentation/widgets/kbbi_definition_sheet.dart';
 import '../../data/review_correct_body.dart';
 import '../../domain/entities/review_contribution.dart';
 import '../../domain/failures/review_failure.dart';
 import '../providers/review_providers.dart';
-import 'review_forbidden_page.dart';
 
-class ReviewCorrectPage extends ConsumerStatefulWidget {
-  const ReviewCorrectPage({super.key, required this.id});
+/// Form koreksi inline (dipakai di sesi review, bukan halaman terpisah).
+class ReviewCorrectForm extends ConsumerStatefulWidget {
+  const ReviewCorrectForm({
+    super.key,
+    required this.detail,
+    required this.onSuccess,
+    required this.onCancel,
+    required this.onFailure,
+  });
 
-  final String id;
+  final ReviewDetail detail;
+  final void Function(ReviewDecisionResult decision) onSuccess;
+  final VoidCallback onCancel;
+  final void Function(ReviewFailure failure) onFailure;
 
   @override
-  ConsumerState<ReviewCorrectPage> createState() => _ReviewCorrectPageState();
+  ConsumerState<ReviewCorrectForm> createState() => _ReviewCorrectFormState();
 }
 
 class _MeaningEdit {
@@ -40,7 +47,7 @@ class _MeaningEdit {
   }
 }
 
-class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
+class _ReviewCorrectFormState extends ConsumerState<ReviewCorrectForm> {
   final _lemma = TextEditingController();
   final _notes = TextEditingController();
   final _comment = TextEditingController();
@@ -65,6 +72,34 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       meaning.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ReviewCorrectForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.detail.contribution.id != widget.detail.contribution.id) {
+      _resetForNewDetail();
+    }
+  }
+
+  void _resetForNewDetail() {
+    for (final controller in _childFields.values) {
+      controller.dispose();
+    }
+    _childFields.clear();
+    for (final meaning in _meanings) {
+      meaning.dispose();
+    }
+    _meanings.clear();
+    _lemma.clear();
+    _notes.clear();
+    _comment.clear();
+    _wordType = 'word';
+    _publish = true;
+    _seeded = false;
+    _childPrimary = false;
+    _hasPrimary = false;
+    _seed(widget.detail);
   }
 
   void _seed(ReviewDetail detail) {
@@ -115,8 +150,9 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
     }
   }
 
-  Future<void> _submit(ReviewDetail detail) async {
+  Future<void> _submit() async {
     if (_busy) return;
+    final detail = widget.detail;
     final type = detail.contribution.entityType;
     if (type == 'meaning') return;
     setState(() => _busy = true);
@@ -126,42 +162,7 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         .correct(detail.contribution.id, body);
     if (!mounted) return;
     setState(() => _busy = false);
-    result.match(
-      (failure) {
-        if (failure.isForbidden) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ReviewForbiddenPage(message: failure.message),
-            ),
-          );
-          return;
-        }
-        final message = failure.isAlreadyDecided
-            ? 'Usulan ini sudah diproses'
-            : failure.message;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-        if (failure.isAlreadyDecided) {
-          invalidateReviewQueue(ref);
-          context.go('/review');
-        }
-      },
-      (decision) {
-        invalidateReviewQueue(ref);
-        AnalyticsService.instance.log(
-          AnalyticsEvents.reviewCorrect,
-          params: {'contribution_id': detail.contribution.id},
-        );
-        final label = decision.status == 'pending'
-            ? 'Koreksi disimpan. Usulan tetap menunggu.'
-            : 'Koreksi disimpan dan usulan ditutup.';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(label)));
-        context.go('/review');
-      },
-    );
+    result.match(widget.onFailure, widget.onSuccess);
   }
 
   Map<String, dynamic> _wordBody(ReviewDetail detail) {
@@ -231,37 +232,24 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
 
   @override
   Widget build(BuildContext context) {
-    final detailAsync = ref.watch(reviewDetailProvider(widget.id));
-    final failure = detailAsync.hasError ? detailAsync.error : null;
-    if (failure is ReviewFailure && failure.isForbidden) {
-      return ReviewForbiddenPage(message: failure.message);
+    _seed(widget.detail);
+    final detail = widget.detail;
+    if (detail.contribution.entityType == 'meaning') {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Koreksi langsung tidak didukung untuk makna. Tolak usulan ini, lalu minta pengirim mengusulkan ulang.',
+        ),
+      );
     }
-    return FScaffold(
-      header: FHeader.nested(
-        title: const Text('Koreksi'),
-        prefixes: [FHeaderAction.back(onPress: () => context.pop())],
-      ),
-      child: detailAsync.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (error, _) {
-          return Center(
-            child: Text(
-              error is ReviewFailure ? error.message : 'Gagal memuat usulan',
-            ),
-          );
-        },
-        data: (detail) {
-          _seed(detail);
-          if (detail.contribution.entityType == 'meaning') {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Koreksi langsung tidak didukung untuk makna. Tolak usulan ini, lalu minta pengirim mengusulkan ulang.',
-              ),
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+
+    final theme = context.theme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
             children: [
               if (detail.contribution.entityType == 'word')
                 ..._wordFields()
@@ -269,43 +257,70 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
                 ..._childForm(),
               const Gap(12),
               FTextField(
-                control: .managed(controller: _comment),
+                control: FTextFieldControl.managed(controller: _comment),
                 enabled: !_busy,
                 label: const Text('Catatan (opsional)'),
               ),
-              const Gap(12),
-              Row(
+            ],
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colors.background,
+            border: Border(top: BorderSide(color: theme.colors.border)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Expanded(
-                    child: Text('Langsung terbitkan dan verifikasi'),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Langsung terbitkan dan verifikasi'),
+                      ),
+                      FSwitch(
+                        semanticsLabel: 'Langsung terbitkan dan verifikasi',
+                        value: _publish,
+                        enabled: !_busy,
+                        onChange: (value) => setState(() => _publish = value),
+                      ),
+                    ],
                   ),
-                  FSwitch(
-                    semanticsLabel: 'Langsung terbitkan dan verifikasi',
-                    value: _publish,
-                    enabled: !_busy,
-                    onChange: (value) => setState(() => _publish = value),
+                  const Gap(12),
+                  FButton(
+                    onPress: _busy ? null : _submit,
+                    prefix: _busy ? const FCircularProgress() : null,
+                    child: Text(
+                      _busy
+                          ? 'Memproses…'
+                          : _publish
+                              ? 'Simpan dan terbitkan'
+                              : 'Simpan, tetap menunggu',
+                    ),
+                  ),
+                  const Gap(8),
+                  FButton(
+                    variant: FButtonVariant.outline,
+                    onPress: _busy ? null : widget.onCancel,
+                    child: const Text('Batal koreksi'),
                   ),
                 ],
               ),
-              const Gap(16),
-              FButton(
-                onPress: _busy ? null : () => _submit(detail),
-                prefix: _busy ? const FCircularProgress() : null,
-                child: Text(
-                  _publish ? 'Simpan dan terbitkan' : 'Simpan, tetap menunggu',
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   List<Widget> _wordFields() {
     return [
       FTextField(
-        control: .managed(controller: _lemma),
+        control: FTextFieldControl.managed(controller: _lemma),
         enabled: !_busy,
         label: const Text('Lemma'),
       ),
@@ -330,7 +345,7 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       ),
       const Gap(12),
       FTextField(
-        control: .managed(controller: _notes),
+        control: FTextFieldControl.managed(controller: _notes),
         enabled: !_busy,
         label: const Text('Catatan kata'),
       ),
@@ -345,13 +360,17 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
         ),
         const Gap(8),
         FTextField(
-          control: .managed(controller: _meanings[i].definitionCtrl),
+          control: FTextFieldControl.managed(
+            controller: _meanings[i].definitionCtrl,
+          ),
           enabled: !_busy,
           label: const Text('Definisi'),
         ),
         const Gap(8),
         FTextField(
-          control: .managed(controller: _meanings[i].translationCtrl),
+          control: FTextFieldControl.managed(
+            controller: _meanings[i].translationCtrl,
+          ),
           enabled: !_busy,
           label: const Text('Padanan'),
           description: const Text(
@@ -407,9 +426,10 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
       if (lemma.isNotEmpty) meaning.translationCtrl.text = lemma;
       if (matched != null) meaning.wordClassId = matched;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Definisi diisi dari KBBI')));
+    showFToast(
+      context: context,
+      title: const Text('Definisi diisi dari KBBI'),
+    );
   }
 
   Future<List<_ReviewWordClass>> _loadWordClasses() async {
@@ -448,7 +468,7 @@ class _ReviewCorrectPageState extends ConsumerState<ReviewCorrectPage> {
     return [
       for (final entry in _childFields.entries) ...[
         FTextField(
-          control: .managed(controller: entry.value),
+          control: FTextFieldControl.managed(controller: entry.value),
           enabled: !_busy,
           label: Text(labels[entry.key] ?? entry.key),
         ),

@@ -34,7 +34,6 @@ class LinkedAccountsPage extends ConsumerWidget {
             ? const Center(child: FCircularProgress())
             : ListView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
                   vertical: 8,
                 ),
                 children: [

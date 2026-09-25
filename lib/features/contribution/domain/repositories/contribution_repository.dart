@@ -12,6 +12,7 @@ class SubmitWordImage {
     this.sha,
     this.altText,
     this.isPrimary = false,
+    this.contentWarnings = const [],
   });
 
   final String url;
@@ -21,6 +22,8 @@ class SubmitWordImage {
   final String? sha;
   final String? altText;
   final bool isPrimary;
+  /// Peringatan konten dipilih kontributor. V1: 'kekerasan'. Kosong = [].
+  final List<String> contentWarnings;
 }
 
 /// Relasi inline (Form B) - sinonim/antonim lemma baru ikut makna induk.

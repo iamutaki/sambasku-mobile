@@ -45,7 +45,7 @@ class _DevToolPageState extends State<DevToolPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
                 child: Row(
                   children: [
                     GestureDetector(

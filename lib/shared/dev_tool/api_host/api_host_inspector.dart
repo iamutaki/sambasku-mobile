@@ -186,7 +186,7 @@ class _ApiHostPageState extends State<_ApiHostPage> {
         ),
         for (final tier in tiers)
           _ModeTile(
-            label: 'Paksa tier ${tier.number}',
+            label: 'Tier ${tier.number}',
             subtitle: tier.host,
             selected: _resolver.forcedTierIndex == tier.index,
             onTap: () => _setMode(tier.index),
@@ -226,11 +226,14 @@ class _StatusCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: (onPrimary ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+        color: (onPrimary ? Colors.green : Colors.orange).withValues(
+          alpha: 0.1,
+        ),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: (onPrimary ? Colors.green : Colors.orange)
-              .withValues(alpha: 0.4),
+          color: (onPrimary ? Colors.green : Colors.orange).withValues(
+            alpha: 0.4,
+          ),
         ),
       ),
       child: Column(
@@ -255,9 +258,9 @@ class _StatusCard extends StatelessWidget {
             forced
                 ? 'Dipaksa dari dev tool - breaker diabaikan.'
                 : left == null
-                    ? 'Tidak ada pin aktif.'
-                    : 'Pin tersisa ${left.inMinutes}m ${left.inSeconds % 60}s, '
-                        'lalu tier 1 dicoba lagi.',
+                ? 'Tidak ada pin aktif.'
+                : 'Pin tersisa ${left.inMinutes}m ${left.inSeconds % 60}s, '
+                      'lalu tier 1 dicoba lagi.',
             style: const TextStyle(fontSize: 12),
           ),
         ],

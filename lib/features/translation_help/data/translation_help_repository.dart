@@ -61,12 +61,14 @@ class TranslationHelpRepository {
   Future<Either<TranslationHelpFailure, TranslationHelpPage>> listPublished({
     int limit = 20,
     String? cursor,
+    String sort = 'latest',
   }) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         _base,
         queryParameters: {
           'limit': limit,
+          'sort': sort,
           if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
         },
       );

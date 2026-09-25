@@ -88,7 +88,7 @@ class LoginPage extends HookConsumerWidget {
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Column(
               mainAxisAlignment: .center,
               crossAxisAlignment: .stretch,
@@ -96,7 +96,7 @@ class LoginPage extends HookConsumerWidget {
                 Skeletonizer(
                   enabled: !logoLoaded.value,
                   child: Center(
-                    child: BrandLogo(
+                    child: BrandMark(
                       size: 148,
                       frameBuilder:
                           (context, child, frame, wasSynchronouslyLoaded) {

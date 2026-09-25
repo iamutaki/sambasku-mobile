@@ -57,7 +57,7 @@ class _GuestState extends StatelessWidget {
     final theme = context.theme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -95,7 +95,7 @@ class _MineList extends ConsumerWidget {
     final async = ref.watch(myTranslationHelpsProvider);
 
     final chips = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -132,7 +132,7 @@ class _MineList extends ConsumerWidget {
               loading: () => const _MineSkeleton(),
               error: (error, _) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 children: [
                   const Gap(40),
                   Text(
@@ -156,7 +156,7 @@ class _MineList extends ConsumerWidget {
                 if (state.items.isEmpty) {
                   return ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     children: [
                       const Gap(40),
                       Text(
@@ -186,7 +186,7 @@ class _MineList extends ConsumerWidget {
 
                 return ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
                   itemCount:
                       state.items.length + (state.isLoadingMore ? 1 : 0),
                   separatorBuilder: (_, _) =>
@@ -247,7 +247,7 @@ class _MineSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Skeletonizer(
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         itemCount: 6,
         itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: 12),

@@ -15,12 +15,11 @@ import '../../../bookmark/presentation/widgets/bookmark_button.dart';
 import '../../../comment/presentation/widgets/word_comments_section.dart';
 import '../../../comment/presentation/providers/comment_providers.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/utils/display_image_url.dart';
 import '../../../../core/utils/format_datetime.dart';
 import '../../../../core/widgets/image_preview.dart';
 import '../../../../core/widgets/pending_review_badge_icon.dart';
 import '../../../../core/widgets/verified_badge_icon.dart';
-import '../../../../shared/widgets/cached_network_image_with_fallback.dart';
+import '../../../../shared/widgets/word_image_view.dart';
 import '../../../vote/domain/entities/vote_target.dart';
 import '../../../vote/domain/failures/vote_failure.dart';
 import '../../../vote/presentation/providers/vote_providers.dart';
@@ -47,10 +46,7 @@ class WordDetailPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useEffect(() {
-      AnalyticsService.instance.logWordOpen(
-        wordId: wordId,
-        source: 'detail',
-      );
+      AnalyticsService.instance.logWordOpen(wordId: wordId, source: 'detail');
       return null;
     }, [wordId]);
 
@@ -102,7 +98,7 @@ class WordDetailPage extends HookConsumerWidget {
             final isNotFound = failure.errorCode == 'WORD_NOT_FOUND';
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -134,8 +130,7 @@ class WordDetailPage extends HookConsumerWidget {
                     const Gap(16),
                     FButton(
                       variant: FButtonVariant.outline,
-                      onPress: () =>
-                          ref.invalidate(wordDetailProvider(wordId)),
+                      onPress: () => ref.invalidate(wordDetailProvider(wordId)),
                       child: const Text('Coba lagi'),
                     ),
                   ],
@@ -176,31 +171,40 @@ Future<void> _refreshWordDetail(WidgetRef ref, String wordId) async {
   ]);
 }
 
-Future<void> _openWordReview(BuildContext context, WidgetRef ref, String wordId) async {
-  final result = await ref.read(reviewRepositoryProvider).list(
-    status: 'pending',
-    wordId: wordId,
-    limit: 20,
-  );
+Future<void> _openWordReview(
+  BuildContext context,
+  WidgetRef ref,
+  String wordId,
+) async {
+  final result = await ref
+      .read(reviewRepositoryProvider)
+      .list(status: 'pending', wordId: wordId, limit: 20);
   if (!context.mounted) return;
-  result.match((failure) {
-    final message = failure.isForbidden
-        ? 'Kamu tidak berwenang meninjau usulan.'
-        : failure.message;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }, (page) {
-    if (page.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada usulan yang menunggu untuk kata ini.')),
-      );
-      return;
-    }
-    if (page.items.length == 1) {
-      context.push('/review/${page.items.first.id}');
-      return;
-    }
-    context.push('/review?wordId=$wordId');
-  });
+  result.match(
+    (failure) {
+      final message = failure.isForbidden
+          ? 'Kamu tidak berwenang meninjau usulan.'
+          : failure.message;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    },
+    (page) {
+      if (page.items.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada usulan yang menunggu untuk kata ini.'),
+          ),
+        );
+        return;
+      }
+      if (page.items.length == 1) {
+        context.push('/review/${page.items.first.id}');
+        return;
+      }
+      context.push('/review?wordId=$wordId');
+    },
+  );
 }
 
 /// Ikon menunggu pengecekan. Untuk verifikator, aksi Tinjau ada di bottom
@@ -268,7 +272,7 @@ void showPendingReviewSheet(
                   ],
                 ),
                 Text(
-                  'Kata ini belum diperiksa tim Sambasku. Artinya atau terjemahannya bisa saja kurang tepat.',
+                  'Kata ini belum diperiksa tim Sambasku. Makna atau terjemahannya bisa saja kurang tepat.',
                   style: theme.typography.sm,
                 ),
                 const Gap(12),
@@ -289,7 +293,7 @@ void showPendingReviewSheet(
   );
 }
 
-class _DetailBody extends ConsumerWidget {
+class _DetailBody extends HookConsumerWidget {
   const _DetailBody({required this.detail, required this.wordId});
 
   final WordDetail detail;
@@ -298,223 +302,324 @@ class _DetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.theme;
+    final violenceRevealed = useState(false);
+    useEffect(() {
+      violenceRevealed.value = false;
+      return null;
+    }, [wordId]);
+
     final primaryImage =
         detail.images.where((i) => i.isPrimary).firstOrNull ??
         detail.images.firstOrNull;
+    final allSpelling = detail.variants.every((v) => v.isSpellingVariant);
+    // Ejaan alternatif hanya form pendek, tanpa afiks. Badge-nya mengalir
+    // horizontal. Catatan (jarang) tetap satu baris supaya teksnya tidak hilang.
+    final compactSpelling =
+        allSpelling &&
+        detail.variants.every(
+          (v) => v.notes == null || v.notes!.isEmpty,
+        );
+
+    Future<void> requestRevealViolence() async {
+      final ok = await confirmRevealViolenceImage(context);
+      if (ok) {
+        violenceRevealed.value = true;
+        AnalyticsService.instance.log(
+          AnalyticsEvents.imageViolenceReveal,
+          params: {'word_id': wordId},
+        );
+      }
+    }
+
+    Future<void> openPreview(WordImage source) async {
+      // Pending images have no real URL - don't open gallery.
+      if (source.isPendingReview || isKnownPendingPlaceholderUrl(source.url)) {
+        showFToast(
+          context: context,
+          title: const Text('Gambar sedang dalam peninjauan.'),
+        );
+        return;
+      }
+      if (source.hasViolenceWarning && !violenceRevealed.value) {
+        await requestRevealViolence();
+        if (!violenceRevealed.value) return;
+      }
+      if (!context.mounted) return;
+      // Preview list: exclude pending images (no valid URL).
+      final previewImages = detail.images
+          .where(
+            (i) =>
+                !i.isPendingReview && !isKnownPendingPlaceholderUrl(i.url),
+          )
+          .toList(growable: false);
+      if (previewImages.isEmpty) return;
+      final idx = previewImages.indexWhere((i) => i.id == source.id);
+      await showImagePreview(
+        context,
+        urls: previewImages.map((i) => i.url).toList(growable: false),
+        initialIndex: idx < 0 ? 0 : idx,
+      );
+    }
+
+    Future<void> reportImageViolence(WordImage image) async {
+      final auth = await ref.read(authStatusProvider.future);
+      if (!context.mounted) return;
+      if (!auth.isAuth) {
+        showFToast(
+          context: context,
+          title: const Text('Masuk dulu untuk melaporkan foto'),
+        );
+        context.push('/login');
+        return;
+      }
+      final sent = await showReportWordSheet(
+        context,
+        wordId,
+        imageId: image.id,
+      );
+      if (!context.mounted || !sent) return;
+      showFToast(
+        context: context,
+        title: const Text(
+          'Laporan terkirim. Foto tetap tayang sampai ditinjau.',
+        ),
+      );
+    }
 
     return Column(
       children: [
         Expanded(
           child: RefreshIndicator(
-      onRefresh: () => _refreshWordDetail(ref, wordId),
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        children: [
-        // Header compact: thumb + meta
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (primaryImage != null) ...[
-              Semantics(
-                button: true,
-                label: 'Pratinjau gambar',
-                child: GestureDetector(
-                  onTap: () => showImagePreview(
-                    context,
-                    urls: detail.images
-                        .map((i) => i.url)
-                        .toList(growable: false),
-                    initialIndex: detail.images.indexOf(primaryImage),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: CachedNetworkImageWithFallback(
-                        imageUrl:
-                            displayImageUrl(primaryImage.url, width: 800) ??
-                            primaryImage.url,
-                        fallbackUrl: primaryImage.url,
-                        fit: BoxFit.cover,
+            onRefresh: () => _refreshWordDetail(ref, wordId),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
+              children: [
+                // Header compact: thumb + meta
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (primaryImage != null) ...[
+                      Semantics(
+                        button: true,
+                        label: primaryImage.isPendingReview
+                            ? 'Gambar menunggu tinjauan'
+                            : primaryImage.hasViolenceWarning &&
+                                !violenceRevealed.value
+                            ? 'Foto berisi kekerasan, ketuk untuk menampilkan'
+                            : 'Pratinjau gambar',
+                        child: GestureDetector(
+                          onTap: () => openPreview(primaryImage),
+                          onLongPress:
+                              primaryImage.isPendingReview ||
+                                  isKnownPendingPlaceholderUrl(primaryImage.url)
+                              ? null
+                              : () => reportImageViolence(primaryImage),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: WordImageView(
+                              image: primaryImage,
+                              width: 72,
+                              height: 72,
+                              revealed: violenceRevealed.value,
+                              onRequestReveal: requestRevealViolence,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Gap(12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  detail.lemma,
+                                  style: theme.typography.xl.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.15,
+                                  ),
+                                ),
+                              ),
+                              if (detail.isVerified)
+                                Semantics(
+                                  button: true,
+                                  label: 'Lihat verifikator',
+                                  child: GestureDetector(
+                                    onTap: () => showVerifierAttributionSheet(
+                                      context,
+                                      detail,
+                                    ),
+                                    child: const VerifiedBadgeIcon(),
+                                  ),
+                                )
+                              else
+                                _PendingStatusBadge(
+                                  offerReview:
+                                      detail.status == 'published' &&
+                                      canReviewQueue(
+                                        ref
+                                            .watch(authStatusProvider)
+                                            .value
+                                            ?.role,
+                                      ),
+                                  onReview: () =>
+                                      _openWordReview(context, ref, wordId),
+                                ),
+                            ],
+                          ),
+                          const Gap(2),
+                          Text(
+                            detail.wordTypeLabel,
+                            style: theme.typography.sm.copyWith(
+                              color: theme.colors.mutedForeground,
+                            ),
+                          ),
+                          if (detail.pronunciations.isNotEmpty) ...[
+                            const Gap(4),
+                            Text(
+                              detail.pronunciations
+                                  .map((p) => '${p.notation} ${p.value}')
+                                  .join(' · '),
+                              style: theme.typography.sm.copyWith(
+                                color: theme.colors.mutedForeground,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              const Gap(12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          detail.lemma,
-                          style: theme.typography.xl.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.15,
-                          ),
-                        ),
-                      ),
-                      if (detail.isVerified)
-                        Semantics(
-                          button: true,
-                          label: 'Lihat verifikator',
-                          child: GestureDetector(
-                            onTap: () =>
-                                showVerifierAttributionSheet(context, detail),
-                            child: const VerifiedBadgeIcon(),
-                          ),
-                        )
-                      else
-                        _PendingStatusBadge(
-                          offerReview: detail.status == 'published' &&
-                              canReviewQueue(
-                                ref.watch(authStatusProvider).value?.role,
-                              ),
-                          onReview: () =>
-                              _openWordReview(context, ref, wordId),
-                        ),
-                    ],
-                  ),
-                  const Gap(2),
+
+                const Gap(10),
+                PronunciationSection(
+                  wordId: wordId,
+                  languageId: detail.languageId,
+                  audios: detail.audios,
+                  spokenText: detail.lemma,
+                ),
+
+                if (detail.notes != null && detail.notes!.isNotEmpty) ...[
+                  const Gap(8),
                   Text(
-                    detail.wordTypeLabel,
+                    detail.notes!,
                     style: theme.typography.sm.copyWith(
                       color: theme.colors.mutedForeground,
                     ),
                   ),
-                  if (detail.pronunciations.isNotEmpty) ...[
-                    const Gap(4),
-                    Text(
-                      detail.pronunciations
-                          .map((p) => '${p.notation} ${p.value}')
-                          .join(' · '),
-                      style: theme.typography.sm.copyWith(
-                        color: theme.colors.mutedForeground,
-                        fontStyle: FontStyle.italic,
-                      ),
+                ],
+
+                if (detail.usageLabels.isNotEmpty ||
+                    detail.categories.isNotEmpty) ...[
+                  const Gap(8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final code in detail.usageLabels)
+                        FBadge(
+                          variant: isProminentUsageLabel(code)
+                              ? FBadgeVariant.primary
+                              : FBadgeVariant.secondary,
+                          child: Text(usageLabelLabel(code)),
+                        ),
+                      for (final c in detail.categories)
+                        FBadge(
+                          variant: FBadgeVariant.secondary,
+                          child: Text(c.name),
+                        ),
+                    ],
+                  ),
+                ],
+
+                const Gap(10),
+                _WordVoteBar(wordId: wordId),
+
+                if (detail.meanings.isNotEmpty) ...[
+                  const Gap(16),
+                  const _SectionLabel('Makna'),
+                  const Gap(6),
+                  ...detail.meanings.asMap().entries.map(
+                    (e) => _MeaningBlock(
+                      index: e.key + 1,
+                      lemma: detail.lemma,
+                      meaning: e.value,
+                      wordId: wordId,
+                      languageId: detail.languageId,
                     ),
+                  ),
+                ],
+
+                if (detail.variants.isNotEmpty) ...[
+                  const Gap(14),
+                  _SectionLabel(
+                    allSpelling
+                        ? 'Variasi penulisan'
+                        : 'Variasi & bentuk turunan',
+                  ),
+                  const Gap(6),
+                  if (compactSpelling)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final variant in detail.variants)
+                          FBadge(
+                            variant: FBadgeVariant.secondary,
+                            child: Text(variant.form),
+                          ),
+                      ],
+                    )
+                  else
+                    ...detail.variants.map((v) => _VariantRow(variant: v)),
+                ],
+
+                ..._relatedSections(detail.relatedWords),
+
+                if (detail.appearsIn.isNotEmpty) ...[
+                  const Gap(14),
+                  const _SectionLabel('Muncul dalam'),
+                  const Gap(4),
+                  ...detail.appearsIn.map((r) => _RelatedRow(related: r)),
+                ],
+
+                if (detail.combinedAttributionLabel != null ||
+                    detail.creatorAttributionLabel != null ||
+                    detail.verifierAttributionLabel != null) ...[
+                  const Gap(18),
+                  if (detail.combinedAttributionLabel != null)
+                    _AttributionLine(
+                      label: detail.combinedAttributionLabel!,
+                      username:
+                          detail.verifiedBy?.username ??
+                          detail.createdBy!.username,
+                      badge: detail.combinedByVerifier ? 'Verifikator' : null,
+                    )
+                  else ...[
+                    if (detail.creatorAttributionLabel != null)
+                      _AttributionLine(
+                        label: detail.creatorAttributionLabel!,
+                        username: detail.createdBy!.username,
+                      ),
+                    if (detail.verifierAttributionLabel != null) ...[
+                      const Gap(2),
+                      _AttributionLine(
+                        label: detail.verifierAttributionLabel!,
+                        username: detail.verifiedBy!.username,
+                      ),
+                    ],
                   ],
                 ],
-              ),
+
+                const Gap(16),
+                _WordActionTileGroup(detail: detail, wordId: wordId),
+              ],
             ),
-          ],
-        ),
-
-        const Gap(10),
-        PronunciationSection(
-          wordId: wordId,
-          languageId: detail.languageId,
-          audios: detail.audios,
-          spokenText: detail.lemma,
-        ),
-
-        if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-          const Gap(8),
-          Text(
-            detail.notes!,
-            style: theme.typography.sm.copyWith(
-              color: theme.colors.mutedForeground,
-            ),
-          ),
-        ],
-
-        if (detail.usageLabels.isNotEmpty || detail.categories.isNotEmpty) ...[
-          const Gap(8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final code in detail.usageLabels)
-                FBadge(
-                  variant: isProminentUsageLabel(code)
-                      ? FBadgeVariant.primary
-                      : FBadgeVariant.secondary,
-                  child: Text(usageLabelLabel(code)),
-                ),
-              for (final c in detail.categories)
-                FBadge(
-                  variant: FBadgeVariant.secondary,
-                  child: Text(c.name),
-                ),
-            ],
-          ),
-        ],
-
-        const Gap(10),
-        _WordVoteBar(wordId: wordId),
-
-        if (detail.meanings.isNotEmpty) ...[
-          const Gap(16),
-          const _SectionLabel('Makna'),
-          const Gap(6),
-          ...detail.meanings.asMap().entries.map(
-            (e) => _MeaningBlock(
-              index: e.key + 1,
-              lemma: detail.lemma,
-              meaning: e.value,
-              wordId: wordId,
-              languageId: detail.languageId,
-            ),
-          ),
-        ],
-
-        if (detail.variants.isNotEmpty) ...[
-          const Gap(14),
-          _SectionLabel(
-            detail.variants.every((v) => v.isSpellingVariant)
-                ? 'Variasi penulisan'
-                : 'Variasi & bentuk turunan',
-          ),
-          const Gap(6),
-          ...detail.variants.map((v) => _VariantRow(variant: v)),
-        ],
-
-        ..._relatedSections(detail.relatedWords),
-
-        if (detail.appearsIn.isNotEmpty) ...[
-          const Gap(14),
-          const _SectionLabel('Muncul dalam'),
-          const Gap(4),
-          ...detail.appearsIn.map((r) => _RelatedRow(related: r)),
-        ],
-
-        if (detail.combinedAttributionLabel != null ||
-            detail.creatorAttributionLabel != null ||
-            detail.verifierAttributionLabel != null) ...[
-          const Gap(18),
-          if (detail.combinedAttributionLabel != null)
-            _AttributionLine(
-              label: detail.combinedAttributionLabel!,
-              username:
-                  detail.verifiedBy?.username ?? detail.createdBy!.username,
-              badge: detail.combinedByVerifier ? 'Verifikator' : null,
-            )
-          else ...[
-            if (detail.creatorAttributionLabel != null)
-              _AttributionLine(
-                label: detail.creatorAttributionLabel!,
-                username: detail.createdBy!.username,
-              ),
-            if (detail.verifierAttributionLabel != null) ...[
-              const Gap(2),
-              _AttributionLine(
-                label: detail.verifierAttributionLabel!,
-                username: detail.verifiedBy!.username,
-              ),
-            ],
-          ],
-        ],
-
-        const Gap(16),
-        _WordActionTileGroup(detail: detail, wordId: wordId),
-      ],
-      ),
           ),
         ),
         WordCommentEntryBar(wordId: wordId),
@@ -724,9 +829,7 @@ class _WordActionTileGroup extends ConsumerWidget {
         FTile(
           prefix: const Icon(FLucideIcons.copy),
           title: const Text('Salin semua makna'),
-          subtitle: const Text(
-            'Lemma dan seluruh makna ke clipboard',
-          ),
+          subtitle: const Text('Lemma dan seluruh makna ke clipboard'),
           suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
           onPress: () => copyWordDetailToClipboard(context, detail),
         ),
@@ -788,6 +891,43 @@ class _WordActionTileGroup extends ConsumerWidget {
             );
           },
         ),
+        if (detail.images.isNotEmpty)
+          FTile(
+            prefix: const Icon(FLucideIcons.imageOff),
+            title: const Text('Laporkan foto ini berisi kekerasan'),
+            subtitle: const Text(
+              'Foto ditandai agar orang lain harus ketuk dulu sebelum melihat',
+            ),
+            suffix: Icon(FLucideIcons.chevronRight, size: 16, color: muted),
+            onPress: () async {
+              final auth = await ref.read(authStatusProvider.future);
+              if (!context.mounted) return;
+              if (!auth.isAuth) {
+                showFToast(
+                  context: context,
+                  title: const Text('Masuk dulu untuk melaporkan foto'),
+                );
+                context.push('/login');
+                return;
+              }
+              final imageId =
+                  (detail.images.where((i) => i.isPrimary).firstOrNull ??
+                          detail.images.first)
+                      .id;
+              final sent = await showReportWordSheet(
+                context,
+                wordId,
+                imageId: imageId,
+              );
+              if (!context.mounted || !sent) return;
+              showFToast(
+                context: context,
+                title: const Text(
+                  'Laporan foto terkirim. Terima kasih.',
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -1054,7 +1194,7 @@ class _DetailSkeleton extends StatelessWidget {
         child: Skeletonizer(
           enabled: true,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -33,6 +33,7 @@ abstract final class AnalyticsEvents {
   static const audioRecordStart = 'audio_record_start';
   static const audioRecordSubmit = 'audio_record_submit';
   static const reportWordSubmit = 'report_word_submit';
+  static const imageViolenceReveal = 'image_violence_reveal';
   static const reportBugSubmit = 'report_bug_submit';
   static const onboardingComplete = 'onboarding_complete';
   static const themeChange = 'theme_change';

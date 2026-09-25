@@ -32,6 +32,12 @@ class SubmitWordNotifier extends _$SubmitWordNotifier {
     state = state.copyWith(clearFailure: true, clearErrorMessage: true);
   }
 
+  /// Setelah sukses + "Tambah lagi": bersihkan result/search-miss supaya
+  /// form kosong siap usulan berikutnya tanpa navigate.
+  void resetForAnother() {
+    state = const SubmitWordState();
+  }
+
   Future<void> submit({
     required String lemma,
     required String languageId,
